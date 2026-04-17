@@ -1,0 +1,391 @@
+{
+  "meta": {
+    "snapshot_date": "2026-04-17",
+    "country": "US",
+    "market": "US_RIA",
+    "public_income_median": 83730.0,
+    "public_income_median_2024": 83730.0,
+    "affluent_income_floor": 167460.0,
+    "public_wealth_median_2023": 191100.0,
+    "public_wealth_p90_2023": 1806000.0
+  },
+  "categoricals": {
+    "marital_status": {
+      "married_or_civil_partner": 0.52,
+      "cohabiting": 0.1,
+      "single": 0.12,
+      "divorced": 0.1,
+      "widowed": 0.07,
+      "secondly_wedded": 0.09
+    },
+    "residence_state": {
+      "CA": 0.17,
+      "NY": 0.1,
+      "TX": 0.09,
+      "FL": 0.1,
+      "IL": 0.06,
+      "WA": 0.07,
+      "MA": 0.08,
+      "NJ": 0.09,
+      "PA": 0.08,
+      "NC": 0.06,
+      "Other": 0.1
+    },
+    "risk_tolerance": {
+      "conservative": 0.18,
+      "moderate": 0.38,
+      "growth": 0.29,
+      "aggressive": 0.15
+    },
+    "tax_bracket_band": {
+      "24%": 0.12,
+      "32%": 0.28,
+      "35%": 0.4,
+      "37%": 0.2
+    }
+  },
+  "booleans": {
+    "has_children": 0.41,
+    "has_mortgage": 0.56,
+    "has_non_mortgage_debt": 0.24,
+    "has_protection_policy": 0.55
+  },
+  "income_distribution": {
+    "source": "US Census CPS HINC-06 Household Income in 2024 (affluent subset approximated as >=$165k because of bracket boundaries)",
+    "public_income_median_2024": 83730.0,
+    "affluent_floor_2x_median": 167460.0,
+    "affluent_bracket_weights": [
+      {
+        "label": "165-169k",
+        "lo": 165000,
+        "hi": 170000,
+        "weight": 0.0473
+      },
+      {
+        "label": "170-174k",
+        "lo": 170000,
+        "hi": 175000,
+        "weight": 0.0443
+      },
+      {
+        "label": "175-179k",
+        "lo": 175000,
+        "hi": 180000,
+        "weight": 0.0419
+      },
+      {
+        "label": "180-184k",
+        "lo": 180000,
+        "hi": 185000,
+        "weight": 0.0413
+      },
+      {
+        "label": "185-189k",
+        "lo": 185000,
+        "hi": 190000,
+        "weight": 0.0345
+      },
+      {
+        "label": "190-194k",
+        "lo": 190000,
+        "hi": 195000,
+        "weight": 0.0379
+      },
+      {
+        "label": "195-199k",
+        "lo": 195000,
+        "hi": 200000,
+        "weight": 0.0339
+      },
+      {
+        "label": "200-249k",
+        "lo": 200000,
+        "hi": 250000,
+        "weight": 0.263
+      },
+      {
+        "label": "250k_plus",
+        "lo": 250000,
+        "hi": null,
+        "weight": 0.4558
+      }
+    ]
+  },
+  "wealth_segments": [
+    {
+      "name": "affluent",
+      "assets_lo": 250000,
+      "assets_hi": 2000000,
+      "weight": 0.78
+    },
+    {
+      "name": "hnw",
+      "assets_lo": 1000000,
+      "assets_hi": 30000000,
+      "weight": 0.215
+    },
+    {
+      "name": "ultra",
+      "assets_lo": 30000000,
+      "assets_hi": 150000000,
+      "weight": 0.005
+    }
+  ],
+  "date_rules": {
+    "min_parent_age_at_birth": 16,
+    "move_in_after_age": 18,
+    "employment_start_after_age": 16,
+    "loan_term_years_range": [
+      2,
+      35
+    ]
+  },
+  "scenario_catalog": [
+    "young_dual_income_low_assets",
+    "family_with_mortgage_and_children",
+    "affluent_couple_brokerage_and_pensions",
+    "one_high_earner_one_low_earner",
+    "pre_retirement_wealthy",
+    "self_employed_business_owner",
+    "retired_couple_high_assets_low_income",
+    "financially_stressed_with_debt",
+    "widowed",
+    "divorced",
+    "secondly_wedded_paying_alimony"
+  ],
+  "property_value_priors": {
+    "segment_min": {
+      "affluent": 450000.0,
+      "hnw": 800000.0,
+      "ultra": 3000000.0
+    }
+  },
+  "generator_params": {
+    "scenarios": [
+      "young_dual_income_low_assets",
+      "family_with_mortgage_and_children",
+      "affluent_couple_brokerage_and_pensions",
+      "one_high_earner_one_low_earner",
+      "pre_retirement_wealthy",
+      "self_employed_business_owner",
+      "retired_couple_high_assets_low_income",
+      "financially_stressed_with_debt",
+      "widowed",
+      "divorced",
+      "secondly_wedded_paying_alimony"
+    ],
+    "scenario_weights": [0.08, 0.18, 0.15, 0.1, 0.11, 0.08, 0.08, 0.08, 0.04, 0.05, 0.05],
+    "objectives_max_k": 3,
+    "household_composition_model": {
+      "couple_maybe_probability": 0.55,
+      "spouse_age_delta_years_min": -10,
+      "spouse_age_delta_years_max": 10,
+      "spouse_age_min": 18,
+      "spouse_age_max": 90,
+      "dob_jitter_years": 0.49
+    },
+    "marital_overrides": {
+      "widowed": "widowed",
+      "divorced": "divorced",
+      "secondly_wedded_paying_alimony": "secondly_wedded"
+    },
+    "mortgage_force_scenarios": ["family_with_mortgage_and_children", "financially_stressed_with_debt"],
+    "non_mortgage_force_scenarios": ["financially_stressed_with_debt"],
+    "objectives": [
+      "retirement",
+      "wealth_growth",
+      "income",
+      "education",
+      "tax_optimization",
+      "estate_planning",
+      "capital_preservation"
+    ],
+    "scenario_profiles": {
+      "young_dual_income_low_assets": {"age1": [25, 34], "couple": true, "kids": false},
+      "family_with_mortgage_and_children": {"age1": [32, 48], "couple": true, "kids": true},
+      "affluent_couple_brokerage_and_pensions": {"age1": [40, 62], "couple": true, "kids": "maybe"},
+      "one_high_earner_one_low_earner": {"age1": [35, 55], "couple": true, "kids": "maybe"},
+      "pre_retirement_wealthy": {"age1": [55, 66], "couple": true, "kids": false},
+      "self_employed_business_owner": {"age1": [35, 60], "couple": "maybe", "kids": "maybe"},
+      "retired_couple_high_assets_low_income": {"age1": [67, 82], "couple": true, "kids": false},
+      "financially_stressed_with_debt": {"age1": [30, 52], "couple": "maybe", "kids": "maybe"},
+      "widowed": {"age1": [58, 85], "couple": false, "kids": "maybe"},
+      "divorced": {"age1": [35, 65], "couple": false, "kids": "maybe"},
+      "secondly_wedded_paying_alimony": {"age1": [40, 68], "couple": true, "kids": "maybe"}
+    },
+    "mortgage_ratio_beta": {
+      "default": {"lo": 0.08, "hi": 0.5, "a": 2.0, "b": 3.2},
+      "family_with_mortgage_and_children": {"lo": 0.12, "hi": 0.55, "a": 2.4, "b": 2.8},
+      "financially_stressed_with_debt": {"lo": 0.18, "hi": 0.7, "a": 3.2, "b": 1.9},
+      "pre_retirement_wealthy": {"lo": 0.02, "hi": 0.35, "a": 1.6, "b": 4.0},
+      "retired_couple_high_assets_low_income": {"lo": 0.02, "hi": 0.35, "a": 1.6, "b": 4.0}
+    },
+    "mortgage_terms": {
+      "payment_ratio_cap": 0.7,
+      "rate_normal": {"mean": 5.0, "std": 1.1, "min": 2.5, "max": 10.0},
+      "years_remaining": {"min": 3.0, "max": 30.0},
+      "outstanding_multiplier": {"min": 0.75, "max": 0.95},
+      "ltv_cap": 0.8,
+      "income_multiple_cap": {"default": 4.5, "financially_stressed_with_debt": 6.0}
+    },
+    "expense_ratio_normal": {
+      "default": {"mean": 0.48, "std": 0.1, "min": 0.2, "max": 0.95},
+      "family_with_mortgage_and_children": {"mean": 0.58, "std": 0.08, "min": 0.2, "max": 0.95},
+      "financially_stressed_with_debt": {"mean": 0.82, "std": 0.08, "min": 0.2, "max": 0.95},
+      "pre_retirement_wealthy": {"mean": 0.45, "std": 0.07, "min": 0.2, "max": 0.95}
+    },
+    "non_mortgage_payment": {
+      "default": {"median": 280.0, "sigma": 0.7, "low": 25.0, "high": 2500.0, "out_mult_lo": 4.0, "out_mult_hi": 18.0},
+      "financially_stressed_with_debt": {"median": 950.0, "sigma": 0.55, "low": 150.0, "high": 3500.0, "out_mult_lo": 10.0, "out_mult_hi": 40.0}
+    },
+    "income_tail_model": {
+      "floor_default": 250000.0,
+      "u_breaks": {"mid": 0.8, "high": 0.98},
+      "mid1_hi": {"min": 500000.0, "floor_multiplier": 2.0},
+      "lognormal_stage": {"median": 700000.0, "sigma": 0.35, "low_cap": 1500000.0},
+      "pareto_stage": {"scale": 1000000.0, "shape": 2.5, "low": 1000000.0, "high": 5000000.0}
+    },
+    "income_model": {
+      "type": "lognormal",
+      "median_multiple_of_public_median": 2.0,
+      "sigma": 0.65,
+      "min_income": 15000.0,
+      "max_income": 20000000.0,
+      "max_resample": 50
+    },
+    "income_calibration": {
+      "target_mean_multiple_of_public_median": 2.0,
+      "scale": 1.0,
+      "simulation_n": 20000,
+      "simulation_seed": 0,
+      "iterations": 3
+    },
+    "scenario_income_adjustments": {
+      "young_dual_income_low_assets": {"mult_lo": 0.9, "mult_hi": 1.05},
+      "pre_retirement_wealthy": {"mult_lo": 0.9, "mult_hi": 1.15},
+      "retired_couple_high_assets_low_income": {"mult_lo": 0.35, "mult_hi": 0.6},
+      "financially_stressed_with_debt": {"mult_lo": 0.9, "mult_hi": 1.05},
+      "self_employed_business_owner": {"mult_lo": 1.0, "mult_hi": 1.3}
+    },
+    "spouse_income_split": {
+      "one_high_earner_one_low_earner": {"high_earner_share_lo": 0.72, "high_earner_share_hi": 0.88},
+      "default": {"spouse2_share_lo": 0.2, "spouse2_share_hi": 0.48}
+    },
+    "wealth_segment_model": {
+      "force_affluent_scenarios": ["young_dual_income_low_assets"],
+      "scenario_hnw_probability": {"retired_couple_high_assets_low_income": 0.25, "pre_retirement_wealthy": 0.25},
+      "hnw_income_threshold": 600000.0,
+      "hnw_probability": 0.35,
+      "ultra_income_threshold": 1200000.0,
+      "ultra_probability": 0.08,
+      "base_affluent_probability": 0.78
+    },
+    "investable_assets_model": {
+      "segments": {
+        "affluent": {"median": 700000.0, "sigma": 0.55, "clamp_lo": 250000.0, "clamp_hi": 2000000.0},
+        "hnw": {"median": 3500000.0, "sigma": 0.75, "clamp_lo": 1000000.0, "clamp_hi": 30000000.0},
+        "ultra": {"median": 45000000.0, "sigma": 0.55, "clamp_lo": 30000000.0, "clamp_hi": 150000000.0}
+      },
+      "scenario_adjustments": {
+        "young_dual_income_low_assets": {"mult": 0.55, "clamp_lo": 250000.0, "clamp_hi": 1200000.0},
+        "financially_stressed_with_debt": {"mult": 0.4, "clamp_lo": 100000.0, "clamp_hi": 3000000.0},
+        "retired_couple_high_assets_low_income": {"mult": 1.15}
+      },
+      "income_tie": {
+        "lower_income_mult": 0.5,
+        "segment_floor": {"affluent": 250000.0, "hnw": 1000000.0, "ultra": 30000000.0},
+        "segment_cap": {"affluent": 2000000.0, "hnw": 30000000.0, "ultra": 150000000.0}
+      }
+    },
+    "asset_mix_model": {
+      "segments": {
+        "affluent": {"retirement": [0.18, 0.38], "cash": [0.06, 0.18], "alts": [0.0, 0.05]},
+        "hnw": {"retirement": [0.12, 0.3], "cash": [0.04, 0.12], "alts": [0.03, 0.18]},
+        "ultra": {"retirement": [0.08, 0.2], "cash": [0.03, 0.1], "alts": [0.12, 0.35]}
+      },
+      "scenario_adjustments": {
+        "retired_couple_high_assets_low_income": {"retirement_add": 0.1, "retirement_cap": 0.6},
+        "young_dual_income_low_assets": {"retirement_cap": 0.3, "alts_force": 0.0}
+      }
+    },
+    "property_model": {
+      "segments": {
+        "affluent": {"hi_cap": 2500000.0, "mult_lo": 0.35, "mult_hi": 1.2},
+        "hnw": {"hi_cap": 8000000.0, "mult_lo": 0.25, "mult_hi": 1.5},
+        "ultra": {"hi_cap": 40000000.0, "mult_lo": 0.15, "mult_hi": 1.2}
+      },
+      "scenario_adjustments": {
+        "financially_stressed_with_debt": {"mult": 0.65, "floor": 350000.0},
+        "young_dual_income_low_assets": {"floor": 300000.0, "cap": 1200000.0}
+      }
+    },
+    "employment_model": {
+      "retirement_age": 68,
+      "youth_age": 23,
+      "youth_employed_prob": 0.65,
+      "self_employed_primary_scenario": "self_employed_business_owner",
+      "adult_probs": {
+        "employed": 0.68,
+        "self_employed_primary": 0.12,
+        "self_employed_secondary": 0.08,
+        "retired": 0.04,
+        "inactive_primary": 0.12,
+        "inactive_secondary": 0.18,
+        "unemployed": 0.04
+      }
+    },
+    "employment_started_model": {
+      "inactive_none": {"age_lt": 35, "prob": 0.7},
+      "non_retired_years": {"min_lo": 0.5, "min_age_ref": 28, "max_lo": 1.0, "max_age_ref": 18},
+      "retired_years": {"min_lo": 18.0, "min_age_ref": 45, "max_lo": 20.0, "max_age_ref": 22}
+    },
+    "move_in_model": {"min_years": 0.5, "min_floor": 1.0, "age_ref": 18, "cap_years": 25, "min_age": 18},
+    "children_model": {"max_children": 5, "poisson_lambda": 1.4, "poisson_plus": 1, "max_child_age_cap": 24.0},
+    "alimony_model": {
+      "secondly_wedded_paying_alimony": {"min": 12000.0, "max": 72000.0},
+      "divorced": {"prob": 0.18, "min": 6000.0, "max": 30000.0}
+    },
+    "risk_overrides": {"ultra_growth_probability": 0.35, "retired_couple_high_assets_low_income": "moderate"},
+    "net_worth_proxy_model": {"add_uniform_lo": 0.0, "add_uniform_hi_mult": 0.08},
+    "person_model": {
+      "desired_retirement_age": {"mean": 66.0, "std": 3.0, "min": 55, "max": 75},
+      "occupation_group": {
+        "primary": ["exec", "professional", "finance", "sales", "operations", "business_owner", "retired"],
+        "secondary": ["professional", "healthcare", "education", "operations", "business_owner", "retired", "inactive"]
+      },
+      "smoker_probability": {"primary": 0.1, "secondary": 0.08},
+      "state_of_health": {
+        "values": ["excellent", "good", "fair", "poor"],
+        "primary_probs": [0.24, 0.48, 0.22, 0.06],
+        "secondary_probs": [0.2, 0.5, 0.23, 0.07]
+      }
+    },
+    "income_lines_model": {
+      "sources": ["salary", "bonus", "business_income", "rental_income", "social_security", "pension_income", "interest_dividends"],
+      "lines_poisson_lambda": 2.1,
+      "split_fraction": {"lo": 0.08, "hi": 0.45},
+      "owner": {"joint_prob": 0.12, "client2_prob": 0.3},
+      "frequency": {
+        "values": ["monthly", "weekly", "annual", "quarterly", "ad_hoc"],
+        "probs": [0.64, 0.1, 0.12, 0.08, 0.06]
+      }
+    },
+    "asset_model": {
+      "provider_types": ["bank", "brokerage", "retirement_platform", "insurance", "advisor_platform"],
+      "joint_owner_probability": 0.45,
+      "client2_owner_probability": 0.3,
+      "joint_types": ["brokerage", "cash", "property"]
+    },
+    "liability_model": {
+      "non_mortgage_interest_rate": {"min": 8.0, "max": 29.0},
+      "non_mortgage_final_payment_years": {"min": 1.0, "max": 7.0}
+    },
+    "protection_model": {
+      "assured_min": 50000.0,
+      "assured_income_mult": {"min": 1.5, "max": 8.0},
+      "policy_types": ["life", "disability", "ltc"],
+      "monthly_cost_rate": {"min": 0.00015, "max": 0.0011},
+      "assured_until_years": {"min": 5.0, "max": 35.0}
+    }
+  }
+}

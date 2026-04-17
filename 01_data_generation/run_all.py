@@ -1,30 +1,12 @@
 from __future__ import annotations
-import subprocess
-import sys
+import subprocess, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "src"
 
-OPTIONAL_STEPS = {"01_fetch_us_sources.py"}
-
-steps = [
-    "01_fetch_us_sources.py",
-    "02_compute_priors.py",
-    "03_generate_data.py",
-    "04_validate_and_score.py",
-    "05_autoencoder_anomalies.py",
-    "06_report.py",
-]
-
-for step in steps:
+for step in ["01_compute_priors.py","02_generate_data.py","03_validate_and_score.py","04_autoencoder_anomalies.py","05_report.py"]:
     print(f"=== Running {step} ===")
-    try:
-        subprocess.run([sys.executable, str(SRC / step)], check=True)
-    except subprocess.CalledProcessError as e:
-        if step in OPTIONAL_STEPS:
-            print(f"Skipping optional step {step} due to error: {e}")
-            continue
-        raise
+    subprocess.run([sys.executable, str(SRC / step)], check=True)
 
-print("All required steps completed.")
+print("All steps completed.")
