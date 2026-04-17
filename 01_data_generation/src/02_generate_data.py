@@ -443,16 +443,35 @@ def gen_one(hidx, ctx: Ctx):
         )
 
         yrs = mt.get("years_remaining") or {}
-        years_remaining = float(rng.uniform(float(yrs["min"]), float(yrs["max"])))
-        # approximate outstanding from amortizing payment
         outm = mt.get("outstanding_multiplier") or {}
-        mortgage_outstanding = mortgage_payment * 12 * years_remaining * float(rng.uniform(float(outm["min"]), float(outm["max"])))
-        # hard caps
+
+        # hard caps (apply via resampling to avoid mass piling on the boundary)
         ltv_cap = float(mt["ltv_cap"])
         imc = mt.get("income_multiple_cap") or {}
         inc_mult = float(imc.get(scenario, imc["default"]))
-        mortgage_outstanding = min(mortgage_outstanding, prop_val * ltv_cap, hh_income * inc_mult)
-        final_payment = snap + timedelta(days=int(years_remaining * 365.25))
+        cap = min(float(prop_val) * float(ltv_cap), float(hh_income) * float(inc_mult))
+
+        max_tries = int(mt["outstanding_resample_max_tries"])
+        fb_lo = float(mt["cap_fallback_mult_lo"])
+        fb_hi = float(mt["cap_fallback_mult_hi"])
+
+        years_remaining = None
+        mortgage_outstanding = None
+        for _ in range(max_tries):
+            yrs_candidate = float(rng.uniform(float(yrs["min"]), float(yrs["max"])))
+            out_candidate = mortgage_payment * 12 * yrs_candidate * float(
+                rng.uniform(float(outm["min"]), float(outm["max"]))
+            )
+            if out_candidate <= cap:
+                years_remaining = yrs_candidate
+                mortgage_outstanding = out_candidate
+                break
+
+        if mortgage_outstanding is None:
+            years_remaining = float(rng.uniform(float(yrs["min"]), float(yrs["max"])))
+            mortgage_outstanding = cap * float(rng.uniform(fb_lo, fb_hi))
+
+        final_payment = snap + timedelta(days=int(float(years_remaining) * 365.25))
 
     non_mortgage_payment = 0.0; non_mortgage_outstanding = 0.0
     if has_non_mortgage:

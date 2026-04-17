@@ -2,15 +2,21 @@
 
 ## Counts
 - households: 5000
-- people: 9177
+- people: 9181
 - rule violations: 0
 
 ## Medians
-- annual household gross income: 130,062.90
-- investable assets total: 806,169.57
-- net worth proxy: 1,127,772.42
-- monthly mortgage payment total (positive only): 2,740.64
-- monthly non-mortgage payment total (positive only): 362.27
+- annual household gross income: 130,709.05
+- investable assets total: 792,421.08
+- net worth proxy: 1,160,319.25
+- monthly mortgage payment total (positive only): 2,621.48
+- monthly non-mortgage payment total (positive only): 378.25
+
+## Figures
+
+### Income vs assets
+
+![Income vs investable assets](../figures/income_vs_investable_assets.png)
 
 ## Notes
 - Income generation uses a smooth lognormal model anchored to the public median (from open Census ACS where available).
@@ -18,4 +24,4 @@
 - Mortgage payment to income ratio is capped at 70%.
 - Total debt cost share of income is capped at 95% for plotting.
 - Top 5 anomalous households are saved for manual review.
-- Sanity: households with income < $100k and investable assets > $10M: 24
+- Sanity: households with income < $100k and investable assets > $10M: 30

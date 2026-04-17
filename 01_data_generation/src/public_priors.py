@@ -637,6 +637,9 @@ def default_generator_params() -> Dict[str, Any]:
             "outstanding_multiplier": {"min": 0.75, "max": 0.95},
             "ltv_cap": 0.80,
             "income_multiple_cap": {"default": 4.5, "financially_stressed_with_debt": 6.0},
+            "outstanding_resample_max_tries": 25,
+            "cap_fallback_mult_lo": 0.85,
+            "cap_fallback_mult_hi": 0.99,
         },
         "expense_ratio_normal": {
             "default": {"mean": 0.48, "std": 0.10, "min": 0.20, "max": 0.95},

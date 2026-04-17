@@ -2,6 +2,10 @@ services:
   synth:
     build: .
     container_name: us-ria-synth
+    environment:
+      SYNTH_SEED: ${SYNTH_SEED:-42}
+      SYNTH_N_HOUSEHOLDS: ${SYNTH_N_HOUSEHOLDS:-5000}
+      SYNTH_PRIORS_SOURCE: ${SYNTH_PRIORS_SOURCE:-acs}
     volumes:
       - ./artifacts:/app/artifacts
     command: python run_all.py
