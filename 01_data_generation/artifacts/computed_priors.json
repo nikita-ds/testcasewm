@@ -3,11 +3,11 @@
     "snapshot_date": "2026-04-17",
     "country": "US",
     "market": "US_RIA",
-    "public_income_source": "Census ACS acs/acs1 2024 via api.census.gov",
-    "public_income_median": 81604.0,
-    "affluent_income_floor": 163208.0,
-    "acs_year": 2024,
-    "acs_dataset": "acs/acs1"
+    "public_income_median": 83730.0,
+    "public_income_median_2024": 83730.0,
+    "affluent_income_floor": 167460.0,
+    "public_wealth_median_2023": 191100.0,
+    "public_wealth_p90_2023": 1806000.0
   },
   "categoricals": {
     "marital_status": {
@@ -19,17 +19,17 @@
       "secondly_wedded": 0.09
     },
     "residence_state": {
-      "CA": 0.1159364565079182,
-      "FL": 0.06871937598958505,
-      "IL": 0.03737061833844299,
-      "MA": 0.02098188888280264,
-      "NJ": 0.027934560420996686,
-      "NY": 0.05841401361361478,
-      "NC": 0.03247770382250806,
-      "PA": 0.03845436161883507,
-      "TX": 0.0920018226991136,
-      "WA": 0.023398773441575645,
-      "Other": 0.4843104246646073
+      "CA": 0.17,
+      "NY": 0.1,
+      "TX": 0.09,
+      "FL": 0.1,
+      "IL": 0.06,
+      "WA": 0.07,
+      "MA": 0.08,
+      "NJ": 0.09,
+      "PA": 0.08,
+      "NC": 0.06,
+      "Other": 0.1
     },
     "risk_tolerance": {
       "conservative": 0.18,
@@ -51,74 +51,65 @@
     "has_protection_policy": 0.55
   },
   "income_distribution": {
-    "source": "Derived from ACS B19001 high-income bins (150-199k, 200k+) for acs/acs1 2024; 150-199k subdivided uniformly above affluent floor.",
-    "public_income_median": 81604.0,
-    "affluent_floor_2x_median": 163208.0,
+    "source": "US Census CPS HINC-06 Household Income in 2024 (affluent subset approximated as >=$165k because of bracket boundaries)",
+    "public_income_median_2024": 83730.0,
+    "affluent_floor_2x_median": 167460.0,
     "affluent_bracket_weights": [
       {
         "label": "165-169k",
         "lo": 165000,
         "hi": 170000,
-        "weight": 0.05729177859500306
+        "weight": 0.0473
       },
       {
         "label": "170-174k",
         "lo": 170000,
         "hi": 175000,
-        "weight": 0.05729177859500306
+        "weight": 0.0443
       },
       {
         "label": "175-179k",
         "lo": 175000,
         "hi": 180000,
-        "weight": 0.05729177859500306
+        "weight": 0.0419
       },
       {
         "label": "180-184k",
         "lo": 180000,
         "hi": 185000,
-        "weight": 0.05729177859500306
+        "weight": 0.0413
       },
       {
         "label": "185-189k",
         "lo": 185000,
         "hi": 190000,
-        "weight": 0.05729177859500306
+        "weight": 0.0345
       },
       {
         "label": "190-194k",
         "lo": 190000,
         "hi": 195000,
-        "weight": 0.05729177859500306
+        "weight": 0.0379
       },
       {
         "label": "195-199k",
         "lo": 195000,
         "hi": 200000,
-        "weight": 0.05729177859500306
+        "weight": 0.0339
       },
       {
-        "label": "200k_plus",
+        "label": "200-249k",
         "lo": 200000,
+        "hi": 250000,
+        "weight": 0.263
+      },
+      {
+        "label": "250k_plus",
+        "lo": 250000,
         "hi": null,
-        "weight": 0.5989575498349785
+        "weight": 0.4558
       }
     ]
-  },
-  "property_value": {
-    "source": "Census ACS B25075 owner-occupied home value bins for acs/acs1 2024 via api.census.gov",
-    "quantiles_us_owner_occupied": {
-      "p50": 360556.3872937735,
-      "p80": 680787.9544535207,
-      "p95": 1351087.0601746503
-    }
-  },
-  "property_value_priors": {
-    "segment_min": {
-      "affluent": 360556.3872937735,
-      "hnw": 680787.9544535207,
-      "ultra": 1351087.0601746503
-    }
   },
   "wealth_segments": [
     {
@@ -162,6 +153,13 @@
     "divorced",
     "secondly_wedded_paying_alimony"
   ],
+  "property_value_priors": {
+    "segment_min": {
+      "affluent": 450000.0,
+      "hnw": 800000.0,
+      "ultra": 3000000.0
+    }
+  },
   "generator_params": {
     "scenarios": [
       "young_dual_income_low_assets",
@@ -442,10 +440,10 @@
     },
     "income_calibration": {
       "target_mean_multiple_of_public_median": 2.0,
-      "public_income_median": 81604.0,
-      "target_mean": 163208.0,
-      "baseline_mean_estimate": 163208.0,
-      "scale": 0.8359452894679233,
+      "public_income_median": 83730.0,
+      "target_mean": 167460.0,
+      "baseline_mean_estimate": 167460.0,
+      "scale": 0.8359452894679236,
       "simulation_n": 20000,
       "simulation_seed": 0,
       "iterations": 3
