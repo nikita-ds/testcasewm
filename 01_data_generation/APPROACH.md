@@ -27,6 +27,11 @@ These anchors define:
 
 Then distributions are shifted upward to reflect the advisor-served segment.
 
+In the pipeline, priors are computed into a single persisted artifact:
+- `artifacts/computed_priors.json` is the only priors input consumed downstream.
+- `src/01_compute_priors.py --source acs` prefers open Census ACS via `api.census.gov` (cached under `artifacts/public_data_cache/`).
+- `src/01_compute_priors.py --source config` builds priors from `config/priors.json` for offline/CI.
+
 ### Data model
 Relational schema:
 - households
@@ -52,10 +57,12 @@ The generator combines:
 ### Dates
 Dates are derived, not sampled independently:
 - date_of_birth from age
-- employment_started after age 16
-- move_in_date after age 18
-- child DOB implies parent age >= 16
+- employment_started after `date_rules.employment_start_after_age`
+- move_in_date after `date_rules.move_in_after_age`
+- child DOB implies parent age >= `date_rules.min_parent_age_at_birth`
 - loan final payment date in the future for non-revolving loans
+
+These date thresholds live in priors/config (not in generator code).
 
 ### Validation
 #### Statistical validation
@@ -75,6 +82,12 @@ Rule of thumb:
 - household structure consistency
 - loan/final-payment consistency
 - alimony and marital-state coherence
+
+### Determinism
+For reproducible runs (especially in Docker), `run_all.py` supports:
+- `SYNTH_SEED` (default: 42)
+- `SYNTH_N_HOUSEHOLDS` (default: 5000)
+- `SYNTH_PRIORS_SOURCE` (default: acs)
 
 ### Scenario coverage
 The generator explicitly covers:
@@ -108,3 +121,8 @@ The solution combines:
 - PSI/JS monitoring
 - scenario coverage
 - anomaly detection
+
+Additionally:
+- income is generated from a smooth lognormal model anchored to the public median and calibrated to a target mean multiple.
+- investable assets are capped relative to income (configurable) to reduce implausible combinations (e.g. very low income with ultra-high liquid assets).
+- report includes a cross-plot `income_vs_investable_assets.png` to visually inspect income/asset consistency.

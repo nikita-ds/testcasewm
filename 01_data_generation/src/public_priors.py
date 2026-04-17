@@ -707,6 +707,7 @@ def default_generator_params() -> Dict[str, Any]:
             },
             "income_tie": {
                 "lower_income_mult": 0.50,
+                "upper_income_mult": 250.0,
                 "segment_floor": {"affluent": 250000.0, "hnw": 1000000.0, "ultra": 30000000.0},
                 "segment_cap": {"affluent": 2000000.0, "hnw": 30000000.0, "ultra": 150000000.0},
             },

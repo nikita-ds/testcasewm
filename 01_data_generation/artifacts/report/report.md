@@ -18,3 +18,4 @@
 - Mortgage payment to income ratio is capped at 70%.
 - Total debt cost share of income is capped at 95% for plotting.
 - Top 5 anomalous households are saved for manual review.
+- Sanity: households with income < $100k and investable assets > $10M: 24

@@ -213,8 +213,9 @@ def sample_assets_for_segment(priors, segment, scenario, income, rng):
     tie = am.get("income_tie") or {}
     seg_floor = (tie.get("segment_floor") or {}).get(segment)
     seg_cap = (tie.get("segment_cap") or {}).get(segment)
+    upper_income_mult = float(tie["upper_income_mult"])
     lower = max(float(seg_floor), float(income) * float(tie["lower_income_mult"]))
-    upper = float(seg_cap)
+    upper = min(float(seg_cap), float(income) * upper_income_mult)
     investable = float(clamp(investable, lower, upper))
     return investable
 

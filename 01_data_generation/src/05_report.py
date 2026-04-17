@@ -71,6 +71,35 @@ def save_ratio_hist(numer, denom, title, path, *, log_x=True, bins=40, xlim=None
     plt.savefig(path, dpi=180)
     plt.close()
 
+
+def save_income_vs_assets_plot(hh: pd.DataFrame, path: Path) -> None:
+    df = hh[["annual_household_gross_income", "investable_assets_total"]].copy()
+    df = df.dropna()
+    df["annual_household_gross_income"] = df["annual_household_gross_income"].astype(float)
+    df["investable_assets_total"] = df["investable_assets_total"].astype(float)
+    df = df[(df["annual_household_gross_income"] > 0) & (df["investable_assets_total"] > 0)]
+    if len(df) == 0:
+        return
+
+    x = df["annual_household_gross_income"].to_numpy()
+    y = df["investable_assets_total"].to_numpy()
+
+    plt.figure(figsize=(7.5, 5.5))
+    if len(df) >= 1500:
+        plt.hexbin(x, y, gridsize=55, xscale="log", yscale="log", mincnt=1)
+        cb = plt.colorbar()
+        cb.set_label("count")
+    else:
+        plt.scatter(x, y, s=10, alpha=0.25)
+        plt.xscale("log")
+        plt.yscale("log")
+    plt.xlabel("Annual household gross income")
+    plt.ylabel("Investable assets total")
+    plt.title("Income vs investable assets")
+    plt.tight_layout()
+    plt.savefig(path, dpi=180)
+    plt.close()
+
 def main():
     hh = pd.read_csv(TABLES / "households.csv")
     people = pd.read_csv(TABLES / "people.csv")
@@ -85,6 +114,8 @@ def main():
     save_hist(hh["net_worth_proxy"], "Net worth proxy", FIGS / "net_worth_hist.png", log_x=True)
     save_hist(hh["monthly_mortgage_payment_total"], "Monthly mortgage payment total", FIGS / "mortgage_payment_hist.png", log_x=False)
     save_hist(hh["monthly_non_mortgage_payment_total"], "Monthly non-mortgage payment total", FIGS / "non_mortgage_payment_hist.png", log_x=False)
+
+    save_income_vs_assets_plot(hh, FIGS / "income_vs_investable_assets.png")
 
     ratio = pd.Series(hh["mortgage_payment_to_income_ratio"]).dropna().astype(float)
     ratio = ratio[(ratio > 0) & (ratio <= 0.70)]
@@ -160,6 +191,9 @@ def main():
     mort_med = float(mort_pos.median()) if len(mort_pos) > 0 else 0.0
     nonmort_med = float(nonmort_pos.median()) if len(nonmort_pos) > 0 else 0.0
 
+    sanity = hh[["annual_household_gross_income", "investable_assets_total"]].dropna().astype(float)
+    n_low_inc_high_assets = int(((sanity["annual_household_gross_income"] < 100000.0) & (sanity["investable_assets_total"] > 10000000.0)).sum())
+
     md = f"""# US RIA-like synthetic household report
 
 ## Counts
@@ -174,12 +208,19 @@ def main():
 - monthly mortgage payment total (positive only): {mort_med:,.2f}
 - monthly non-mortgage payment total (positive only): {nonmort_med:,.2f}
 
+## Figures
+
+### Income vs assets
+
+![Income vs investable assets](../figures/income_vs_investable_assets.png)
+
 ## Notes
 - Income generation uses a smooth lognormal model anchored to the public median (from open Census ACS where available).
 - Amount plots filter out zeros and clip the upper tail for readability.
 - Mortgage payment to income ratio is capped at 70%.
 - Total debt cost share of income is capped at 95% for plotting.
 - Top 5 anomalous households are saved for manual review.
+- Sanity: households with income < $100k and investable assets > $10M: {n_low_inc_high_assets}
 """
     (REP / "report.md").write_text(md, encoding="utf-8")
     print("Wrote report to", REP)
