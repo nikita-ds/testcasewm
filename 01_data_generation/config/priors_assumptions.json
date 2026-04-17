@@ -1,0 +1,38 @@
+{
+  "official_anchors": {
+    "census_median_household_income_2023": 80610.0,
+    "sipp_median_household_wealth_2023": 191100.0,
+    "sipp_p90_household_wealth_2023": 1806000.0,
+    "bls_average_consumer_unit_income_before_taxes_2024": 104207.0,
+    "bls_average_consumer_unit_expenditures_2024": 78535.0
+  },
+  "source_links": {
+    "census_income_2023": "https://www.census.gov/library/publications/2024/demo/p60-282.html",
+    "sipp_wealth_2023": "https://www.census.gov/library/publications/2025/demo/p70br-211.html",
+    "bls_cex_2024": "https://www.bls.gov/news.release/cesan.nr0.htm",
+    "fed_scf_index": "https://www.federalreserve.gov/econres/scfindex.htm"
+  },
+  "assumptions": {
+    "market": "US RIA",
+    "country": "US",
+    "client_segment_rule": "annual household gross income >= 2x US median household income (2023 Census anchor)",
+    "notes": [
+      "Public data are used as rough priors and sanity anchors, not exact targets.",
+      "Distributions are shifted upward to emulate advisor-served affluent households.",
+      "Consistency of dates, family structure, assets and liabilities is prioritized over population representativeness."
+    ]
+  },
+  "scenario_catalog": [
+    "young_dual_income_low_assets",
+    "family_with_mortgage_and_children",
+    "affluent_couple_brokerage_and_pensions",
+    "one_high_earner_one_low_earner",
+    "pre_retirement_wealthy",
+    "self_employed_business_owner",
+    "retired_couple_high_assets_low_income",
+    "financially_stressed_with_debt",
+    "widowed",
+    "divorced",
+    "secondly_wedded_paying_alimony"
+  ]
+}
