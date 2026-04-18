@@ -1,17 +1,22 @@
 # Synthetic Data Generation for US RIA-like Households
 
-## Objective
+This document explains (1) assumptions and how requirements are formalized in code, (2) validation and anomaly detection, and (3) external data and priors.
 
-Generate realistic synthetic household-level financial data for an affluent US RIA-like segment, with a focus on:
+---
 
-- internal consistency across tables (households/people/assets/liabilities)
-- smooth, plausible distributions (no obvious “stepped” artifacts)
-- explicit scenario coverage
-- rule-based validity and diagnostics
+## 1) Assumptions and formalized requirements
 
-## What this pipeline actually does
+### Segment and scope
 
-### Single source of truth: priors
+Assumption: the target population is **affluent US households served by an RIA-like advisor** (not the general population).
+
+How this is formalized:
+
+- Generation is scenario-driven (explicit household archetypes).
+- Income and wealth distributions are shifted upward from public anchors.
+- Wealth segments (affluent/HNW/ultra) have floors/caps.
+
+### Single source of truth and reproducibility
 
 All downstream steps consume exactly one priors artifact:
 
@@ -19,99 +24,32 @@ All downstream steps consume exactly one priors artifact:
 
 It is produced by `src/01_compute_priors.py`:
 
-- `--source acs`: fetches open Census ACS via `api.census.gov` and caches raw API responses under `artifacts/public_data_cache/`
-- `--source config`: uses `config/priors.json` (offline/CI friendly)
+- `--source acs`: uses open Census ACS via `api.census.gov`, caching raw responses under `artifacts/public_data_cache/`
+- `--source config`: uses `config/priors.json` (offline/CI)
 
-In ACS mode, the computed priors are a deep-merge of:
+Determinism (especially for Docker) is controlled by env vars read by `run_all.py`:
 
-- public anchors (medians/quantiles) derived from the API response
-- curated generation knobs (`generator_params`) to keep the generator stable and explainable
+- `SYNTH_SEED`
+- `SYNTH_N_HOUSEHOLDS`
+- `SYNTH_PRIORS_SOURCE` (`acs|config`)
 
-### Target population
-
-This dataset is intentionally **not** the general US population.
-It targets **affluent households typically served by US RIA firms**.
-
-Operationally, the segment is enforced by:
-
-- income model anchored to public median but shifted upward (see “Income model”)
-- wealth segments with floors and caps
-- scenario-specific adjustments
-
-### Config-first generator knobs (no “magic constants”)
-
-The generator reads its behavior from:
-
-- `computed_priors.json` → `generator_params` (plus categorical/boolean priors)
-
-This includes the “knobs” that would otherwise become hard-coded constants:
-
-- scenario catalog + weights
-- household composition rules (couple/kids heuristics, spouse age ranges, DOB jitter)
-- income model configuration
-- assets model and income↔assets tie
-- mortgage/non-mortgage debt models and caps
-- expense model
-- property model
-
-### Pipeline entrypoint and determinism
-
-The default entrypoint is `run_all.py`, typically executed via Docker Compose.
-Reproducibility is controlled by environment variables (read by `run_all.py` and passed to scripts):
-
-- `SYNTH_SEED` (default: 42)
-- `SYNTH_N_HOUSEHOLDS` (default: 5000)
-- `SYNTH_PRIORS_SOURCE` (default: `acs`, choices: `acs|config`)
-
-`docker-compose.yml` forwards these variables into the container (with defaults), so a `.env` file or shell env can control runs.
-
-## Data model
-
-Relational schema (CSV outputs):
+### Data model (schema)
 
 - Authoritative contract (fields + types + primary keys): `config/schema.json`
-- Materialized outputs: `artifacts/tables/*.csv`
+- Materialized tables: `artifacts/tables/*.csv`
 
-- households
-- people
-- income_lines
-- assets
-- liabilities
-- protection_policies
+Entities and relationships (PK/FK):
 
-### Schema summary (keys and relationships)
+- `households` (PK `household_id`)
+- `people` (PK `person_id`, FK `household_id`)
+- `income_lines` (PK `income_line_id`, FK `household_id`)
+- `assets` (PK `asset_id`, FK `household_id`)
+- `liabilities` (PK `liability_id`, FK `household_id`)
+- `protection_policies` (PK `policy_id`, FK `household_id`)
 
-- `households` (PK: `household_id`)
-	- Household-level aggregates and derived metrics (income, expenses, debt totals, investable totals, ratios, scenario/segment labels)
-- `people` (PK: `person_id`, FK: `household_id` → `households.household_id`)
-	- Individuals in the household (role, DOB, employment, person-level income)
-- `income_lines` (PK: `income_line_id`, FK: `household_id`)
-	- Multiple income streams per household (owner, source_type, frequency, gross/net, annualized amount)
-- `assets` (PK: `asset_id`, FK: `household_id`)
-	- Asset inventory (type/subtype/provider, owner, joint flag, value)
-- `liabilities` (PK: `liability_id`, FK: `household_id`)
-	- Liability inventory (type, monthly cost, outstanding, interest rate, optional final payment date)
-- `protection_policies` (PK: `policy_id`, FK: `household_id`)
-	- Protection policies (policy type, owner, monthly cost, amount assured, optional end date)
+### Scenario catalog (coverage requirement)
 
-This supports:
-
-- individual vs joint ownership
-- multiple income streams and liabilities per household
-- date fields for lifecycle events
-- mixed feature types (categoricals + multichoice)
-
-## Generation strategy
-
-The generator (`src/02_generate_data.py`) combines:
-
-1) **Scenario-based generation** (explicit set of household archetypes)
-2) **Conditional sampling** (values depend on scenario and wealth segment)
-3) **Lifecycle/date constraints** (derived dates + rule checks)
-
-### Scenarios
-
-Covered scenarios are explicitly enumerated in priors (and mirrored in config):
+Scenarios are explicitly enumerated in priors/config and sampled with weights (no “implicit” rare cases):
 
 - young dual-income low-assets
 - family with mortgage and children
@@ -125,95 +63,123 @@ Covered scenarios are explicitly enumerated in priors (and mirrored in config):
 - divorced
 - secondly wedded and paying alimony
 
-### Income model
+### Distributional requirements (formalized by model families)
 
-Income is generated as a **smooth lognormal** distribution anchored to a public median.
-Then it is calibrated so that the generated mean matches a configurable multiple of that public median.
+Generator behavior is controlled by `computed_priors.json → generator_params` (to avoid hard-coded constants).
+Key modeling choices are:
 
-Goal: preserve a “public anchor” while producing an affluent segment without bracket/step artifacts.
+- **Income**: smooth **lognormal** anchored to public median (`generator_params.income_model`) and scaled by calibration (`generator_params.income_calibration.scale`) so that the mean income matches a target multiple of the public median.
+- **Investable assets**: truncated **lognormal** per wealth segment (`generator_params.investable_assets_model.segments`).
+- **Income ↔ assets coherence**: assets are clamped to a segment floor/cap and an income-based envelope (`generator_params.investable_assets_model.income_tie`) to avoid extreme mismatches.
+- **Mortgage payment**: sampled as a bounded share of income using a beta-shaped distribution (`generator_params.mortgage_ratio_beta`), then capped by `generator_params.mortgage_terms.payment_ratio_cap`.
+- **Mortgage outstanding**: derived from payment × years remaining × multiplier, and constrained by LTV and income multiple caps; caps are applied via resampling under the cap (to avoid boundary-mass spikes in ratio histograms).
+- **Non-mortgage debt**: payment sampled from bounded lognormal (`generator_params.non_mortgage_payment`), then outstanding via a multiplier.
+- **Expenses**: bounded normal for expense-to-income ratio (`generator_params.expense_ratio_normal`).
 
-### Investable assets model (and income↔assets consistency)
+### Lifecycle and date constraints
 
-Investable assets are sampled by wealth segment (affluent/hnw/ultra) with segment-specific bounds.
+Dates are derived and constrained using priors (`date_rules`), not independently sampled:
 
-To avoid implausible combinations (e.g., very low income with ultra-high investable assets), assets generation includes a configurable tie to income with a **lower and upper** envelope.
-This is an explicit modeling choice to keep the dataset coherent for downstream consumers.
-
-### Property, leverage, and debt
-
-Property value is derived from investable assets and scenario adjustments, then bounded by segment-specific constraints.
-
-Mortgage payment is sampled as a share of income (scenario-specific beta-like shape), then amortization-like logic derives an outstanding balance.
-
-Important detail: caps are applied in a way that avoids visual artifacts.
-
-- Some values are naturally bounded (e.g., payment share cap) to keep the domain realistic.
-- For “outstanding balance” caps (LTV and income multiple), the generator avoids hard-clipping onto the boundary; it resamples under the cap. This prevents boundary-mass spikes that show up as tall single-bin peaks in ratio histograms.
-
-Non-mortgage debt is generated from a smooth lognormal payment distribution with an outstanding multiplier.
-
-### Dates and lifecycle rules
-
-Dates are derived, not sampled independently:
-
-- date_of_birth from age
-- employment_started after `date_rules.employment_start_after_age`
-- move_in_date after `date_rules.move_in_after_age`
+- employment start not before `date_rules.employment_start_after_age`
+- move-in not before `date_rules.move_in_after_age`
 - child DOB implies parent age ≥ `date_rules.min_parent_age_at_birth`
-- loan final payment date in the future for non-revolving loans
+- final loan payment date must be in the future for non-revolving liabilities
 
-All thresholds live in priors/config (not in generator code).
+---
 
-## Outputs and diagnostics
+## 2) Validation, diagnostics, and anomaly detection
 
-Artifacts are separated by type:
+Outputs are separated by type:
 
 - `artifacts/tables/` — CSV tables
-- `artifacts/figures/` — PNG figures
-- `artifacts/report/` — report markdown
-- `artifacts/public_data_cache/` — raw public API responses cache
+- `artifacts/figures/` — PNG diagnostics
+- `artifacts/report/` — `report.md` with embedded figures
 
-### Validation
+### Business-rule validation
 
-Statistical validation (`src/03_validate_and_score.py`):
+Implemented in `src/03_validate_and_score.py`, exported as `artifacts/tables/rule_violations.csv`.
+Checks include:
 
-- Jensen–Shannon divergence for categorical distributions
-- Population Stability Index (PSI) for continuous distributions
-- median comparisons vs priors
+- move-in before age threshold
+- employment start before minimum working age
+- employment start in the future
+- youngest/oldest child DOB ordering
+- parent under minimum age at child birth
+- mortgage payment share above cap
+- alimony present with incompatible marital status
+- final payment date not in the future for non-credit-card liabilities
 
-Rule-of-thumb PSI thresholds (common in financial services):
+### Statistical validation
 
-- PSI < 0.10: no meaningful shift
-- 0.10 ≤ PSI < 0.25: moderate shift
-- PSI ≥ 0.25: large shift
+Implemented in `src/03_validate_and_score.py`, exported as `artifacts/tables/distance_to_priors.csv`.
+Metrics include:
 
-Business-rule validation:
+- Jensen–Shannon divergence for categorical distributions (example: marital status, risk tolerance)
+- Population Stability Index (PSI) for continuous distributions (income, investable assets)
+- summary statistics (medians and tail metrics)
 
-- age/date consistency
-- household structure consistency
-- loan/final-payment consistency
-- alimony and marital-state coherence
+Important: PSI is computed between:
+
+- a **reference sample** simulated from the same priors-driven models (expected)
+- the generated dataset (actual)
+
+This makes PSI interpretable as “distance from priors” rather than “distance from a mismatched baseline”.
+
+### Conditional probability histograms
+
+Implemented in `src/05_report.py` (figures under `artifacts/figures/`):
+
+- `condprob_scenario_given_wealth_segment.png` : $P(\text{scenario} \mid \text{wealth segment})$ (top scenarios + Other)
+- `condprob_risk_given_wealth_segment.png` : $P(\text{risk tolerance} \mid \text{wealth segment})$
+- `condprob_has_mortgage_by_scenario.png` : $P(\text{has mortgage} \mid \text{scenario})$
+
+These are used to spot incoherent dependence structure (e.g., a “retired couple” scenario frequently having high mortgage incidence).
 
 ### Anomaly detection
 
-An optional anomaly step trains a small PyTorch autoencoder on household-level numeric features.
-The pipeline surfaces anomaly scores and exports top anomalous households for inspection.
+Implemented in `src/04_autoencoder_anomalies.py`.
+Two complementary detectors are run on household numeric features:
 
-### Reporting
+- **Autoencoder (PyTorch)** reconstruction error
+- **IsolationForest (scikit-learn)** anomaly score
 
-The report step (`src/05_report.py`) produces:
+Artifacts:
 
-- distribution histograms and ratio plots
-- a cross-plot `income_vs_investable_assets.png` for spotting incoherent income/asset pairs
+- `artifacts/tables/anomaly_scores.csv` (both scores)
+- `artifacts/tables/top5_anomalous_households.csv` (top‑5 by autoencoder)
+- `artifacts/tables/top5_anomalous_households_iforest.csv` (top‑5 by IsolationForest, when available)
 
-The generated report markdown embeds the figures so the cross-plot is visible in the report.
+---
 
-## Summary
+## 3) External data used for priors and defined priors
 
-This approach is intentionally “config- and priors-driven”:
+### External sources used
 
-- public anchors (ACS + cached raw responses)
-- a single computed priors artifact consumed by all steps
-- generator behavior controlled via `generator_params` rather than hard-coded constants
-- deterministic runs via env vars (especially for Docker)
-- diagnostics: PSI/JS, rule violations, anomalies, and report figures (including income↔assets cross-plot)
+The only external source currently used programmatically is **US Census ACS via `api.census.gov`** (no API key).
+Raw responses are cached under `artifacts/public_data_cache/` for reproducibility.
+
+ACS-derived anchors include:
+
+- Median household income (ACS variable `B19013_001E`)
+- High-income tail counts used to derive “affluent bracket weights” (ACS table `B19001`, bins `$150k–$199,999` and `$200k+`)
+- Owner-occupied home value bins used to derive home-value quantiles (ACS table `B25075`)
+- State population weights used for residence state distribution
+
+### Priors defined (what goes into computed_priors.json)
+
+Priors are split into:
+
+1) **Data-derived anchors** (from ACS where available)
+2) **Curated priors and generator parameters** where there is no clean ACS counterpart
+
+High-level keys include:
+
+- `meta`: snapshot date, ACS dataset/year, public median income, affluent income floor
+- `categoricals`: marital status, residence state, risk tolerance, tax bracket band
+- `booleans`: has_children, has_mortgage, has_non_mortgage_debt, has_protection_policy
+- `income_distribution`: bracket weights (used for back-compat fallback), plus public median
+- `property_value_priors`: segment floors derived from ACS home-value quantiles
+- `wealth_segments`: segment bounds and weights
+- `date_rules`: lifecycle/date constraints
+- `scenario_catalog`
+- `generator_params`: the core “knobs” (distribution family parameters, caps, ties, scenario profiles/weights)

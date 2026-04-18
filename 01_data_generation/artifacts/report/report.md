@@ -2,15 +2,15 @@
 
 ## Counts
 - households: 5000
-- people: 9188
+- people: 9181
 - rule violations: 0
 
 ## Medians
-- annual household gross income: 136,755.45
-- investable assets total: 811,505.17
-- net worth proxy: 1,209,483.92
-- monthly mortgage payment total (positive only): 2,858.81
-- monthly non-mortgage payment total (positive only): 381.25
+- annual household gross income: 130,709.05
+- investable assets total: 792,421.08
+- net worth proxy: 1,160,319.25
+- monthly mortgage payment total (positive only): 2,621.48
+- monthly non-mortgage payment total (positive only): 378.25
 
 ## Figures
 
@@ -18,10 +18,18 @@
 
 ![Income vs investable assets](../figures/income_vs_investable_assets.png)
 
+### Conditional probabilities
+
+![P(scenario | wealth_segment)](../figures/condprob_scenario_given_wealth_segment.png)
+
+![P(risk_tolerance | wealth_segment)](../figures/condprob_risk_given_wealth_segment.png)
+
+![P(has_mortgage_or_loan | scenario)](../figures/condprob_has_mortgage_by_scenario.png)
+
 ## Notes
 - Income generation uses a smooth lognormal model anchored to the public median (from open Census ACS where available).
 - Amount plots filter out zeros and clip the upper tail for readability.
 - Mortgage payment to income ratio is capped at 70%.
 - Total debt cost share of income is capped at 95% for plotting.
-- Top 5 anomalous households are saved for manual review.
-- Sanity: households with income < $100k and investable assets > $10M: 20
+- Top 5 anomalous households are saved for manual review (autoencoder; plus IsolationForest when available).
+- Sanity: households with income < $100k and investable assets > $10M: 30

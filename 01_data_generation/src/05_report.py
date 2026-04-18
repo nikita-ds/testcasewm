@@ -100,6 +100,66 @@ def save_income_vs_assets_plot(hh: pd.DataFrame, path: Path) -> None:
     plt.savefig(path, dpi=180)
     plt.close()
 
+
+def save_conditional_stacked_bar(
+    df: pd.DataFrame,
+    *,
+    group_col: str,
+    target_col: str,
+    path: Path,
+    title: str,
+    top_n: int | None = None,
+) -> None:
+    x = df[[group_col, target_col]].dropna().copy()
+    if len(x) == 0:
+        return
+
+    if top_n is not None:
+        top_vals = x[target_col].value_counts().head(int(top_n)).index.tolist()
+        x[target_col] = x[target_col].where(x[target_col].isin(top_vals), other="Other")
+
+    tab = pd.crosstab(x[group_col], x[target_col], normalize="index")
+    if tab.empty:
+        return
+
+    plt.figure(figsize=(10, 5.2))
+    tab.plot(kind="bar", stacked=True, ax=plt.gca(), width=0.86)
+    plt.ylim(0, 1)
+    plt.ylabel("P(" + target_col + " | " + group_col + ")")
+    plt.title(title)
+    plt.legend(title=target_col, bbox_to_anchor=(1.02, 1.0), loc="upper left")
+    plt.tight_layout()
+    plt.savefig(path, dpi=180)
+    plt.close()
+
+
+def save_conditional_prob_bar(
+    df: pd.DataFrame,
+    *,
+    group_col: str,
+    bool_col: str,
+    path: Path,
+    title: str,
+) -> None:
+    x = df[[group_col, bool_col]].dropna().copy()
+    if len(x) == 0:
+        return
+
+    # Try to coerce into 0/1.
+    x[bool_col] = x[bool_col].astype(float)
+    p = x.groupby(group_col)[bool_col].mean().sort_values(ascending=False)
+    if len(p) == 0:
+        return
+
+    plt.figure(figsize=(10, 4.8))
+    p.plot(kind="bar")
+    plt.ylim(0, 1)
+    plt.ylabel(f"P({bool_col}=1 | {group_col})")
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(path, dpi=180)
+    plt.close()
+
 def main():
     hh = pd.read_csv(TABLES / "households.csv")
     people = pd.read_csv(TABLES / "people.csv")
@@ -108,6 +168,7 @@ def main():
     wealth_seg = pd.read_csv(TABLES / "wealth_segment_coverage.csv")
     rules = pd.read_csv(TABLES / "rule_violations.csv") if (TABLES / "rule_violations.csv").exists() else pd.DataFrame(columns=["household_id","rule_violation"])
     top5 = pd.read_csv(TABLES / "top5_anomalous_households.csv") if (TABLES / "top5_anomalous_households.csv").exists() else pd.DataFrame()
+    top5_if = pd.read_csv(TABLES / "top5_anomalous_households_iforest.csv") if (TABLES / "top5_anomalous_households_iforest.csv").exists() else pd.DataFrame()
 
     save_hist(hh["annual_household_gross_income"], "Household annual gross income", FIGS / "income_hist.png", log_x=True)
     save_hist(hh["investable_assets_total"], "Investable assets total", FIGS / "investable_assets_hist.png", log_x=True)
@@ -116,6 +177,31 @@ def main():
     save_hist(hh["monthly_non_mortgage_payment_total"], "Monthly non-mortgage payment total", FIGS / "non_mortgage_payment_hist.png", log_x=False)
 
     save_income_vs_assets_plot(hh, FIGS / "income_vs_investable_assets.png")
+
+    # Conditional probability diagnostics.
+    save_conditional_stacked_bar(
+        hh,
+        group_col="wealth_segment",
+        target_col="scenario",
+        top_n=6,
+        title="P(scenario | wealth_segment) (top 6 + Other)",
+        path=FIGS / "condprob_scenario_given_wealth_segment.png",
+    )
+    save_conditional_stacked_bar(
+        hh,
+        group_col="wealth_segment",
+        target_col="risk_tolerance",
+        title="P(risk_tolerance | wealth_segment)",
+        path=FIGS / "condprob_risk_given_wealth_segment.png",
+    )
+    if "has_mortgage_or_loan" in hh.columns:
+        save_conditional_prob_bar(
+            hh,
+            group_col="scenario",
+            bool_col="has_mortgage_or_loan",
+            title="P(has_mortgage_or_loan | scenario)",
+            path=FIGS / "condprob_has_mortgage_by_scenario.png",
+        )
 
     ratio = pd.Series(hh["mortgage_payment_to_income_ratio"]).dropna().astype(float)
     ratio = ratio[(ratio > 0) & (ratio <= 0.70)]
@@ -214,12 +300,20 @@ def main():
 
 ![Income vs investable assets](../figures/income_vs_investable_assets.png)
 
+### Conditional probabilities
+
+![P(scenario | wealth_segment)](../figures/condprob_scenario_given_wealth_segment.png)
+
+![P(risk_tolerance | wealth_segment)](../figures/condprob_risk_given_wealth_segment.png)
+
+![P(has_mortgage_or_loan | scenario)](../figures/condprob_has_mortgage_by_scenario.png)
+
 ## Notes
 - Income generation uses a smooth lognormal model anchored to the public median (from open Census ACS where available).
 - Amount plots filter out zeros and clip the upper tail for readability.
 - Mortgage payment to income ratio is capped at 70%.
 - Total debt cost share of income is capped at 95% for plotting.
-- Top 5 anomalous households are saved for manual review.
+- Top 5 anomalous households are saved for manual review (autoencoder; plus IsolationForest when available).
 - Sanity: households with income < $100k and investable assets > $10M: {n_low_inc_high_assets}
 """
     (REP / "report.md").write_text(md, encoding="utf-8")

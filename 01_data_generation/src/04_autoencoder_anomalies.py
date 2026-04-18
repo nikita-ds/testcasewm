@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
+import os
 import numpy as np
 import pandas as pd
 
@@ -20,9 +21,13 @@ def main():
     import torch.nn as nn
     from torch.utils.data import DataLoader, TensorDataset
 
-    X=feats.values
-    mean=X.mean(axis=0, keepdims=True); std=X.std(axis=0, keepdims=True); std[std==0]=1.0
-    Xs=(X-mean)/std
+    seed = int(os.environ.get("SYNTH_SEED", "42"))
+
+    X = feats.values
+    mean = X.mean(axis=0, keepdims=True)
+    std = X.std(axis=0, keepdims=True)
+    std[std == 0] = 1.0
+    Xs = (X - mean) / std
 
     X_tensor=torch.tensor(Xs, dtype=torch.float32)
     dl=DataLoader(TensorDataset(X_tensor), batch_size=128, shuffle=True)
@@ -42,11 +47,39 @@ def main():
     model.eval()
     with torch.no_grad():
         recon=model(X_tensor).numpy()
-    err=((Xs-recon)**2).mean(axis=1)
-    hh["reconstruction_error"]=err
-    hh[["household_id","scenario","wealth_segment","reconstruction_error"]].to_csv(TABLES/"anomaly_scores.csv", index=False)
-    hh.sort_values("reconstruction_error", ascending=False).head(5).to_csv(TABLES/"top5_anomalous_households.csv", index=False)
-    print("Wrote anomaly scores and top 5 anomalous households")
+    err = ((Xs - recon) ** 2).mean(axis=1)
+    hh["reconstruction_error"] = err
+
+    # IsolationForest (tree-based) anomaly score.
+    try:
+        from sklearn.ensemble import IsolationForest
+
+        iso = IsolationForest(
+            n_estimators=250,
+            random_state=seed,
+            n_jobs=-1,
+        )
+        iso.fit(Xs)
+        # score_samples: higher means more normal; invert to make higher = more anomalous.
+        iso_score = -iso.score_samples(Xs)
+        hh["isolation_forest_score"] = iso_score
+    except Exception as e:
+        hh["isolation_forest_score"] = np.nan
+        print("IsolationForest unavailable:", repr(e))
+
+    hh[["household_id", "scenario", "wealth_segment", "reconstruction_error", "isolation_forest_score"]].to_csv(
+        TABLES / "anomaly_scores.csv", index=False
+    )
+
+    hh.sort_values("reconstruction_error", ascending=False).head(5).to_csv(
+        TABLES / "top5_anomalous_households.csv", index=False
+    )
+    if hh["isolation_forest_score"].notna().any():
+        hh.sort_values("isolation_forest_score", ascending=False).head(5).to_csv(
+            TABLES / "top5_anomalous_households_iforest.csv", index=False
+        )
+
+    print("Wrote anomaly scores + top-5 (AE and IsolationForest)")
 
 if __name__ == "__main__":
     main()
