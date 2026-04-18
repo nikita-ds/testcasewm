@@ -5,11 +5,21 @@ GOAL
 - Smoothly transition from the previous topic to the next topic.
 - Do NOT add any new facts, numbers, dates, or account details.
 
+SAFE "WATER" YOU MAY ADD
+- Very light small-talk that does NOT assert personal facts: weather, traffic/commute, scheduling, generic weekend plans.
+- If you mention hobbies, keep it generic and non-committal (e.g., "Any hobbies keeping you busy lately?") and allow the client to answer vaguely.
+- Do NOT claim a specific hobby/interest unless it already appears in the provided tail/head.
+
 REALISM SIGNALS TO EMPHASIZE
 - Natural uncertainty and memory behavior: brief "I think", "roughly", "off the top of my head", "I might be mixing that up".
 - Micro-repairs: a speaker starts to say something, then corrects themselves without introducing new facts.
 - Human pacing: short turns, quick acknowledgements, tiny side-comments.
 - Organic transitions: the next topic should feel like a continuation of the same meeting, not a stitched jump.
+
+EXEMPLAR-LIKE DELIVERY (HOW IT SHOULD SOUND)
+- Lots of short acknowledgements: "yeah", "right", "okay", "got it".
+- Occasional sentence fragments and overlaps.
+- A "hang on" moment is okay, but keep it neutral and brief.
 
 AVOID SYNTHETIC TELLS
 - Do not sound like a template or a recap bot.
@@ -29,6 +39,7 @@ FACT SAFETY (STRICT)
 - Do not invent or change any numeric values.
 - Do not introduce new assets/income/liabilities/policies.
 - Avoid adding any concrete amounts, percentages, or dates.
+- Do NOT ask for or mention any PII: Social Security numbers, full addresses, account numbers, passwords, emails, phone numbers.
 
 STYLE
 - Natural spoken English.

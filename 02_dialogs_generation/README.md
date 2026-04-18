@@ -107,9 +107,9 @@ docker compose up --build
 # DEEPSEEK_KEY=...
 # DEEPSEEK_REALISM_CHECK=1
 # DEEPSEEK_MODEL=deepseek-chat
-# DeepSeek returns a single realism score 0..100.
-# The transcript is copied into artifacts/dialogs/realism_passed/ when realism_score > threshold.
-# DEEPSEEK_REALISM_THRESHOLD=90
+# DeepSeek returns a single realism score 1..5.
+# The transcript is copied into artifacts/dialogs/realism_passed/ when realism_score >= threshold.
+# DEEPSEEK_REALISM_THRESHOLD=4
 # DEEPSEEK_PASS_SUBDIR=realism_passed
 ```
 
@@ -145,7 +145,7 @@ Outputs:
 - Optional evidence JSON alongside: `DIALOG_<household_id>_evidence.json`
 - Optional metrics JSON alongside: `DIALOG_<household_id>_metrics.json`
 - Optional DeepSeek judge JSON alongside: `DIALOG_<household_id>_deepseek_judge.json`
-- If the DeepSeek realism score passes threshold, the transcript is also copied into `artifacts/dialogs/realism_passed/`
+- If the DeepSeek realism score passes threshold (default: 4), the transcript is also copied into `artifacts/dialogs/realism_passed/`
 
 Validation failure report:
 - `validation_failures.csv` is intentionally minimal: it contains only `household_id` and `failed_field_paths`.

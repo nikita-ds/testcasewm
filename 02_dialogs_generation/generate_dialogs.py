@@ -102,7 +102,12 @@ def main() -> None:
     p.add_argument("--no-deepseek-realism-check", action="store_true", help="Disable DeepSeek realism judging after finalization")
     p.add_argument("--deepseek-model", type=str, default="deepseek-chat")
     p.add_argument("--deepseek-max-output-tokens", type=int, default=900)
-    p.add_argument("--deepseek-realism-threshold", type=float, default=90.0)
+    p.add_argument(
+        "--deepseek-realism-threshold",
+        type=float,
+        default=4.0,
+        help="DeepSeek realism pass threshold on 1–5 scale (default: 4).",
+    )
     p.add_argument("--deepseek-pass-subdir", type=str, default="realism_passed")
 
     p.add_argument(

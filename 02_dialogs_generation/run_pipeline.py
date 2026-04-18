@@ -66,7 +66,7 @@ def main() -> None:
     deepseek_realism_check = bool(int(os.getenv("DEEPSEEK_REALISM_CHECK", "1")))
     deepseek_model = _env_str("DEEPSEEK_MODEL", "deepseek-chat")
     deepseek_max_output_tokens = _env_int("DEEPSEEK_MAX_OUTPUT_TOKENS", 900)
-    deepseek_realism_threshold = float(os.getenv("DEEPSEEK_REALISM_THRESHOLD", "90"))
+    deepseek_realism_threshold = float(os.getenv("DEEPSEEK_REALISM_THRESHOLD", "4"))
     deepseek_pass_subdir = _env_str("DEEPSEEK_PASS_SUBDIR", "realism_passed")
 
     field_chunk_group_by_record_type = bool(int(os.getenv("FIELD_CHUNK_GROUP_BY_RECORD_TYPE", "1")))

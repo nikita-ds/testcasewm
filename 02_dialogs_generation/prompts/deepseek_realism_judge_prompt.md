@@ -33,14 +33,16 @@ INPUTS
 {{negative_controls_json}}
 
 OUTPUT (STRICT)
-- Return exactly ONE integer number from 0 to 100 (inclusive).
+- Return exactly ONE integer number from 1 to 5 (inclusive).
 - Output MUST contain only the number and nothing else (no JSON, no words, no punctuation).
 
 SCORE MEANING
-- 0 = extremely synthetic / obviously generated.
-- 50 = unclear / mixed signals.
-- 100 = extremely realistic / could plausibly be mistaken for a real transcript.
+- 1 = extremely synthetic / obviously generated.
+- 3 = unclear / mixed signals.
+- 5 = extremely realistic / could plausibly be mistaken for a real transcript.
 
 CALIBRATION
 - Be conservative.
-- Use 90+ only when the candidate clearly looks more human than the negative controls.
+- Use 5 only when the candidate clearly looks more human than the negative controls.
+- Do NOT default to a "safe" constant score. Scores should vary across candidates.
+- If you arrive at 3 (uncertain), do a quick second pass: decide whether 2 or 4 is a better fit. Use 3 ONLY if positives and negatives are truly balanced.

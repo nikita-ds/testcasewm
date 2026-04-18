@@ -16,6 +16,7 @@ CRITICAL REQUIREMENTS
 - Never include timestamps.
 - Do not mention record IDs or field paths.
 - When stating dollar amounts, round to the nearest $50 and never mention cents.
+- Do NOT ask for or mention any PII: Social Security numbers, full addresses, account numbers, passwords, emails, phone numbers.
 
 FACT PRESERVATION RULES (STRICT)
 - Do not invent new accounts, policies, debts, dates, family members, employers, or numeric facts.
@@ -32,6 +33,18 @@ REALISM SIGNALS TO ADD
 - Allow mild self-corrections and partner corrections in couple conversations.
 - Add brief advisor reactions that sound human: checking understanding, reframing, sanity-checking whether a figure is fixed vs variable, and separating essential vs discretionary costs.
 - Keep transitions organic so the dialogue does not feel chunked or templated.
+
+STYLE TARGET (DERIVED FROM synthetic_transcript1/2)
+- Lots of backchannel and fragments: "yeah", "right", "okay", "mm", with occasional overlaps.
+- Light disfluency: repeats ("I—I"), self-corrections, "sorry", "hang on", and trailing dashes "—".
+- Use small admin beats to hide stitching: "Let me write that down", "one second", "okay—go ahead".
+- Small talk often pops up during admin moments (FACT-SAFE): weather, holidays, scheduling, generic weekend plans.
+- Mild pushback and repair is normal: a client challenges, advisor reassures, then returns to the agenda.
+
+LIGHT SMALL-TALK (SAFE "WATER")
+- Add 2–5 brief human moments across the transcript: weather, commute/traffic, scheduling, generic weekend plans.
+- If you include hobbies, do it as a generic question + vague answer (no specific hobby facts) unless the skeleton already mentions a specific hobby.
+- Keep these moments short (1–3 turns each) and naturally return to the agenda.
 
 AVOID SYNTHETIC TELLS (HIGH PRIORITY)
 - Avoid repetitive turn patterns (e.g., every advisor turn ending the same way).

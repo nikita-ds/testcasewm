@@ -29,6 +29,17 @@ REALISM SIGNALS (MATCH THE JUDGE)
 - Allow one indirect answer that gets specific after a follow-up.
 - Avoid stitched feel: reference the immediate prior context lightly ("as you said earlier…", "going back to…") without introducing new facts.
 
+STYLE TARGET (DERIVED FROM THE EXEMPLAR TRANSCRIPTS)
+- Short, messy, realistic turn-taking: lots of "yeah/okay/right" backchannel and occasional interruptions.
+- Frequent micro-clarifications: the advisor re-phrases; the client answers loosely first, then tightens after a follow-up.
+- Light disfluency: repeats, "sorry", "hang on", "I mean—", and sentence fragments are normal.
+- Add tiny FACT-SAFE "admin" beats as connective tissue (1–2 per chunk max): "Let me note that down", "One sec", "Okay—go ahead".
+- Optional tiny tangent (1–3 turns) like weather/commute/scheduling, then return.
+
+ABSOLUTE NO-GOS (IMPORTANT)
+- Do NOT include timestamps.
+- Do NOT ask for or mention any PII: Social Security numbers, full addresses, account numbers, passwords, emails, phone numbers.
+
 AVOID SYNTHETIC TELLS
 - Avoid robotic advisor summaries and checklist-like cadence.
 - Avoid abrupt topic jumps; use one short transitional line when switching target groups.

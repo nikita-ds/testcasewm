@@ -8,6 +8,8 @@ import time
 import csv
 import threading
 import datetime
+import re
+import copy
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from pathlib import Path
@@ -525,6 +527,45 @@ def _value_variants(v: Any, *, field_path: str = "") -> List[str]:
     if s:
         out.append(s)
 
+    # Date variants: YYYY-MM-DD -> common spoken/written formats (Jan 12th, 1999; 1/12/1999; etc.).
+    if _is_date_field_path(field_path):
+        dt = _parse_ymd_date(v)
+        if dt is not None:
+            y, m, d = int(dt.year), int(dt.month), int(dt.day)
+            out.append(f"{y:04d}-{m:02d}-{d:02d}")
+            out.append(f"{m}/{d}/{y}")
+            out.append(f"{m:02d}/{d:02d}/{y}")
+            out.append(f"{d}/{m}/{y}")
+            out.append(f"{d:02d}/{m:02d}/{y}")
+
+            # Month name forms.
+            month_full = None
+            candidates = [k for k, vv in _MONTHS.items() if vv == m and len(k) > 3]
+            if candidates:
+                month_full = max(candidates, key=len)
+            if month_full:
+                cap_full = month_full.capitalize()
+                cap_abbr = month_full[:3].capitalize()
+
+                out.append(f"{cap_full} {d}, {y}")
+                out.append(f"{cap_abbr} {d}, {y}")
+                out.append(f"{cap_full} {d} {y}")
+                out.append(f"{cap_abbr} {d} {y}")
+
+                suf = "th"
+                if 10 <= (d % 100) <= 20:
+                    suf = "th"
+                elif d % 10 == 1:
+                    suf = "st"
+                elif d % 10 == 2:
+                    suf = "nd"
+                elif d % 10 == 3:
+                    suf = "rd"
+                out.append(f"{cap_full} {d}{suf}, {y}")
+                out.append(f"{cap_abbr} {d}{suf}, {y}")
+                out.append(f"{d}{suf} {cap_full} {y}")
+                out.append(f"{d} {cap_full} {y}")
+
     # Numeric variants: 38198.96 -> 38198.96, 38199, 38,199, $38199, $38,199, 38.2k, $38.2k
     try:
         fv = float(v)
@@ -561,8 +602,210 @@ def _contains_any(haystack: str, needles: List[str]) -> bool:
     return False
 
 
+_STRICT_NUMERIC_REL_TOLERANCE = 0.01  # 1%
+
+
+_MONTHS = {
+    "jan": 1,
+    "january": 1,
+    "feb": 2,
+    "february": 2,
+    "mar": 3,
+    "march": 3,
+    "apr": 4,
+    "april": 4,
+    "may": 5,
+    "jun": 6,
+    "june": 6,
+    "jul": 7,
+    "july": 7,
+    "aug": 8,
+    "august": 8,
+    "sep": 9,
+    "sept": 9,
+    "september": 9,
+    "oct": 10,
+    "october": 10,
+    "nov": 11,
+    "november": 11,
+    "dec": 12,
+    "december": 12,
+}
+
+
+_ISO_DATE_RE = re.compile(r"\b(?P<y>\d{4})-(?P<m>\d{2})-(?P<d>\d{2})\b")
+_NUM_DATE_RE = re.compile(r"\b(?P<a>\d{1,2})[/-](?P<b>\d{1,2})[/-](?P<y>\d{2,4})\b")
+_TEXT_DATE_RE = re.compile(
+    r"\b(?P<mon>jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
+    r"\s+(?P<d>\d{1,2})(?:st|nd|rd|th)?(?:,)?\s+(?P<y>\d{2,4})\b",
+    re.IGNORECASE,
+)
+_TEXT_DATE_RE_DMY = re.compile(
+    r"\b(?P<d>\d{1,2})(?:st|nd|rd|th)?\s+"
+    r"(?P<mon>jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
+    r"(?:,)?\s+(?P<y>\d{2,4})\b",
+    re.IGNORECASE,
+)
+
+
+def _normalize_2digit_year(y: int) -> int:
+    if 0 <= y <= 99:
+        return 1900 + y if y >= 70 else 2000 + y
+    return y
+
+
+def _is_date_field_path(field_path: str) -> bool:
+    fp = str(field_path or "").strip().lower()
+    if not fp:
+        return False
+    if fp.endswith(".date_of_birth"):
+        return True
+    if fp.endswith(".final_payment_date"):
+        return True
+    if fp.endswith(".assured_until"):
+        return True
+    if fp.endswith("_date") or fp.endswith(".date"):
+        return True
+    return False
+
+
+def _extract_date_mentions(text: str) -> List[datetime.date]:
+    out: List[datetime.date] = []
+    if not text:
+        return out
+
+    for m in _ISO_DATE_RE.finditer(text):
+        try:
+            out.append(datetime.date(int(m.group("y")), int(m.group("m")), int(m.group("d"))))
+        except Exception:
+            pass
+
+    for m in _TEXT_DATE_RE.finditer(text):
+        mon_s = str(m.group("mon") or "").strip().lower()
+        mon = _MONTHS.get(mon_s) or _MONTHS.get(mon_s[:3])
+        try:
+            y = _normalize_2digit_year(int(m.group("y")))
+            d = int(m.group("d"))
+            if mon is None:
+                continue
+            out.append(datetime.date(int(y), int(mon), int(d)))
+        except Exception:
+            pass
+
+    for m in _TEXT_DATE_RE_DMY.finditer(text):
+        mon_s = str(m.group("mon") or "").strip().lower()
+        mon = _MONTHS.get(mon_s) or _MONTHS.get(mon_s[:3])
+        try:
+            y = _normalize_2digit_year(int(m.group("y")))
+            d = int(m.group("d"))
+            if mon is None:
+                continue
+            out.append(datetime.date(int(y), int(mon), int(d)))
+        except Exception:
+            pass
+
+    for m in _NUM_DATE_RE.finditer(text):
+        try:
+            a = int(m.group("a"))
+            b = int(m.group("b"))
+            y = _normalize_2digit_year(int(m.group("y")))
+        except Exception:
+            continue
+        for mm, dd in ((a, b), (b, a)):
+            try:
+                out.append(datetime.date(int(y), int(mm), int(dd)))
+            except Exception:
+                pass
+
+    seen: set[datetime.date] = set()
+    uniq: List[datetime.date] = []
+    for d in out:
+        if d in seen:
+            continue
+        seen.add(d)
+        uniq.append(d)
+    return uniq
+
+
+def _strict_date_match(*, source_value: Any, evidence_text: str, transcript_text: str) -> bool:
+    src = _parse_ymd_date(source_value)
+    if src is None:
+        return False
+    hay = evidence_text if str(evidence_text or "").strip() else transcript_text
+    return any(d == src for d in _extract_date_mentions(str(hay or "")))
+
+
+_NUM_TOKEN_RE = re.compile(
+    r"(?i)"  # case-insensitive
+    r"(?:\$\s*)?"  # optional currency symbol
+    r"(?P<num>\d{1,3}(?:,\d{3})+|\d+)(?:\.(?P<dec>\d+))?"  # number, optional decimals
+    r"\s*(?P<suffix>k|m|b|thousand|million|billion)?"  # optional magnitude suffix
+)
+
+
+def _extract_numeric_mentions(text: str) -> List[float]:
+    """Extract numeric magnitudes from text.
+
+    Supports common money-style mentions like "$130k", "2M", "1.36 million", "135,960".
+    """
+
+    out: List[float] = []
+    if not text:
+        return out
+
+    for m in _NUM_TOKEN_RE.finditer(text):
+        raw_num = (m.group("num") or "").replace(",", "")
+        raw_dec = m.group("dec") or ""
+        raw_suffix = (m.group("suffix") or "").strip().lower()
+
+        if not raw_num:
+            continue
+
+        try:
+            base = float(f"{raw_num}.{raw_dec}") if raw_dec else float(raw_num)
+        except Exception:
+            continue
+
+        mult = 1.0
+        if raw_suffix in {"k", "thousand"}:
+            mult = 1_000.0
+        elif raw_suffix in {"m", "million"}:
+            mult = 1_000_000.0
+        elif raw_suffix in {"b", "billion"}:
+            mult = 1_000_000_000.0
+
+        out.append(base * mult)
+
+    return out
+
+
+def _strict_numeric_within_1pct(*, source_value: Any, evidence_text: str, transcript_text: str) -> bool:
+    try:
+        src = float(source_value)
+    except Exception:
+        return False
+
+    hay = evidence_text if str(evidence_text or "").strip() else transcript_text
+    nums = _extract_numeric_mentions(hay)
+    if not nums:
+        return False
+
+    denom = abs(src) if abs(src) > 1e-9 else 1e-9
+    for v in nums:
+        try:
+            rel_err = abs(float(v) - src) / denom
+        except Exception:
+            continue
+        if rel_err <= _STRICT_NUMERIC_REL_TOLERANCE:
+            return True
+
+    return False
+
+
 def _requires_exact_strict_match(field_path: str, value: Any) -> bool:
     if is_money_field_path(field_path):
+        return True
+    if _is_date_field_path(field_path) and _parse_ymd_date(value) is not None:
         return True
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
@@ -649,7 +892,7 @@ def _validate_and_score_items(
 ) -> Dict[str, Any]:
     """Return metrics and a pass/fail boolean.
 
-    In strict mode, we require a direct match only for numeric fields.
+    In strict mode, we require a direct match for numeric and date fields.
     Non-numeric fields count as strict-covered when the extractor marked them present/approximate.
     In non-strict mode, we accept status in {present, approximate} as covered.
     """
@@ -702,6 +945,21 @@ def _validate_and_score_items(
         if _requires_exact_strict_match(field_path, src_val):
             variants = _value_variants(src_for_match, field_path=field_path)
             strict_match = bool(variants) and _contains_any(transcript_text, variants)
+            if (not strict_match) and _is_date_field_path(field_path) and _strict_date_match(
+                source_value=src_val,
+                evidence_text=str(it.get("evidence_text") or ""),
+                transcript_text=transcript_text,
+            ):
+                strict_match = True
+            # If we didn't find a literal string match, allow a small numeric tolerance.
+            # This keeps strict diagnostics useful when the dialogue uses common human rounding
+            # like "$173k" or "$1.36 million" instead of the exact integer.
+            if (not strict_match) and _strict_numeric_within_1pct(
+                source_value=src_val,
+                evidence_text=str(it.get("evidence_text") or ""),
+                transcript_text=transcript_text,
+            ):
+                strict_match = True
         else:
             strict_match = status in {"present", "approximate"}
 
@@ -816,9 +1074,106 @@ def _speaker_labels(hh_type: HouseholdType) -> Tuple[str, Optional[str]]:
 
 
 def _format_profile_for_prompt(profile: Dict[str, Any]) -> str:
+    redacted = _redact_profile_pii(profile)
     # Keep prompts realistic: people don't remember cents.
-    rounded = round_money_in_obj(profile, increment=50.0)
+    rounded = round_money_in_obj(redacted, increment=50.0)
     return json.dumps(rounded, ensure_ascii=False, indent=2)
+
+
+def _redact_profile_pii(profile: Dict[str, Any]) -> Dict[str, Any]:
+    """Remove PII fields from the financial profile.
+
+    Used for:
+    - Prompt inputs: prevent LLM from seeing/reproducing identifiers.
+    - Saved artifacts: keep generated datasets PII-free by construction.
+
+    Note: We keep non-PII planning fields (e.g., state/country, liability dates).
+    """
+
+    out = copy.deepcopy(profile or {})
+
+    def _drop(d: Any, keys: List[str]) -> None:
+        if not isinstance(d, dict):
+            return
+        for k in keys:
+            if k in d:
+                d.pop(k, None)
+
+    people = out.get("people")
+    if isinstance(people, list):
+        for p in [x for x in people if isinstance(x, dict)]:
+            _drop(
+                p,
+                [
+                    "name",
+                    "first_name",
+                    "middle_name",
+                    "last_name",
+                    "full_name",
+                    "known_as",
+                    "nickname",
+                    "suffix",
+                    "email",
+                    "email_address",
+                    "phone",
+                    "phone_number",
+                    "mobile",
+                    "mobile_phone",
+                    "home_phone",
+                    "work_phone",
+                    "address",
+                    "street_address",
+                    "ssn",
+                    "social_security_number",
+                ],
+            )
+
+    _drop(
+        out.get("households"),
+        [
+            "address",
+            "street_address",
+            "zip",
+            "postal_code",
+            "email",
+            "household_head_email",
+            "household_email",
+            "phone",
+            "household_phone",
+            "household_head_phone",
+        ],
+    )
+
+    return out
+
+
+_NOTE_NUM_RE = re.compile(r"\b(\d+)\b")
+
+
+def _sanitize_evidence_notes(note: Any, *, actual_source_value: Any) -> Optional[str]:
+    s = str(note or "").strip()
+    if not s:
+        return None
+
+    slow = s.lower()
+    if "source_value" not in slow and "source value" not in slow:
+        return s
+
+    try:
+        actual_int = int(actual_source_value)
+    except Exception:
+        actual_int = None
+
+    nums = [int(m.group(1)) for m in _NOTE_NUM_RE.finditer(s)][:5]
+    if actual_int is not None and nums and actual_int not in nums:
+        return "auto-sanitized: removed incorrect note about source_value"
+
+    if actual_int is not None and actual_int != 0 and (
+        "provided is 0" in slow or "provided as 0" in slow or "source_value=0" in slow
+    ):
+        return "auto-sanitized: removed incorrect note about source_value"
+
+    return s
 
 
 def _json_compact(value: Any) -> str:
@@ -827,6 +1182,85 @@ def _json_compact(value: Any) -> str:
 
 def _count_turns(lines: List[str]) -> int:
     return sum(1 for l in lines if l.strip())
+
+
+def _extend_transcript_to_min_turns(
+    *,
+    llm: OpenAIResponsesClient,
+    system_prompt: str,
+    extend_prompt_template: str,
+    household_type: HouseholdType,
+    transcript_lines: List[str],
+    min_turns: int,
+    max_turns: int,
+    client1_label: str,
+    client2_label: str,
+    max_output_tokens: int,
+    context_last_utterances: int,
+) -> List[str]:
+    """Append safe 'water' turns until transcript reaches min_turns (bounded by max_turns).
+
+    This is intentionally post-validation: it must not introduce new facts.
+    """
+
+    cur = _count_turns(transcript_lines)
+    if cur >= int(min_turns) or cur >= int(max_turns):
+        return transcript_lines
+
+    # Keep iterations bounded even if the model under-produces.
+    max_iters = 12
+    it = 0
+    while it < max_iters:
+        cur = _count_turns(transcript_lines)
+        if cur >= int(min_turns) or cur >= int(max_turns):
+            break
+
+        remaining = int(max_turns) - int(cur)
+        want_total = min(int(min_turns), int(max_turns))
+        want_more = max(0, int(want_total) - int(cur))
+        if remaining <= 0 or want_more <= 0:
+            break
+
+        # Ask for a moderate chunk each time; large single calls tend to truncate.
+        target_new = max(40, min(140, want_more, remaining))
+        tail_n = max(30, int(context_last_utterances or 60))
+        transcript_tail = "\n".join([l for l in transcript_lines[-tail_n:] if str(l).strip()])
+        extend_user = render_prompt(
+            extend_prompt_template,
+            {
+                "client1_label": client1_label,
+                "client2_label": client2_label if household_type == "couple" else "Client:",
+                "target_new_turns": str(int(target_new)),
+                "target_total_turns": str(int(want_total)),
+                "max_total_turns": str(int(max_turns)),
+                "transcript_tail": transcript_tail,
+            },
+        )
+        text = llm.create_text(
+            system_prompt=system_prompt,
+            user_prompt=extend_user,
+            max_output_tokens=int(max_output_tokens),
+        )
+        new_lines = _clean_prefixed_lines(text, household_type=household_type)
+        new_lines = [l.strip() for l in new_lines if str(l).strip()]
+        if not new_lines:
+            break
+
+        # Hard-cap, then append.
+        remaining2 = int(max_turns) - _count_turns(transcript_lines)
+        if remaining2 <= 0:
+            break
+        if len(new_lines) > remaining2:
+            new_lines = new_lines[:remaining2]
+        transcript_lines.extend(new_lines)
+
+        # If the model repeatedly returns only a couple of lines, stop early.
+        if len(new_lines) < 8:
+            it += 2
+        else:
+            it += 1
+
+    return transcript_lines
 
 
 def _normalize_misunderstood_terms(values: Any) -> List[str]:
@@ -1059,20 +1493,118 @@ class DialogGenerationPipeline:
                 "negative_controls_json": json.dumps(negative_controls, ensure_ascii=False, indent=2),
             },
         )
-        score = deepseek.create_realism_score_0_100(
-            system_prompt="Return exactly one integer from 0 to 100. Output must contain only the number.",
+        score, raw_output, parse_method = deepseek.create_realism_score_1_5_with_debug(
+            system_prompt="Return exactly one integer from 1 to 5. Output must contain only the number.",
             user_prompt=judge_prompt,
-            max_output_tokens=int(getattr(cfg, "deepseek_max_output_tokens", 900)),
+            # The judge output is only a number; keep this small to reduce accidental verbosity.
+            max_output_tokens=min(64, int(getattr(cfg, "deepseek_max_output_tokens", 900))),
         )
 
-        threshold_raw = float(getattr(cfg, "deepseek_realism_threshold", 0.8))
-        # Backward-compatible: older configs used 0.0..1.0. Treat that as probability and scale to 0..100.
-        threshold = threshold_raw * 100.0 if 0.0 <= threshold_raw <= 1.0 else threshold_raw
+        try:
+            raw_one_line = " ".join(str(raw_output or "").split())
+        except Exception:
+            raw_one_line = ""
+        logger.info(
+            "%s | step=deepseek_judge | raw_output=%r parse_method=%s",
+            dialog_id,
+            raw_one_line[:200],
+            parse_method,
+        )
+
+        score2: Optional[int] = None
+        raw_output2: Optional[str] = None
+        parse_method2: Optional[str] = None
+        # If the model sits at the middle score, explicitly request a second thought.
+        if int(score) == 3:
+            try:
+                score2, raw_output2, parse_method2 = deepseek.create_realism_score_1_5_with_debug(
+                    system_prompt=(
+                        "You just returned score 3 (uncertain). Re-evaluate carefully: "
+                        "if at least two of (natural disfluencies/repairs, organic flow, grounded messy detail) are strong, return 4; "
+                        "if at least two are weak or synthetic tells dominate, return 2; otherwise return 3. "
+                        "Return exactly one integer from 1 to 5. Output must contain only the number."
+                    ),
+                    user_prompt=judge_prompt,
+                    max_output_tokens=min(64, int(getattr(cfg, "deepseek_max_output_tokens", 900))),
+                )
+                if score2 is not None:
+                    logger.info(
+                        "%s | step=deepseek_judge | reconsider | raw_output=%r parse_method=%s",
+                        dialog_id,
+                        " ".join(str(raw_output2 or "").split())[:200],
+                        parse_method2,
+                    )
+                    if int(score2) != 3:
+                        score = int(score2)
+                        raw_output = str(raw_output2 or raw_output)
+                        parse_method = str(parse_method2 or parse_method)
+            except Exception:
+                pass
+
+        threshold_raw = float(getattr(cfg, "deepseek_realism_threshold", 4.0))
+        # Backward-compatible thresholds:
+        # - 0..1: probability -> scale to 1..5
+        # - 0..5: already on 1..5 scale
+        # - 0..100: legacy score -> scale down to 1..5
+        if 0.0 <= threshold_raw <= 1.0:
+            threshold = threshold_raw * 5.0
+        elif 0.0 <= threshold_raw <= 5.0:
+            threshold = threshold_raw
+        elif 0.0 <= threshold_raw <= 100.0:
+            threshold = threshold_raw / 20.0
+        else:
+            threshold = threshold_raw
+        threshold = max(1.0, min(5.0, float(threshold)))
         judge: Dict[str, Any] = {
             "realism_score": int(score),
             "threshold": float(threshold),
-            # "Выше 90" (strictly greater) by default.
-            "passed_threshold": bool(float(score) > float(threshold)),
+            # Default: pass at or above threshold (e.g., threshold=4 means scores 4 and 5 pass).
+            "passed_threshold": bool(float(score) >= float(threshold)),
+        }
+
+        explanation_text: Optional[str] = None
+        explanation_raw: Optional[str] = None
+        # If score is below the (usually 4) threshold, ask for a short explanation to help calibration.
+        if float(score) < float(threshold):
+            try:
+                explanation_system = (
+                    "You are a strict realism judge. Provide a concise explanation for why the candidate did NOT reach the pass threshold. "
+                    "Do NOT output any numbers that are not already present in the candidate excerpts. Do NOT output any PII. "
+                    "Return 3-6 short bullet points, each starting with '- '. No other text."
+                )
+                explanation_raw = deepseek.create_text(
+                    system_prompt=explanation_system,
+                    user_prompt=judge_prompt,
+                    max_output_tokens=min(300, int(getattr(cfg, "deepseek_max_output_tokens", 900))),
+                )
+                explanation_text = "\n".join([ln.rstrip() for ln in str(explanation_raw or "").splitlines() if ln.strip()])
+                if explanation_text:
+                    logger.info(
+                        "%s | step=deepseek_judge | explanation=%r",
+                        dialog_id,
+                        " ".join(explanation_text.split())[:220],
+                    )
+            except Exception:
+                explanation_text = None
+                explanation_raw = None
+
+        if explanation_text:
+            judge["explanation"] = explanation_text[:4000]
+        # Debug payload to diagnose suspiciously constant outputs (e.g. always "75").
+        # Keep it compact to avoid bloating artifacts.
+        judge["debug"] = {
+            "prompt_chars": len(judge_prompt),
+            "prompt_sha1": hashlib.sha1(judge_prompt.encode("utf-8", errors="ignore")).hexdigest(),
+            "parse_method": parse_method,
+            "raw_output_len": len(raw_output or ""),
+            "raw_output": (raw_output or "")[:4000],
+            "raw_output_preview": (raw_output or "")[:500],
+            "reconsidered": bool(score2 is not None),
+            "reconsider_score": (None if score2 is None else int(score2)),
+            "reconsider_parse_method": parse_method2,
+            "reconsider_raw_output": (raw_output2 or "")[:4000] if raw_output2 is not None else None,
+            "explanation_len": (len(explanation_raw) if isinstance(explanation_raw, str) else None),
+            "explanation_raw": (explanation_raw[:4000] if isinstance(explanation_raw, str) else None),
         }
         judge["meta"] = {
             "dialog_id": dialog_id,
@@ -1112,6 +1644,7 @@ class DialogGenerationPipeline:
 
         prof_scenario = _profile_scenario(profile)
         scenario_name = prof_scenario if prof_scenario else sample_scenario(priors, rng)
+        profile_redacted = _redact_profile_pii(profile)
         digest = build_profile_digest(profile)
         record_ids = extract_record_ids(profile)
         valid_ids_json = json.dumps(
@@ -1153,6 +1686,11 @@ class DialogGenerationPipeline:
             max_output_tokens=int(getattr(cfg, "personas_max_output_tokens", cfg.model.max_output_tokens)),
         )
         personas: List[Dict[str, Any]] = [p.model_dump() for p in personas_obj.root]
+        # Reduce PII leakage: keep personas behavioral, but avoid personal names.
+        for p in personas:
+            prof = p.get("profile")
+            if isinstance(prof, dict):
+                prof["name"] = None
         logger.info("%s | step=personas | done | dt=%.2fs", log_ctx, time.perf_counter() - t0)
 
         mode = str(getattr(cfg, "mode", "phases") or "phases").strip().lower()
@@ -1308,12 +1846,26 @@ class DialogGenerationPipeline:
                             ack_speaker = client2_label
                         else:
                             ack_speaker = client1_label
-                        transcript_lines.extend(
-                            [
+                        transition_pairs: List[Tuple[str, str]] = [
+                            (
                                 "Advisor: Okay—got it. Let me note that down.",
                                 f"{ack_speaker} Yeah—sounds good.",
-                            ]
-                        )
+                            ),
+                            (
+                                "Advisor: Thanks—that helps. We can come back if needed.",
+                                f"{ack_speaker} Sure.",
+                            ),
+                            (
+                                "Advisor: Alright—before we jump in, how's your week been?",
+                                f"{ack_speaker} Busy, but good. Okay—yeah.",
+                            ),
+                            (
+                                "Advisor: Okay. And—small thing—the weather's been kind of all over the place.",
+                                f"{ack_speaker} Yeah, seriously. Anyway—go ahead.",
+                            ),
+                        ]
+                        a, b = transition_pairs[int(rng.integers(0, len(transition_pairs)))]
+                        transcript_lines.extend([a, b])
 
                 # Merge inline evidence into a global report keyed by target_id.
                 for it in chunk_res.evidence_items:
@@ -1347,6 +1899,7 @@ class DialogGenerationPipeline:
                 for t in targets:
                     tid = str(t["target_id"])
                     ev = evidence_by_target.get(tid) or {"target_id": tid, "status": "missing", "evidence_text": "", "notes": None}
+                    clean_notes = _sanitize_evidence_notes(ev.get("notes"), actual_source_value=t.get("source_value"))
                     items.append(
                         {
                             "target_id": tid,
@@ -1356,7 +1909,7 @@ class DialogGenerationPipeline:
                             "source_value": t["source_value"],
                             "status": ev.get("status"),
                             "evidence_text": ev.get("evidence_text", ""),
-                            "notes": ev.get("notes"),
+                            "notes": clean_notes,
                         }
                     )
 
@@ -1548,7 +2101,7 @@ class DialogGenerationPipeline:
                 fail_obj = {
                     "id": dialog_id,
                     "scenario": scenario_name,
-                    "financial_profile": profile,
+                    "financial_profile": profile_redacted,
                     "personas": personas,
                     "transcript_skeleton": transcript_text,
                     "chunks": chunks_out,
@@ -1613,14 +2166,46 @@ class DialogGenerationPipeline:
                         max_output_tokens=int(getattr(cfg, "finalize_max_output_tokens", 2200)),
                     )
                     cleaned_lines = _clean_prefixed_lines(polished, household_type=hh_type)
-                if cleaned_lines:
+                # Guardrail: never allow finalize to shorten the transcript skeleton.
+                skeleton_lines = [l for l in transcript_text.splitlines() if str(l).strip()]
+                cleaned_turns = _count_turns(cleaned_lines)
+                skeleton_turns = _count_turns(skeleton_lines)
+                used_cleaned = bool(cleaned_lines and cleaned_turns >= skeleton_turns)
+                if used_cleaned:
                     final_transcript = "\n".join(cleaned_lines).strip() + "\n"
+                else:
+                    final_transcript = "\n".join(skeleton_lines).strip() + "\n"
                 logger.info(
-                    "%s | step=finalize | done | strategy=%s turns=%s",
+                    "%s | step=finalize | done | strategy=%s used_cleaned=%s turns_final=%s turns_skeleton=%s turns_cleaned=%s",
                     log_ctx,
                     strategy,
-                    _count_turns(cleaned_lines),
+                    used_cleaned,
+                    _count_turns((final_transcript or "").splitlines()),
+                    skeleton_turns,
+                    cleaned_turns,
                 )
+
+            # Enforce min_turns in field_chunks by appending safe extension turns (no new facts).
+            try:
+                base_lines = [l for l in (final_transcript or "").splitlines() if str(l).strip()]
+                extended_lines = _extend_transcript_to_min_turns(
+                    llm=llm,
+                    system_prompt=system_prompt,
+                    extend_prompt_template=self.prompts.transcript_extend,
+                    household_type=hh_type,
+                    transcript_lines=base_lines,
+                    min_turns=int(getattr(cfg, "min_turns", 0) or 0),
+                    max_turns=int(getattr(cfg, "max_turns", 0) or 0),
+                    client1_label=client1_label,
+                    client2_label=client2_label or "Client 2:",
+                    max_output_tokens=int(getattr(cfg, "finalize_max_output_tokens", 2200)),
+                    context_last_utterances=int(getattr(cfg, "context_last_utterances", 60) or 60),
+                )
+                if extended_lines:
+                    final_transcript = "\n".join(extended_lines).strip() + "\n"
+            except Exception:
+                # Never fail generation due to extension helper.
+                pass
 
             deepseek_realism: Optional[Dict[str, Any]] = None
             if finalize_allowed and bool(getattr(cfg, "deepseek_realism_check", True)):
@@ -1649,7 +2234,7 @@ class DialogGenerationPipeline:
             out_obj = {
                 "id": dialog_id,
                 "scenario": scenario_name,
-                "financial_profile": profile,
+                "financial_profile": profile_redacted,
                 "personas": personas,
                 "transcript": final_transcript,
                 "transcript_skeleton": transcript_text,
@@ -2091,14 +2676,21 @@ class DialogGenerationPipeline:
                     "mode": "phases_posthoc",
                 },
                 "targets": targets,
-                "items": all_items,
+                "items": [
+                    {
+                        **it,
+                        "notes": _sanitize_evidence_notes(it.get("notes"), actual_source_value=it.get("source_value")),
+                    }
+                    for it in all_items
+                    if isinstance(it, dict)
+                ],
             }
             logger.info("%s | step=evidence | done | dt=%.2fs", log_ctx, time.perf_counter() - te0)
 
         out_obj = {
             "id": dialog_id,
             "scenario": scenario_name,
-            "financial_profile": profile,
+            "financial_profile": profile_redacted,
             "personas": personas,
             "transcript": transcript_text,
             "phases": phases_out,

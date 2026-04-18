@@ -87,8 +87,9 @@ class GenerationConfig:
     deepseek_model: str = "deepseek-chat"
     deepseek_max_output_tokens: int = 900
     # Threshold for passing/copying to deepseek_pass_subdir.
-    # Units: 0..100 (a single realism score). Backwards compatible: values in 0..1 are treated as probability.
-    deepseek_realism_threshold: float = 90.0
+    # Units: 1..5 (a single realism score). Default pass threshold is 4.
+    # Backward-compatible: values in 0..1 are treated as probability and scaled to 1..5; values in 0..100 are scaled down.
+    deepseek_realism_threshold: float = 4.0
     deepseek_pass_subdir: str = "realism_passed"
 
     model: ModelConfig = ModelConfig()

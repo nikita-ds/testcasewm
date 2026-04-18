@@ -7,7 +7,7 @@ import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Any, Dict, Optional, Tuple, Type, TypeVar
 
 from openai import OpenAI
 from pydantic import BaseModel
@@ -144,10 +144,79 @@ class DeepSeekChatClient:
         user_prompt: str,
         max_output_tokens: Optional[int] = None,
     ) -> int:
-        """Return an integer realism score in [0, 100].
+        """Return an integer realism score in [0, 100]."""
 
-        The prompt is expected to instruct the model to output a single integer. We still
-        parse defensively to tolerate extra whitespace or accidental prose.
+        score, _raw_text, _parse_method = self.create_int_in_range_with_debug(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            min_value=0,
+            max_value=100,
+            max_output_tokens=max_output_tokens,
+        )
+        return score
+
+    def create_realism_score_1_5(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        max_output_tokens: Optional[int] = None,
+    ) -> int:
+        """Return an integer realism score in [1, 5]."""
+
+        score, _raw_text, _parse_method = self.create_int_in_range_with_debug(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            min_value=1,
+            max_value=5,
+            max_output_tokens=max_output_tokens,
+        )
+        return score
+
+    def create_realism_score_0_100_with_debug(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        max_output_tokens: Optional[int] = None,
+    ) -> Tuple[int, str, str]:
+        return self.create_int_in_range_with_debug(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            min_value=0,
+            max_value=100,
+            max_output_tokens=max_output_tokens,
+        )
+
+    def create_realism_score_1_5_with_debug(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        max_output_tokens: Optional[int] = None,
+    ) -> Tuple[int, str, str]:
+        return self.create_int_in_range_with_debug(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            min_value=1,
+            max_value=5,
+            max_output_tokens=max_output_tokens,
+        )
+
+    def create_int_in_range_with_debug(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        min_value: int,
+        max_value: int,
+        max_output_tokens: Optional[int] = None,
+    ) -> Tuple[int, str, str]:
+        """Return (value, raw_text, parse_method) where value is within [min_value, max_value].
+
+        parse_method is one of:
+        - "digit": raw output was a bare integer
+        - "regex": extracted the first integer-looking token
         """
 
         text = self.create_text(
@@ -157,14 +226,16 @@ class DeepSeekChatClient:
         )
         s = (text or "").strip()
         if s.isdigit():
-            score = int(s)
+            value = int(s)
+            parse_method = "digit"
         else:
             m = re.search(r"-?\d+", s)
             if not m:
                 preview = s[:200].replace("\n", " ")
                 raise LLMError(f"DeepSeek did not return a number: {preview}")
-            score = int(m.group(0))
-        if score < 0 or score > 100:
-            raise LLMError(f"DeepSeek score out of range [0,100]: {score}")
-        return score
+            value = int(m.group(0))
+            parse_method = "regex"
+        if value < int(min_value) or value > int(max_value):
+            raise LLMError(f"DeepSeek score out of range [{min_value},{max_value}]: {value}")
+        return value, text, parse_method
 

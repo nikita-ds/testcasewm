@@ -98,7 +98,7 @@ def build_profile_digest(profile: Dict[str, Any]) -> str:
     _fmt_rows(
         "PEOPLE",
         people,
-        ["person_id", "role", "client_no", "employment_status", "gross_annual_income", "date_of_birth"],
+        ["person_id", "role", "client_no", "employment_status", "gross_annual_income"],
     )
     _fmt_rows(
         "INCOME_LINES",

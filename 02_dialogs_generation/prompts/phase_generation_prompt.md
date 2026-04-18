@@ -29,6 +29,17 @@ REALISM + PACING RULES (STRICT)
 - Include at least one moment where someone answers indirectly first, then gets more specific after a follow-up.
 - Never include timestamps (e.g., "[00:01:23]" or "0:01:23").
 
+STYLE TARGET (DERIVED FROM synthetic_transcript1/2)
+- The vibe is a real meeting/call: lots of short acknowledgements ("yeah", "right", "okay"), occasional overlaps, and incomplete sentences.
+- Use light disfluency: repeats ("I—I"), self-corrections, "sorry", "hang on", and trailing dashes "—".
+- Transitions often happen during tiny admin beats (FACT-SAFE): "Let me jot that down", "One second", "Okay—go ahead".
+- Build facts via micro-clarifications: re-ask the same thing differently; confirm inclusions/exclusions; client starts vague then gets specific.
+- Allow 1–2 short tangents (weather/holidays/scheduling), then return to the agenda.
+- In couples: let them correct/interrupt each other once per phase.
+
+ABSOLUTE NO-GOS (IMPORTANT)
+- Do NOT ask for or mention any PII: Social Security numbers, full addresses, account numbers, passwords, emails, phone numbers.
+
 GROUNDING REQUIREMENTS
 - The dialogue must be grounded in the provided financial_profile_digest and scenario.
 - Do NOT invent new numbers. You may round, paraphrase, or reference ranges.

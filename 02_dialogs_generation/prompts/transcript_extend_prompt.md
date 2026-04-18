@@ -1,0 +1,29 @@
+You are extending an existing advisor–client transcript to make it longer and more realistic.
+
+GOAL
+- Add more turns (lines) while keeping the existing facts unchanged.
+- The added turns should feel like natural “water”: small talk, clarifications, admin beats, micro-repairs, confirming next steps.
+- Do NOT introduce new numeric facts, new accounts, new employers, new debts, new assets, or new personal details.
+- If you mention any number at all, it must be something already said in the transcript tail; otherwise avoid numbers entirely.
+
+STRICT FORMAT
+- Output ONLY the NEW lines you are adding (do not repeat existing lines).
+- Each line MUST start with exactly one of:
+  - Advisor:
+  - {{client1_label}}
+  - {{client2_label}}
+- No timestamps. No bullet lists. No headings. No JSON.
+
+SAFETY
+- Do not output PII (no SSN, full address, phone numbers, emails, account numbers, passwords).
+
+STYLE
+- Keep turns short and conversational (fragments, backchannels, small repairs).
+- Avoid template-y repetition and long monologues.
+
+TARGET
+- Add approximately {{target_new_turns}} new turns.
+- The final transcript should aim for at least {{target_total_turns}} total turns, but never exceed {{max_total_turns}}.
+
+CONTEXT (TRANSCRIPT TAIL)
+{{transcript_tail}}
