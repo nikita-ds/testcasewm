@@ -181,6 +181,8 @@ Artifacts:
 The only external source currently used programmatically is **US Census ACS via `api.census.gov`** (no API key).
 Raw responses are cached under `artifacts/public_data_cache/` for reproducibility.
 
+The full data description is here  https://www2.census.gov/programs-surveys/cps/techdocs/cpsmar25.pdf  
+
 ACS-derived anchors include:
 
 - Median household income (ACS variable `B19013_001E`)
@@ -208,152 +210,153 @@ High-level keys include:
 - `scenario_catalog`
 - `generator_params`: the core “knobs” (distribution family parameters, caps, ties, scenario profiles/weights)
 
----
 
-## 4) Как генерятся поля (по схеме)
+## 4) How fields are generated (per schema)
 
-Ниже — человекочитаемая “карта” генерации полей. Каждая строка — одно поле.
+Below is a human-readable “map” of field generation. Each line corresponds to one field.
 
-**households.household_id** — синтетический идентификатор домохозяйства вида `HH000001`, `HH000002`, …
+**households.household_id** — synthetic household identifier like `HH000001`, `HH000002`, …
 
-**households.scenario** — сценарий (архетип) домохозяйства, выбирается из `generator_params.scenarios` по весам `generator_params.scenario_weights`.
+**households.scenario** — household scenario (archetype), sampled from `generator_params.scenarios` using weights `generator_params.scenario_weights`.
 
-**households.country** — константа `US`.
+**households.country** — constant `US`.
 
-**households.market** — константа `US_RIA`.
+**households.market** — constant `US_RIA`.
 
-**households.marital_status** — категориальное значение из `categoricals.marital_status` с принудительными переопределениями для отдельных сценариев (`generator_params.marital_overrides`).
+**households.marital_status** — categorical value sampled from `categoricals.marital_status`, with scenario-specific overrides via `generator_params.marital_overrides`.
 
-**households.residence_state** — выбор штата по распределению `categoricals.residence_state`.
+**households.residence_state** — state sampled from `categoricals.residence_state`.
 
-**households.move_in_date** — дата заселения: берётся `snapshot_date` и сдвигается назад на случайное число лет из `generator_params.move_in_model`, с ограничением “не раньше возраста `date_rules.move_in_after_age`”.
+**households.move_in_date** — move-in date: take `snapshot_date` and shift backwards by a random number of years from `generator_params.move_in_model`, constrained to be “not earlier than age `date_rules.move_in_after_age`”.
 
-**households.num_adults** — 1 или 2 (в зависимости от того, сгенерирован ли второй взрослый).
+**households.num_adults** — 1 or 2 (depending on whether a second adult was generated).
 
-**households.num_dependants** — число детей, сэмплируется из `generator_params.children_model` и может быть 0.
+**households.num_dependants** — number of children, sampled from `generator_params.children_model` (may be 0).
 
-**households.youngest_child_dob** — дата рождения самого младшего ребёнка (если дети есть), рассчитывается от `snapshot_date` и возраста ребёнка; иначе `null`.
+**households.youngest_child_dob** — youngest child date of birth (if children exist), derived from `snapshot_date` and sampled child age; otherwise `null`.
 
-**households.oldest_child_dob** — дата рождения самого старшего ребёнка (если дети есть); иначе `null`.
+**households.oldest_child_dob** — oldest child date of birth (if children exist); otherwise `null`.
 
-**households.annual_household_gross_income** — годовой валовый доход домохозяйства: логнормаль, привязанная к публичной медиане (`generator_params.income_model`), затем сценарный мультипликатор (`generator_params.scenario_income_adjustments`), затем “affluent floor” (resample под `meta.affluent_income_floor` / `generator_params.income_floor`).
+**households.annual_household_gross_income** — annual gross household income: lognormal anchored to the public median (`generator_params.income_model`), then a scenario multiplier (`generator_params.scenario_income_adjustments`), then an “affluent floor” (resample until above `meta.affluent_income_floor` / `generator_params.income_floor`).
 
-**households.monthly_expenses_total** — ежемесячные расходы: сначала “не-долговые” расходы как доля дохода (нормаль в рамках min/max из `generator_params.expense_ratio_normal`), затем добавляются обязательные платежи по долгам; при необходимости режется только не-долговая часть, чтобы уложиться в cap.
+**households.monthly_expenses_total** — monthly expenses: start with “non-debt” expenses as a share of income (normal within min/max from `generator_params.expense_ratio_normal`), then add required debt payments; if a cap is needed, only the non-debt portion is reduced to fit.
 
 **households.expense_to_income_ratio** — `monthly_expenses_total / (annual_household_gross_income/12)`.
 
-**households.annual_alimony_paid** — алименты в год: ненулевые только для сценариев `divorced` и `secondly_wedded_paying_alimony` по `generator_params.alimony_model`.
+**households.annual_alimony_paid** — annual alimony: non-zero only for scenarios `divorced` and `secondly_wedded_paying_alimony` per `generator_params.alimony_model`.
 
-**households.has_mortgage_or_loan** — `true`, если есть ипотека или не-ипотечный долг.
+**households.has_mortgage_or_loan** — `true` if there is a mortgage or any non-mortgage debt.
 
-**households.loan_outstanding_total** — сумма outstanding по ипотеке и не-ипотечному долгу.
+**households.loan_outstanding_total** — total outstanding across mortgage and non-mortgage debt.
 
-**households.monthly_debt_cost_total** — сумма ежемесячных платежей (ипотека + не-ипотечный долг).
+**households.monthly_debt_cost_total** — total monthly debt payments (mortgage + non-mortgage debt).
 
-**households.monthly_mortgage_payment_total** — ежемесячный ипотечный платёж (0, если ипотеки нет).
+**households.monthly_mortgage_payment_total** — monthly mortgage payment (0 if there is no mortgage).
 
-**households.monthly_non_mortgage_payment_total** — ежемесячный платёж по не-ипотечному долгу (0, если долга нет).
+**households.monthly_non_mortgage_payment_total** — monthly non-mortgage debt payment (0 if there is no such debt).
 
-**households.mortgage_payment_to_income_ratio** — доля ипотечного платежа от месячного дохода; платёж сэмплируется из beta-подобного распределения в рамках `generator_params.mortgage_ratio_beta` и ограничивается `generator_params.mortgage_terms.payment_ratio_cap`.
+**households.mortgage_payment_to_income_ratio** — mortgage payment share of monthly income; the payment ratio is sampled from a beta-like distribution in `generator_params.mortgage_ratio_beta` and capped by `generator_params.mortgage_terms.payment_ratio_cap`.
 
-**households.property_value_total** — стоимость основного жилья: зависит от `investable_assets_total` через мультипликатор (`generator_params.property_model.default`) и ограничивается floor `property_value_priors.default_min`; для отдельных сценариев применяется дополнительный множитель (`property_model.scenario_adjustments`).
+**households.property_value_total** — primary residence value: tied to `investable_assets_total` via a multiplier (`generator_params.property_model.default`) and floored by `property_value_priors.default_min`; scenario-specific multipliers may apply via `property_model.scenario_adjustments`.
 
-**households.investable_assets_total** — инвестируемые активы: $income \times k_{base} \times k_2 \times scenario\_mult$ (см. `generator_params.investable_assets_model.income_multiplier` + `investable_assets_model.scenario_adjustments`).
+**households.investable_assets_total** — investable assets: $income \times k_{base} \times k_2 \times scenario\_mult$ (see `generator_params.investable_assets_model.income_multiplier` and `investable_assets_model.scenario_adjustments`).
 
-**households.retirement_assets_total** — часть `investable_assets_total`, выделенная под пенсионные счета по долям из `generator_params.asset_mix_model.default` и сценарным корректировкам.
+**households.retirement_assets_total** — slice of `investable_assets_total` allocated to retirement accounts using shares from `generator_params.asset_mix_model.default` plus scenario adjustments.
 
-**households.cash_and_cashlike_total** — часть `investable_assets_total`, выделенная под кэш/кэш‑аналоги.
+**households.cash_and_cashlike_total** — slice of `investable_assets_total` allocated to cash / cash-like.
 
-**households.alternatives_total** — часть `investable_assets_total`, выделенная под альтернативы.
+**households.alternatives_total** — slice of `investable_assets_total` allocated to alternatives.
 
-**households.net_worth_proxy** — прокси‑чистая стоимость: `investable_assets_total + property_value_total - mortgage_outstanding - non_mortgage_outstanding + U(0, investable_assets_total*mult)` (`generator_params.net_worth_proxy_model`).
+**households.net_worth_proxy** — proxy net worth: `investable_assets_total + property_value_total - mortgage_outstanding - non_mortgage_outstanding + U(0, investable_assets_total*mult)` (`generator_params.net_worth_proxy_model`).
 
-**households.risk_tolerance** — категориальное значение из `categoricals.risk_tolerance`, с возможным override для отдельных сценариев (`generator_params.risk_overrides`).
+**households.risk_tolerance** — categorical value from `categoricals.risk_tolerance`, with optional scenario overrides via `generator_params.risk_overrides`.
 
-**households.investment_objectives** — случайный набор 1..K целей из `generator_params.objectives` (K ограничен `generator_params.objectives_max_k`).
+**households.investment_objectives** — random set of 1..K objectives drawn from `generator_params.objectives` (K capped by `generator_params.objectives_max_k`).
 
-**households.tax_bracket_band** — категориальное значение из `categoricals.tax_bracket_band`.
+**households.tax_bracket_band** — categorical value from `categoricals.tax_bracket_band`.
 
-**households.client_segment** — константа `affluent_ria_like`.
+**households.client_segment** — constant `affluent_ria_like`.
 
-**people.person_id** — синтетический идентификатор человека вида `HH000001_P1`, `HH000001_P2`.
+**people.person_id** — synthetic person identifier like `HH000001_P1`, `HH000001_P2`.
 
-**people.household_id** — FK на `households.household_id`.
+**people.household_id** — FK to `households.household_id`.
 
-**people.client_no** — 1 для primary, 2 для spouse/partner.
+**people.client_no** — 1 for primary, 2 for spouse/partner.
 
-**people.role** — `primary` или `spouse_partner`.
+**people.role** — `primary` or `spouse_partner`.
 
-**people.date_of_birth** — дата рождения: берётся возраст из профиля сценария (`generator_params.scenario_profiles`) + джиттер (`household_composition_model.dob_jitter_years`), затем `snapshot_date` сдвигается назад на возраст.
+**people.date_of_birth** — date of birth: sample an age from the scenario profile (`generator_params.scenario_profiles`) plus jitter (`household_composition_model.dob_jitter_years`), then shift `snapshot_date` backwards by that age.
 
-**people.employment_status** — статус занятости из `generator_params.employment_model` (с логикой “retired” при возрасте ≥ retirement_age или для сценария retired).
+**people.employment_status** — employment status from `generator_params.employment_model` (with “retired” logic for age ≥ retirement_age or for the `retired` scenario).
 
-**people.employment_started** — дата начала работы: сэмплируется как “years ago” из `generator_params.employment_started_model`, при этом не раньше возраста `date_rules.employment_start_after_age`; для части inactive может быть `null`.
+**people.employment_started** — employment start date: sampled as “years ago” from `generator_params.employment_started_model`, constrained to be no earlier than age `date_rules.employment_start_after_age`; may be `null` for some inactive cases.
 
-**people.desired_retirement_age** — нормаль с ограничениями min/max (`generator_params.person_model.desired_retirement_age`).
+**people.desired_retirement_age** — normal distribution with min/max constraints (`generator_params.person_model.desired_retirement_age`).
 
-**people.occupation_group** — выбор из списков `generator_params.person_model.occupation_group`.
+**people.occupation_group** — sampled from `generator_params.person_model.occupation_group`.
 
-**people.smoker** — Бернулли по `generator_params.person_model.smoker_probability`.
+**people.smoker** — Bernoulli draw using `generator_params.person_model.smoker_probability`.
 
-**people.state_of_health** — категориальное значение из `generator_params.person_model.state_of_health`.
+**people.state_of_health** — categorical value from `generator_params.person_model.state_of_health`.
 
-**people.gross_annual_income** — доход конкретного клиента: домохозяйственный доход делится между взрослыми по `generator_params.spouse_income_split`.
+**people.gross_annual_income** — per-person gross income: household income split across adults using `generator_params.spouse_income_split`.
 
-**income_lines.income_line_id** — синтетический идентификатор строки дохода `HH000001_I1`, `HH000001_I2`, …
+**income_lines.income_line_id** — synthetic income line identifier `HH000001_I1`, `HH000001_I2`, …
 
-**income_lines.household_id** — FK на `households.household_id`.
+**income_lines.household_id** — FK to `households.household_id`.
 
-**income_lines.owner** — `client_1`, `client_2` или `joint` по вероятностям `generator_params.income_lines_model.owner`.
+**income_lines.owner** — `client_1`, `client_2`, or `joint` based on `generator_params.income_lines_model.owner` probabilities.
 
-**income_lines.source_type** — тип источника дохода из `generator_params.income_lines_model.sources`.
+**income_lines.source_type** — income source type from `generator_params.income_lines_model.sources`.
 
-**income_lines.frequency** — частота выплат из `generator_params.income_lines_model.frequency`.
+**income_lines.frequency** — pay frequency from `generator_params.income_lines_model.frequency`.
 
-**income_lines.net_or_gross** — константа `gross`.
+**income_lines.net_or_gross** — constant `gross`.
 
-**income_lines.amount_annualized** — годовая сумма по линии: домохозяйственный доход разбивается на N линий (N ~ Poisson) с долями из `income_lines_model.split_fraction`; последняя линия добирает остаток.
+**income_lines.amount_annualized** — annualized amount: household income is split into N lines (N ~ Poisson) using fractions from `income_lines_model.split_fraction`; the final line takes the remainder.
 
-**assets.asset_id** — синтетический идентификатор актива `HH000001_A1`, `HH000001_A2`, …
+**assets.asset_id** — synthetic asset identifier `HH000001_A1`, `HH000001_A2`, …
 
-**assets.household_id** — FK на `households.household_id`.
+**assets.household_id** — FK to `households.household_id`.
 
-**assets.owner** — `client_1`, `client_2` или `joint` по вероятностям из `generator_params.asset_model` и типу актива.
+**assets.owner** — `client_1`, `client_2`, or `joint` based on `generator_params.asset_model` probabilities and asset type.
 
-**assets.asset_type** — один из: `brokerage`, `retirement`, `cash`, `alternatives`, `property`.
+**assets.asset_type** — one of: `brokerage`, `retirement`, `cash`, `alternatives`, `property`.
 
-**assets.subtype** — подтип по asset_type (например `taxable`, `401k_ira`, `bank`, `private_markets`, `primary_residence`).
+**assets.subtype** — subtype by asset_type (e.g., `taxable`, `401k_ira`, `bank`, `private_markets`, `primary_residence`).
 
-**assets.provider_type** — провайдер из `generator_params.asset_model.provider_types`.
+**assets.provider_type** — provider type from `generator_params.asset_model.provider_types`.
 
-**assets.value** — стоимость: декомпозиция `investable_assets_total` по долям + отдельно `property_value_total`.
+**assets.value** — value: decompose `investable_assets_total` by mix shares, plus `property_value_total` for the primary residence.
 
-**assets.is_joint** — `true`, если `owner == joint`.
+**assets.is_joint** — `true` if `owner == joint`.
 
-**liabilities.liability_id** — синтетический идентификатор обязательства `HH000001_L1`, `HH000001_L2`.
+**liabilities.liability_id** — synthetic liability identifier `HH000001_L1`, `HH000001_L2`.
 
-**liabilities.household_id** — FK на `households.household_id`.
+**liabilities.household_id** — FK to `households.household_id`.
 
-**liabilities.type** — `mortgage`, `loan` или `credit_card` (credit_card используется для сценария финансового стресса).
+**liabilities.type** — `mortgage`, `loan`, or `credit_card` (`credit_card` is used for the financial-stress scenario).
 
-**liabilities.monthly_cost** — ежемесячный платёж: ипотека из `mortgage_ratio_beta` и ограничений/retirement‑taper, не-ипотечный долг из `generator_params.non_mortgage_payment`.
+**liabilities.monthly_cost** — monthly payment: mortgage is derived from `mortgage_ratio_beta` plus constraints / retirement taper; non-mortgage debt uses `generator_params.non_mortgage_payment`.
 
-**liabilities.outstanding** — остаток долга: ипотека — функция платежа/срока/ставки с ограничениями LTV и income multiple; не-ипотечный долг — `monthly_cost × multiplier`.
+**liabilities.outstanding** — outstanding balance: mortgage is a function of payment/term/rate with LTV and income-multiple constraints; non-mortgage debt uses `monthly_cost × multiplier`.
 
-**liabilities.interest_rate** — ставка: ипотека из `generator_params.mortgage_terms.rate_normal`, не-ипотечный долг из `generator_params.liability_model.non_mortgage_interest_rate`.
+**liabilities.interest_rate** — interest rate: mortgage from `generator_params.mortgage_terms.rate_normal`, non-mortgage debt from `generator_params.liability_model.non_mortgage_interest_rate`.
 
-**liabilities.final_payment_date** — дата финального платежа: для ипотеки — `snapshot_date + years_remaining`; для `credit_card` — `null`; для `loan` — `snapshot_date + U(min,max)` лет.
+**liabilities.final_payment_date** — final payment date: for mortgages `snapshot_date + years_remaining`; for `credit_card` it is `null`; for `loan` it is `snapshot_date + U(min,max)` years.
 
-**protection_policies.policy_id** — синтетический идентификатор полиса `HH000001_PP1`.
+Protection policies (`protection_policies.*`) represent synthetic insurance-like coverages (e.g., life / disability / long-term-care style). They exist to make household cashflow and “risk protection footprint” more realistic: policies create a recurring premium (monthly cost) and a coverage amount/duration, which are commonly relevant in wealth management planning and downstream analytics.
 
-**protection_policies.household_id** — FK на `households.household_id`.
+**protection_policies.policy_id** — synthetic policy identifier `HH000001_PP1`.
 
-**protection_policies.owner** — сейчас фиксированно `client_1`.
+**protection_policies.household_id** — FK to `households.household_id`.
 
-**protection_policies.policy_type** — тип полиса из `generator_params.protection_model.policy_types`.
+**protection_policies.owner** — currently fixed to `client_1`.
 
-**protection_policies.monthly_cost** — месячная стоимость: `amount_assured × U(min,max)` из `protection_model.monthly_cost_rate`.
+**protection_policies.policy_type** — policy type sampled from `generator_params.protection_model.policy_types`.
 
-**protection_policies.amount_assured** — страховая сумма: max(`assured_min`, `annual_household_gross_income × U(min,max)`), где множитель из `protection_model.assured_income_mult`.
+**protection_policies.monthly_cost** — monthly premium: `amount_assured × U(min,max)` where the rate comes from `protection_model.monthly_cost_rate`.
 
-**protection_policies.assured_until** — дата окончания покрытия: `snapshot_date + U(min,max)` лет (`protection_model.assured_until_years`).
+**protection_policies.amount_assured** — coverage amount: `max(assured_min, annual_household_gross_income × U(min,max))`, where the multiplier comes from `protection_model.assured_income_mult`.
+
+**protection_policies.assured_until** — coverage end date: `snapshot_date + U(min,max)` years (`protection_model.assured_until_years`).
