@@ -1,9 +1,13 @@
 from __future__ import annotations
+import argparse
 import json
+import math
 from datetime import date, timedelta
 from pathlib import Path
 import numpy as np
 import pandas as pd
+
+from runtime_config import ValidationRuntimeConfig, load_validation_runtime_config
 
 ROOT = Path(__file__).resolve().parent.parent
 ART = ROOT / "artifacts"
@@ -11,6 +15,29 @@ TABLES = ART / "tables"
 
 def clamp(v, lo, hi):
     return max(lo, min(hi, v))
+
+
+def lerp(a: float, b: float, t: float) -> float:
+    return float(a + (b - a) * float(clamp(t, 0.0, 1.0)))
+
+
+def retirement_progress(age: int | float, retirement_age: int | float, span_years: int = 35) -> float:
+    years_to_ret = float(retirement_age) - float(age)
+    return float(clamp((float(span_years) - years_to_ret) / float(span_years), 0.0, 1.0))
+
+
+def age_income_multiplier(age: int | float, retirement_age: int | float, retired: bool) -> float:
+    progress = retirement_progress(age, retirement_age)
+    if retired:
+        return float(lerp(0.85, 0.62, progress))
+    return float(lerp(0.88, 1.15, progress))
+
+
+def age_assets_multiplier(age: int | float, retirement_age: int | float, retired: bool) -> float:
+    progress = retirement_progress(age, retirement_age)
+    if retired:
+        return float(lerp(1.10, 1.30, progress))
+    return float(lerp(0.72, 1.35, progress))
 
 
 def get_public_income_median(priors: dict) -> float | None:
@@ -186,28 +213,67 @@ def build_expected_samples(priors: dict, n: int, seed: int = 123) -> tuple[np.nd
     floor = get_affluent_income_floor(priors) if floor_enabled else None
     max_tries = int(income_floor_cfg.get("max_tries", 50)) if floor_enabled else 1
     strategy = str(income_floor_cfg.get("strategy", "resample")) if floor_enabled else ""
+    floor_mode = str(income_floor_cfg.get("mode", "affluent_income_floor")) if floor_enabled else ""
+    softness = float(income_floor_cfg.get("softness", 30000.0)) if floor_enabled else 0.0
+    min_accept_prob = float(income_floor_cfg.get("min_accept_prob", 0.02)) if floor_enabled else 0.0
 
     rng = np.random.default_rng(seed)
     expected_income = np.empty(n, dtype=float)
     expected_assets = np.empty(n, dtype=float)
+    profiles = (gp.get("scenario_profiles") or {})
+    dra = ((gp.get("person_model") or {}).get("desired_retirement_age") or {"mean": 65, "std": 5, "min": 55, "max": 75})
+    retirement_age_cfg = int(((gp.get("employment_model") or {}).get("retirement_age") or 68))
     for i in range(n):
         scenario = str(rng.choice(scenarios, p=w))
+        sp = profiles.get(scenario) or {}
+        age_bounds = sp.get("age1") or [35, 65]
+        age1 = int(rng.integers(int(age_bounds[0]), int(age_bounds[1]) + 1))
+        ret_age1 = int(
+            clamp(
+                round(float(rng.normal(float(dra["mean"]), float(dra["std"])))),
+                int(dra["min"]),
+                int(dra["max"]),
+            )
+        )
+        retired = scenario == "retired_couple_high_assets_low_income" or age1 >= retirement_age_cfg
         hh_income = None
+        last_final_cand = None
         for _ in range(max(1, max_tries)):
             cand = float(sample_empirical_income(priors, rng)) * income_scale
             cand = float(apply_scenario_income_adjustment(priors, scenario, cand, rng))
+
+            final_cand = float(cand) * float(age_income_multiplier(age1, ret_age1, retired))
+            last_final_cand = final_cand
+
             if floor is None or float(floor) <= 0:
-                hh_income = cand
+                hh_income = final_cand
                 break
-            if cand >= float(floor):
-                hh_income = cand
+
+            if floor_mode == "soft_affluent_income_floor":
+                if softness <= 0:
+                    accept_p = 1.0 if final_cand >= float(floor) else float(min_accept_prob)
+                else:
+                    t = (final_cand - float(floor)) / float(softness)
+                    accept_p = float(min_accept_prob) + (1.0 - float(min_accept_prob)) * (1.0 / (1.0 + math.exp(-t)))
+                accept_p = float(clamp(accept_p, float(min_accept_prob), 1.0))
+                if float(rng.random()) < accept_p:
+                    hh_income = final_cand
+                    break
+                if strategy != "resample":
+                    hh_income = final_cand
+                    break
+                continue
+
+            if final_cand >= float(floor):
+                hh_income = final_cand
                 break
             if strategy != "resample":
-                hh_income = float(max(float(floor), cand))
+                hh_income = float(max(float(floor), final_cand))
                 break
         if hh_income is None:
-            hh_income = float(max(float(floor) if floor else 0.0, cand))
-            investable = float(sample_investable_assets(priors, scenario, hh_income, rng))
+            hh_income = float(max(float(floor) if floor else 0.0, float(last_final_cand or 0.0)))
+        investable = float(sample_investable_assets(priors, scenario, hh_income, rng))
+        investable *= age_assets_multiplier(age1, ret_age1, retired)
         expected_income[i] = hh_income
         expected_assets[i] = investable
     return expected_income, expected_assets
@@ -238,13 +304,38 @@ def psi(expected, actual, bins=10):
     return float(np.sum((ap-ep)*np.log(ap/ep)))
 
 def main():
-    pri = json.loads((ART / "computed_priors.json").read_text(encoding="utf-8"))
-    hh = pd.read_csv(TABLES / "households.csv")
-    people = pd.read_csv(TABLES / "people.csv")
-    liab = pd.read_csv(TABLES / "liabilities.csv") if (TABLES / "liabilities.csv").exists() else pd.DataFrame()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--config", type=str, default=str(ROOT / "config" / "validation_runtime.json"))
+    ap.add_argument("--priors-path", type=str, default=None)
+    ap.add_argument("--tables-dir", type=str, default=None)
+    ap.add_argument("--expected-samples-seed", type=int, default=None)
+    ap.add_argument("--psi-bins", type=int, default=None)
+    args = ap.parse_args()
+
+    cfg: ValidationRuntimeConfig = load_validation_runtime_config(args.config)
+    if args.priors_path is not None:
+        cfg = cfg.model_copy(update={"priors_path": str(args.priors_path)})
+    if args.tables_dir is not None:
+        cfg = cfg.model_copy(update={"tables_dir": str(args.tables_dir)})
+    if args.expected_samples_seed is not None:
+        cfg = cfg.model_copy(update={"expected_samples_seed": int(args.expected_samples_seed)})
+    if args.psi_bins is not None:
+        cfg = cfg.model_copy(update={"psi_bins": int(args.psi_bins)})
+
+    priors_path = (ROOT / cfg.priors_path).resolve() if not Path(cfg.priors_path).is_absolute() else Path(cfg.priors_path)
+    tables_dir = (ROOT / cfg.tables_dir).resolve() if not Path(cfg.tables_dir).is_absolute() else Path(cfg.tables_dir)
+
+    pri = json.loads(priors_path.read_text(encoding="utf-8"))
+    hh = pd.read_csv(tables_dir / "households.csv")
+    people = pd.read_csv(tables_dir / "people.csv")
+    liab = pd.read_csv(tables_dir / "liabilities.csv") if (tables_dir / "liabilities.csv").exists() else pd.DataFrame()
 
     snapshot = date.fromisoformat(pri["meta"]["snapshot_date"])
     violations=[]
+
+    move_in_min_age_days = int(float(cfg.min_move_in_age_years) * 365.25)
+    employment_min_age_days = int(float(cfg.min_employment_start_age_years) * 365.25)
+    max_mortgage_ratio = float(cfg.max_mortgage_payment_to_income_ratio)
 
     for _, row in hh.iterrows():
         hid=row["household_id"]
@@ -252,11 +343,11 @@ def main():
         p1=ppl.iloc[0]
         dob1=parse_date_safe(p1["date_of_birth"])
         move_in=parse_date_safe(row["move_in_date"])
-        if move_in and dob1 and move_in < dob1 + timedelta(days=int(18*365.25)):
+        if move_in and dob1 and move_in < dob1 + timedelta(days=move_in_min_age_days):
             violations.append((hid,"move_in_before_18"))
         for _, p in ppl.iterrows():
             dob=parse_date_safe(p["date_of_birth"]); est=parse_date_safe(p["employment_started"])
-            if est and dob and est < dob + timedelta(days=int(16*365.25)):
+            if est and dob and est < dob + timedelta(days=employment_min_age_days):
                 violations.append((hid,f"employment_start_before_16_client_{int(p['client_no'])}"))
             if est and est > snapshot:
                 violations.append((hid,f"employment_start_in_future_client_{int(p['client_no'])}"))
@@ -264,10 +355,10 @@ def main():
         oldest=parse_date_safe(row["oldest_child_dob"]); youngest=parse_date_safe(row["youngest_child_dob"])
         if oldest and youngest and youngest < oldest:
             violations.append((hid,"youngest_older_than_oldest"))
-        if oldest and dob1 and oldest < dob1 + timedelta(days=int(16*365.25)):
+        if oldest and dob1 and oldest < dob1 + timedelta(days=employment_min_age_days):
             violations.append((hid,"parent_under_16_at_child_birth"))
 
-        if row["mortgage_payment_to_income_ratio"] > 0.70:
+        if row["mortgage_payment_to_income_ratio"] > max_mortgage_ratio:
             violations.append((hid,"mortgage_payment_ratio_above_70pct"))
         if row["annual_alimony_paid"] > 0 and row["marital_status"] not in {"divorced","secondly_wedded"}:
             violations.append((hid,"alimony_present_without_compatible_marital_status"))
@@ -279,23 +370,23 @@ def main():
                 violations.append((l["household_id"],"final_payment_not_future"))
 
     rules=pd.DataFrame(violations,columns=["household_id","rule_violation"])
-    rules.to_csv(TABLES/"rule_violations.csv",index=False)
+    rules.to_csv(tables_dir/"rule_violations.csv",index=False)
 
-    expected_income, expected_assets = build_expected_samples(pri, len(hh), seed=123)
+    expected_income, expected_assets = build_expected_samples(pri, len(hh), seed=int(cfg.expected_samples_seed))
 
     metrics=[]
     metrics.append({"metric":"js_marital_status","value":js_divergence(pri["categoricals"]["marital_status"], hh["marital_status"].value_counts(normalize=True).to_dict())})
     metrics.append({"metric":"js_risk_tolerance","value":js_divergence(pri["categoricals"]["risk_tolerance"], hh["risk_tolerance"].value_counts(normalize=True).to_dict())})
-    metrics.append({"metric":"psi_income","value":psi(expected_income, hh["annual_household_gross_income"])})
-    metrics.append({"metric":"psi_investable_assets","value":psi(expected_assets, hh["investable_assets_total"])})
+    metrics.append({"metric":"psi_income","value":psi(expected_income, hh["annual_household_gross_income"], bins=int(cfg.psi_bins))})
+    metrics.append({"metric":"psi_investable_assets","value":psi(expected_assets, hh["investable_assets_total"], bins=int(cfg.psi_bins))})
     metrics.append({"metric":"median_income","value":float(hh["annual_household_gross_income"].median())})
     metrics.append({"metric":"median_investable_assets","value":float(hh["investable_assets_total"].median())})
     metrics.append({"metric":"p95_mortgage_payment_to_income_ratio","value":float(np.nanpercentile(hh["mortgage_payment_to_income_ratio"],95))})
     metrics.append({"metric":"max_mortgage_payment_to_income_ratio","value":float(np.nanmax(hh["mortgage_payment_to_income_ratio"]))})
     metrics.append({"metric":"rule_violations_count","value":int(len(rules))})
-    pd.DataFrame(metrics).to_csv(TABLES/"distance_to_priors.csv", index=False)
+    pd.DataFrame(metrics).to_csv(tables_dir/"distance_to_priors.csv", index=False)
 
-    scen=hh["scenario"].value_counts().reset_index(); scen.columns=["scenario","count"]; scen["share"]=scen["count"]/len(hh); scen.to_csv(TABLES/"scenario_coverage.csv", index=False)
+    scen=hh["scenario"].value_counts().reset_index(); scen.columns=["scenario","count"]; scen["share"]=scen["count"]/len(hh); scen.to_csv(tables_dir/"scenario_coverage.csv", index=False)
     # Wealth segments intentionally removed (they were a post-hoc label and caused confusion).
     print("Validation complete")
 

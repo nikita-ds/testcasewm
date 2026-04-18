@@ -2,21 +2,31 @@
 
 ## Counts
 - households: 10000
-- people: 18372
+- people: 18375
 - rule violations: 0
 
 ## Medians
-- annual household gross income: 176,408.46
-- investable assets total: 710,598.90
-- net worth proxy: 997,042.98
-- monthly mortgage payment total (positive only): 3,962.40
-- monthly non-mortgage payment total (positive only): 397.60
+- annual household gross income: 91,051.69
+- investable assets total: 315,101.45
+- net worth proxy: 475,769.05
+- monthly mortgage payment total (positive only): 1,738.29
+- monthly non-mortgage payment total (positive only): 367.90
 
 ## Figures
 
 ### Income vs assets
 
 ![Income vs investable assets](../figures/income_vs_investable_assets.png)
+
+### Retirement proximity trends
+
+![Closer to retirement -> higher investable assets](../figures/retirement_proximity_vs_assets.png)
+
+![Closer to retirement -> higher household income](../figures/retirement_proximity_vs_income.png)
+
+![Closer to retirement -> lower mortgage outstanding](../figures/retirement_proximity_vs_mortgage_outstanding.png)
+
+![Closer to retirement -> lower mortgage payment](../figures/retirement_proximity_vs_mortgage_payment.png)
 
 ### Conditional probabilities
 

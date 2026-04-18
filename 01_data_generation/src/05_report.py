@@ -25,9 +25,20 @@ def save_hist(series, title, path, log_x=False, bins=40, xlim=None):
     if len(s) == 0:
         return
     plt.figure(figsize=(8,5))
-    plt.hist(s, bins=bins)
     if log_x:
+        s = s[s > 0]
+        if len(s) == 0:
+            return
+        lo = float(s.min())
+        hi = float(s.max())
+        lo = max(lo, 1e-9)
+        if hi <= lo:
+            return
+        edges = np.logspace(np.log10(lo), np.log10(hi), int(bins) + 1)
+        plt.hist(s, bins=edges)
         plt.xscale("log")
+    else:
+        plt.hist(s, bins=bins)
     if xlim is not None:
         plt.xlim(*xlim)
     plt.title(title)
@@ -170,6 +181,45 @@ def save_conditional_prob_bar(
     plt.savefig(path, dpi=180)
     plt.close()
 
+
+def retirement_bucket_labels(series: pd.Series) -> pd.Categorical:
+    vals = pd.Series(series).astype(float)
+    bins = [-100.0, 0.0, 5.0, 10.0, 20.0, 30.0, 200.0]
+    labels = ["Retired", "0-5y", "6-10y", "11-20y", "21-30y", "31y+"]
+    return pd.cut(vals, bins=bins, labels=labels, include_lowest=True)
+
+
+def save_retirement_proximity_plot(
+    hh: pd.DataFrame,
+    *,
+    value_col: str,
+    path: Path,
+    title: str,
+    ylabel: str,
+    positive_only: bool = False,
+) -> None:
+    if "primary_years_to_retirement" not in hh.columns or value_col not in hh.columns:
+        return
+    df = hh[["primary_years_to_retirement", value_col]].dropna().copy()
+    if len(df) == 0:
+        return
+    df["primary_years_to_retirement"] = df["primary_years_to_retirement"].astype(float)
+    df[value_col] = df[value_col].astype(float)
+    if positive_only:
+        df = df[df[value_col] > 0]
+    buckets = retirement_bucket_labels(df["primary_years_to_retirement"])
+    grp = df.groupby(buckets, observed=False)[value_col].median().dropna()
+    if len(grp) == 0:
+        return
+    plt.figure(figsize=(8.5, 4.8))
+    grp.plot(marker="o")
+    plt.title(title)
+    plt.ylabel(ylabel)
+    plt.xlabel("Years to retirement")
+    plt.tight_layout()
+    plt.savefig(path, dpi=180)
+    plt.close()
+
 def main():
     hh = pd.read_csv(TABLES / "households.csv")
     people = pd.read_csv(TABLES / "people.csv")
@@ -186,6 +236,36 @@ def main():
     save_hist(hh["monthly_non_mortgage_payment_total"], "Monthly non-mortgage payment total", FIGS / "non_mortgage_payment_hist.png", log_x=False)
 
     save_income_vs_assets_plot(hh, FIGS / "income_vs_investable_assets.png")
+    save_retirement_proximity_plot(
+        hh,
+        value_col="investable_assets_total",
+        path=FIGS / "retirement_proximity_vs_assets.png",
+        title="Closer to retirement -> higher investable assets",
+        ylabel="Median investable assets total",
+    )
+    save_retirement_proximity_plot(
+        hh,
+        value_col="annual_household_gross_income",
+        path=FIGS / "retirement_proximity_vs_income.png",
+        title="Closer to retirement -> higher household income",
+        ylabel="Median annual household gross income",
+    )
+    save_retirement_proximity_plot(
+        hh,
+        value_col="mortgage_outstanding_total",
+        path=FIGS / "retirement_proximity_vs_mortgage_outstanding.png",
+        title="Closer to retirement -> lower mortgage outstanding",
+        ylabel="Median mortgage outstanding",
+        positive_only=True,
+    )
+    save_retirement_proximity_plot(
+        hh,
+        value_col="monthly_mortgage_payment_total",
+        path=FIGS / "retirement_proximity_vs_mortgage_payment.png",
+        title="Closer to retirement -> lower mortgage payment",
+        ylabel="Median monthly mortgage payment",
+        positive_only=True,
+    )
     if "has_mortgage_or_loan" in hh.columns:
         save_conditional_prob_bar(
             hh,
@@ -301,6 +381,16 @@ def main():
 ### Income vs assets
 
 ![Income vs investable assets](../figures/income_vs_investable_assets.png)
+
+### Retirement proximity trends
+
+![Closer to retirement -> higher investable assets](../figures/retirement_proximity_vs_assets.png)
+
+![Closer to retirement -> higher household income](../figures/retirement_proximity_vs_income.png)
+
+![Closer to retirement -> lower mortgage outstanding](../figures/retirement_proximity_vs_mortgage_outstanding.png)
+
+![Closer to retirement -> lower mortgage payment](../figures/retirement_proximity_vs_mortgage_payment.png)
 
 ### Conditional probabilities
 

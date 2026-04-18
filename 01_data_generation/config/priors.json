@@ -241,9 +241,11 @@
     },
     "income_floor": {
       "enabled": true,
-      "mode": "affluent_income_floor",
+      "mode": "soft_affluent_income_floor",
       "strategy": "resample",
-      "max_tries": 50
+      "max_tries": 50,
+      "softness": 30000.0,
+      "min_accept_prob": 0.02
     },
     "income_calibration": {
       "target_mean_multiple_of_public_median": 2.0,

@@ -6,6 +6,17 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from records import (
+    AssetRow,
+    GeneratedHousehold,
+    HouseholdRow,
+    IncomeLineRow,
+    LiabilityRow,
+    PersonRow,
+    ProtectionPolicyRow,
+)
+from runtime_config import GeneratorRuntimeConfig, load_generator_runtime_config
+
 ROOT = Path(__file__).resolve().parent.parent
 ART = ROOT / "artifacts"
 TABLES = ART / "tables"
@@ -51,6 +62,109 @@ def get_affluent_income_floor(priors: dict) -> float | None:
         if k in inc and inc.get(k) is not None:
             return float(inc[k])
     return None
+
+
+MALE_FIRST_NAMES = [
+    "James", "Michael", "David", "Robert", "Daniel", "William", "Joseph", "Thomas",
+]
+FEMALE_FIRST_NAMES = [
+    "Mary", "Patricia", "Jennifer", "Linda", "Elizabeth", "Susan", "Margaret", "Emily",
+]
+NEUTRAL_FIRST_NAMES = [
+    "Alex", "Taylor", "Jordan", "Casey", "Morgan", "Avery",
+]
+LAST_NAMES = [
+    "Smith", "Johnson", "Brown", "Davis", "Wilson", "Miller", "Anderson", "Moore",
+]
+MIDDLE_NAMES = [
+    "Anne", "Grace", "Lee", "Marie", "Jane", "Ray", "Rose", "James",
+]
+US_BIRTHPLACES = [
+    "New York, NY", "Los Angeles, CA", "Chicago, IL", "Houston, TX",
+    "Phoenix, AZ", "Philadelphia, PA", "Atlanta, GA", "Seattle, WA",
+]
+NATIONALITIES = {
+    "American": 0.83,
+    "Canadian": 0.04,
+    "Indian": 0.03,
+    "British": 0.03,
+    "Irish": 0.02,
+    "Mexican": 0.03,
+    "Other": 0.02,
+}
+
+
+def retirement_progress(age: int | float, retirement_age: int | float, span_years: int = 35) -> float:
+    years_to_ret = float(retirement_age) - float(age)
+    return float(clamp((float(span_years) - years_to_ret) / float(span_years), 0.0, 1.0))
+
+
+def age_income_multiplier(age: int | float, retirement_age: int | float, retired: bool) -> float:
+    progress = retirement_progress(age, retirement_age)
+    if retired:
+        return float(lerp(0.85, 0.62, progress))
+    return float(lerp(0.88, 1.15, progress))
+
+
+def age_assets_multiplier(age: int | float, retirement_age: int | float, retired: bool) -> float:
+    progress = retirement_progress(age, retirement_age)
+    if retired:
+        return float(lerp(1.10, 1.30, progress))
+    return float(lerp(0.72, 1.35, progress))
+
+
+def choose_gender(rng) -> tuple[str, str, str]:
+    gender = str(rng.choice(["male", "female", "non_binary"], p=[0.485, 0.485, 0.03]))
+    if gender == "male":
+        return gender, "male", "he_him"
+    if gender == "female":
+        return gender, "female", "she_her"
+    return gender, "non_binary", "they_them"
+
+
+def sample_personal_details(rng, *, first_name: str | None = None, last_name: str | None = None, email_local_taken: set[str] | None = None) -> dict:
+    gender, legal_sex, pronouns = choose_gender(rng)
+    if gender == "male":
+        first = str(first_name or rng.choice(MALE_FIRST_NAMES))
+        title = str(rng.choice(["Mr", "Mr", "Dr"]))
+    elif gender == "female":
+        first = str(first_name or rng.choice(FEMALE_FIRST_NAMES))
+        title = str(rng.choice(["Ms", "Mrs", "Dr"]))
+    else:
+        first = str(first_name or rng.choice(NEUTRAL_FIRST_NAMES))
+        title = "Mx"
+    last = str(last_name or rng.choice(LAST_NAMES))
+    middle = str(rng.choice(MIDDLE_NAMES)) if float(rng.random()) < 0.62 else None
+    known_as = first if float(rng.random()) < 0.78 else first[: max(2, len(first) - 1)]
+    home_phone = None
+    if float(rng.random()) < 0.48:
+        home_phone = f"({int(rng.integers(201, 989))}) {int(rng.integers(200, 999)):03d}-{int(rng.integers(0, 10000)):04d}"
+    mobile_phone = f"({int(rng.integers(201, 989))}) {int(rng.integers(200, 999)):03d}-{int(rng.integers(0, 10000)):04d}"
+
+    base_local = f"{first}.{last}".lower().replace(" ", "")
+    local = base_local
+    if email_local_taken is not None:
+        suffix = 2
+        while local in email_local_taken:
+            local = f"{base_local}{suffix}"
+            suffix += 1
+        email_local_taken.add(local)
+
+    return {
+        "title": title,
+        "first_name": first,
+        "middle_names": middle,
+        "last_name": last,
+        "known_as": known_as,
+        "pronouns": pronouns,
+        "place_of_birth": str(rng.choice(US_BIRTHPLACES)),
+        "nationality": sample_cat(NATIONALITIES, rng),
+        "gender": gender,
+        "legal_sex": legal_sex,
+        "home_phone": home_phone,
+        "mobile_phone": mobile_phone,
+        "email_address": f"{local}@example.com",
+    }
 
 
 def sample_beta_scaled(rng, low, high, a=2.0, b=2.0):
@@ -302,6 +416,27 @@ def gen_one(hidx, ctx: Ctx):
     es1 = employment_started(pri, dob1, age1, st1, snap, rng)
     es2 = employment_started(pri, dob2, age2, st2, snap, rng) if dob2 is not None else None
 
+    person_model = gp.get("person_model") or {}
+    dra = person_model["desired_retirement_age"]
+    ret_age1 = int(
+        clamp(
+            round(float(rng.normal(float(dra["mean"]), float(dra["std"])))),
+            int(dra["min"]),
+            int(dra["max"]),
+        )
+    )
+    ret_age2 = (
+        int(
+            clamp(
+                round(float(rng.normal(float(dra["mean"]), float(dra["std"])))),
+                int(dra["min"]),
+                int(dra["max"]),
+            )
+        )
+        if has_second
+        else None
+    )
+
     mi = gp.get("move_in_model") or {}
     years_hi = max(
         float(mi["min_floor"]),
@@ -337,23 +472,53 @@ def gen_one(hidx, ctx: Ctx):
     floor = get_affluent_income_floor(pri) if floor_enabled else None
     max_tries = int(income_floor_cfg.get("max_tries", 50)) if floor_enabled else 1
     strategy = str(income_floor_cfg.get("strategy", "resample")) if floor_enabled else ""
+    floor_mode = str(income_floor_cfg.get("mode", "affluent_income_floor")) if floor_enabled else ""
+    softness = float(income_floor_cfg.get("softness", 30000.0)) if floor_enabled else 0.0
+    min_accept_prob = float(income_floor_cfg.get("min_accept_prob", 0.02)) if floor_enabled else 0.0
 
     hh_income = None
+    last_final_cand = None
     for _ in range(max(1, max_tries)):
         cand = float(sample_empirical_income(pri, rng)) * base_income_scale
         cand = float(apply_scenario_income_adjustment(pri, scenario, cand, rng))
+
+        # Apply multipliers BEFORE enforcing an affluent floor, otherwise we create a pile-up
+        # around (floor * multiplier) for retired/near-retirement households.
+        final_cand = float(cand) * float(age_income_multiplier(age1, ret_age1, st1 == "retired"))
+        if has_second and age2 is not None and ret_age2 is not None:
+            final_cand *= float(lerp(0.98, 1.08, retirement_progress(age2, ret_age2)))
+        last_final_cand = final_cand
+
         if floor is None or float(floor) <= 0:
-            hh_income = cand
+            hh_income = final_cand
             break
-        if cand >= float(floor):
-            hh_income = cand
+
+        if floor_mode == "soft_affluent_income_floor":
+            # Smooth conditioning via acceptance probability around the floor.
+            if softness <= 0:
+                accept_p = 1.0 if final_cand >= float(floor) else float(min_accept_prob)
+            else:
+                t = (final_cand - float(floor)) / float(softness)
+                accept_p = float(min_accept_prob) + (1.0 - float(min_accept_prob)) * (1.0 / (1.0 + math.exp(-t)))
+            accept_p = float(clamp(accept_p, float(min_accept_prob), 1.0))
+            if float(rng.random()) < accept_p:
+                hh_income = final_cand
+                break
+            if strategy != "resample":
+                hh_income = final_cand
+                break
+            continue
+
+        # Back-compat: hard floor.
+        if final_cand >= float(floor):
+            hh_income = final_cand
             break
         if strategy != "resample":
-            hh_income = float(max(float(floor), cand))
+            hh_income = float(max(float(floor), final_cand))
             break
     if hh_income is None:
         # Extremely unlikely unless max_tries is tiny; clamp to avoid violating assumption.
-        hh_income = float(max(float(floor) if floor else 0.0, cand))
+        hh_income = float(max(float(floor) if floor else 0.0, float(last_final_cand or 0.0)))
 
     split = gp.get("spouse_income_split") or {}
     if scenario == "one_high_earner_one_low_earner" and has_second:
@@ -369,6 +534,9 @@ def gen_one(hidx, ctx: Ctx):
         inc1, inc2 = hh_income, 0.0
 
     investable = sample_investable_assets(pri, scenario, hh_income, rng)
+    investable *= age_assets_multiplier(age1, ret_age1, st1 == "retired")
+    if has_second and age2 is not None and ret_age2 is not None:
+        investable *= float(lerp(0.98, 1.12, retirement_progress(age2, ret_age2)))
 
     # Asset mix is segment-free (segments are reporting-only labels).
     mix = gp.get("asset_mix_model") or {}
@@ -419,7 +587,9 @@ def gen_one(hidx, ctx: Ctx):
 
     force_mort = set(gp.get("mortgage_force_scenarios") or [])
     force_nm = set(gp.get("non_mortgage_force_scenarios") or [])
-    has_mortgage = scenario in force_mort or bool(rng.random() < pri["booleans"]["has_mortgage"])
+    mortgage_progress = retirement_progress(age1, ret_age1)
+    mortgage_keep_scale = float(lerp(1.0, 0.55, mortgage_progress))
+    has_mortgage = scenario in force_mort or bool(rng.random() < pri["booleans"]["has_mortgage"] * mortgage_keep_scale)
     has_non_mortgage = scenario in force_nm or bool(rng.random() < pri["booleans"]["has_non_mortgage_debt"])
 
     mortgage_outstanding = 0.0; mortgage_payment = 0.0; mortgage_rate = 0.0; final_payment = None
@@ -575,6 +745,17 @@ def gen_one(hidx, ctx: Ctx):
     )
 
     hh_id = f"HH{hidx:06d}"
+    household_email_locals: set[str] = set()
+    household_last_name = str(rng.choice(LAST_NAMES))
+    p1_personal = sample_personal_details(rng, last_name=household_last_name, email_local_taken=household_email_locals)
+    if has_second and float(rng.random()) < 0.82:
+        spouse_last_name = household_last_name
+    else:
+        spouse_last_name = str(rng.choice(LAST_NAMES))
+    p2_personal = sample_personal_details(rng, last_name=spouse_last_name, email_local_taken=household_email_locals) if has_second else None
+
+    years_to_ret1 = max(-15, ret_age1 - age1)
+    years_to_ret2 = max(-15, ret_age2 - age2) if has_second and age2 is not None and ret_age2 is not None else None
     household = {
         "household_id": hh_id,
         "scenario": scenario,
@@ -593,6 +774,8 @@ def gen_one(hidx, ctx: Ctx):
         "annual_alimony_paid": round(annual_alimony_paid,2),
         "has_mortgage_or_loan": bool(has_mortgage or has_non_mortgage),
         "loan_outstanding_total": round(mortgage_outstanding + non_mortgage_outstanding,2),
+        "mortgage_outstanding_total": round(mortgage_outstanding,2),
+        "non_mortgage_outstanding_total": round(non_mortgage_outstanding,2),
         "monthly_debt_cost_total": round(monthly_debt_cost_total,2),
         "monthly_mortgage_payment_total": round(mortgage_payment,2),
         "monthly_non_mortgage_payment_total": round(non_mortgage_payment,2),
@@ -608,25 +791,24 @@ def gen_one(hidx, ctx: Ctx):
         "tax_bracket_band": tax_bracket_band,
         "client_segment": "affluent_ria_like"
     }
-
-    person_model = gp.get("person_model") or {}
-    dra = person_model["desired_retirement_age"]
     occ = person_model["occupation_group"]
     smoke = person_model["smoker_probability"]
     soh = person_model["state_of_health"]
+    household.update({
+        "primary_age": age1,
+        "primary_years_to_retirement": years_to_ret1,
+        "secondary_age": age2,
+        "secondary_years_to_retirement": years_to_ret2,
+        "household_head_email": p1_personal["email_address"],
+        "household_head_mobile_phone": p1_personal["mobile_phone"],
+    })
 
     people = [{
         "person_id": f"{hh_id}_P1","household_id":hh_id,"client_no":1,"role":"primary",
         "date_of_birth": dob1.isoformat(),
         "employment_status": st1,
         "employment_started": es1.isoformat() if es1 else None,
-        "desired_retirement_age": int(
-            clamp(
-                round(float(rng.normal(float(dra["mean"]), float(dra["std"])))),
-                int(dra["min"]),
-                int(dra["max"]),
-            )
-        ),
+        "desired_retirement_age": ret_age1,
         "occupation_group": str(rng.choice(occ["primary"])),
         "smoker": bool(rng.random() < float(smoke["primary"])),
         "state_of_health": str(
@@ -635,7 +817,8 @@ def gen_one(hidx, ctx: Ctx):
                 p=soh["primary_probs"],
             )
         ),
-        "gross_annual_income": round(inc1,2)
+        "gross_annual_income": round(inc1,2),
+        **p1_personal,
     }]
     if has_second:
         people.append({
@@ -643,13 +826,7 @@ def gen_one(hidx, ctx: Ctx):
             "date_of_birth": dob2.isoformat(),
             "employment_status": st2,
             "employment_started": es2.isoformat() if es2 else None,
-            "desired_retirement_age": int(
-                clamp(
-                    round(float(rng.normal(float(dra["mean"]), float(dra["std"])))),
-                    int(dra["min"]),
-                    int(dra["max"]),
-                )
-            ),
+            "desired_retirement_age": ret_age2,
             "occupation_group": str(rng.choice(occ["secondary"])),
             "smoker": bool(rng.random() < float(smoke["secondary"])),
             "state_of_health": str(
@@ -658,7 +835,8 @@ def gen_one(hidx, ctx: Ctx):
                     p=soh["secondary_probs"],
                 )
             ),
-            "gross_annual_income": round(inc2,2)
+            "gross_annual_income": round(inc2,2),
+            **(p2_personal or {}),
         })
 
     income_lines = []
@@ -746,29 +924,68 @@ def gen_one(hidx, ctx: Ctx):
             "amount_assured": round(assured,2),
             "assured_until": (snap + timedelta(days=int(float(rng.uniform(float((pm.get("assured_until_years") or {})["min"]), float((pm.get("assured_until_years") or {})["max"])))*365.25))).isoformat()
         })
-    return household, people, income_lines, assets, liabilities, protections
+    return GeneratedHousehold(
+        household=HouseholdRow.model_validate(household),
+        people=[PersonRow.model_validate(p) for p in people],
+        income_lines=[IncomeLineRow.model_validate(r) for r in income_lines],
+        assets=[AssetRow.model_validate(r) for r in assets],
+        liabilities=[LiabilityRow.model_validate(r) for r in liabilities],
+        protection_policies=[ProtectionPolicyRow.model_validate(r) for r in protections],
+    )
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--n-households", type=int, default=5000)
-    ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--config", type=str, default=str(ROOT / "config" / "generator_runtime.json"))
+    ap.add_argument("--n-households", type=int, default=None)
+    ap.add_argument("--seed", type=int, default=None)
+    ap.add_argument("--priors-path", type=str, default=None)
+    ap.add_argument("--tables-dir", type=str, default=None)
     args = ap.parse_args()
 
-    priors = json.loads((ART / "computed_priors.json").read_text(encoding="utf-8"))
-    ctx = Ctx(priors=priors, snapshot=date.fromisoformat(priors["meta"]["snapshot_date"]), rng=np.random.default_rng(args.seed))
+    cfg: GeneratorRuntimeConfig = load_generator_runtime_config(args.config)
+    if args.n_households is not None:
+        cfg = cfg.model_copy(update={"n_households": int(args.n_households)})
+    if args.seed is not None:
+        cfg = cfg.model_copy(update={"seed": int(args.seed)})
+    if args.priors_path is not None:
+        cfg = cfg.model_copy(update={"priors_path": str(args.priors_path)})
+    if args.tables_dir is not None:
+        cfg = cfg.model_copy(update={"tables_dir": str(args.tables_dir)})
 
-    hh_rows=[]; p_rows=[]; inc_rows=[]; a_rows=[]; l_rows=[]; pp_rows=[]
-    for i in range(1,args.n_households+1):
-        hh,p,inc,a,l,pp = gen_one(i, ctx)
-        hh_rows.append(hh); p_rows.extend(p); inc_rows.extend(inc); a_rows.extend(a); l_rows.extend(l); pp_rows.extend(pp)
+    priors_path = (ROOT / cfg.priors_path).resolve() if not Path(cfg.priors_path).is_absolute() else Path(cfg.priors_path)
+    tables_dir = (ROOT / cfg.tables_dir).resolve() if not Path(cfg.tables_dir).is_absolute() else Path(cfg.tables_dir)
+    tables_dir.mkdir(parents=True, exist_ok=True)
 
-    pd.DataFrame(hh_rows).to_csv(TABLES/"households.csv", index=False)
-    pd.DataFrame(p_rows).to_csv(TABLES/"people.csv", index=False)
-    pd.DataFrame(inc_rows).to_csv(TABLES/"income_lines.csv", index=False)
-    pd.DataFrame(a_rows).to_csv(TABLES/"assets.csv", index=False)
-    pd.DataFrame(l_rows).to_csv(TABLES/"liabilities.csv", index=False)
-    pd.DataFrame(pp_rows).to_csv(TABLES/"protection_policies.csv", index=False)
-    print("Generated tables into", TABLES)
+    priors = json.loads(priors_path.read_text(encoding="utf-8"))
+    ctx = Ctx(
+        priors=priors,
+        snapshot=date.fromisoformat(priors["meta"]["snapshot_date"]),
+        rng=np.random.default_rng(cfg.seed),
+    )
+
+    hh_rows: list[dict] = []
+    p_rows: list[dict] = []
+    inc_rows: list[dict] = []
+    a_rows: list[dict] = []
+    l_rows: list[dict] = []
+    pp_rows: list[dict] = []
+
+    for i in range(1, int(cfg.n_households) + 1):
+        gen = gen_one(i, ctx)
+        hh_rows.append(gen.household.model_dump())
+        p_rows.extend([r.model_dump() for r in gen.people])
+        inc_rows.extend([r.model_dump() for r in gen.income_lines])
+        a_rows.extend([r.model_dump() for r in gen.assets])
+        l_rows.extend([r.model_dump() for r in gen.liabilities])
+        pp_rows.extend([r.model_dump() for r in gen.protection_policies])
+
+    pd.DataFrame(hh_rows).to_csv(tables_dir / "households.csv", index=False)
+    pd.DataFrame(p_rows).to_csv(tables_dir / "people.csv", index=False)
+    pd.DataFrame(inc_rows).to_csv(tables_dir / "income_lines.csv", index=False)
+    pd.DataFrame(a_rows).to_csv(tables_dir / "assets.csv", index=False)
+    pd.DataFrame(l_rows).to_csv(tables_dir / "liabilities.csv", index=False)
+    pd.DataFrame(pp_rows).to_csv(tables_dir / "protection_policies.csv", index=False)
+    print("Generated tables into", tables_dir)
 
 if __name__ == "__main__":
     main()

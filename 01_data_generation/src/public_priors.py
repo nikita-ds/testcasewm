@@ -666,9 +666,15 @@ def default_generator_params() -> Dict[str, Any]:
         },
         "income_floor": {
             "enabled": True,
-            "mode": "affluent_income_floor",
+            # Use a smooth (probabilistic) conditioning around the affluent floor to avoid
+            # visible histogram pile-ups near a hard cutoff.
+            "mode": "soft_affluent_income_floor",
             "strategy": "resample",
             "max_tries": 50,
+            # dollars: larger -> softer transition.
+            "softness": 30000.0,
+            # Keep non-zero acceptance far below the floor to avoid extreme resampling.
+            "min_accept_prob": 0.02,
         },
         "income_calibration": {
             "target_mean_multiple_of_public_median": 2.0,
