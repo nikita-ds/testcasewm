@@ -10,11 +10,16 @@ This document explains (1) assumptions and how requirements are formalized in co
 
 Assumption: the target population is **affluent US households served by an RIA-like advisor** (not the general population).
 
+Additional assumption: the target customer base is **conditioned on being affluent**, operationalized as:
+
+- $\text{household income} \ge 2\times$ public median household income (the “affluent income floor”)
+
 How this is formalized:
 
 - Generation is scenario-driven (explicit household archetypes).
 - Income and wealth distributions are shifted upward from public anchors.
-- Wealth segments (affluent/HNW/ultra) have floors/caps.
+- Wealth segments (affluent/HNW/ultra) have floors/caps and are sampled using explicit weights in `priors.wealth_segments`.
+- The income floor is enforced in generation via `generator_params.income_floor` (resampling under a floor, not hard-clamping).
 
 ### Single source of truth and reproducibility
 
@@ -69,9 +74,11 @@ Generator behavior is controlled by `computed_priors.json → generator_params` 
 Key modeling choices are:
 
 - **Income**: smooth **lognormal** anchored to public median (`generator_params.income_model`) and scaled by calibration (`generator_params.income_calibration.scale`) so that the mean income matches a target multiple of the public median.
+- **Income floor (affluent conditioning)**: enforce $income \ge 2\times$ public median (`meta.affluent_income_floor`) via `generator_params.income_floor`.
 - **Investable assets**: truncated **lognormal** per wealth segment (`generator_params.investable_assets_model.segments`).
 - **Income ↔ assets coherence**: assets are clamped to a segment floor/cap and an income-based envelope (`generator_params.investable_assets_model.income_tie`) to avoid extreme mismatches.
 - **Mortgage payment**: sampled as a bounded share of income using a beta-shaped distribution (`generator_params.mortgage_ratio_beta`), then capped by `generator_params.mortgage_terms.payment_ratio_cap`.
+- **Mortgage tapering toward retirement**: as household age approaches `employment_model.retirement_age`, both mortgage payment burden and remaining term are smoothly reduced (`generator_params.mortgage_age_adjustment`).
 - **Mortgage outstanding**: derived from payment × years remaining × multiplier, and constrained by LTV and income multiple caps; caps are applied via resampling under the cap (to avoid boundary-mass spikes in ratio histograms).
 - **Non-mortgage debt**: payment sampled from bounded lognormal (`generator_params.non_mortgage_payment`), then outstanding via a multiplier.
 - **Expenses**: bounded normal for expense-to-income ratio (`generator_params.expense_ratio_normal`).
@@ -164,6 +171,8 @@ ACS-derived anchors include:
 - High-income tail counts used to derive “affluent bracket weights” (ACS table `B19001`, bins `$150k–$199,999` and `$200k+`)
 - Owner-occupied home value bins used to derive home-value quantiles (ACS table `B25075`)
 - State population weights used for residence state distribution
+
+Note: for many attributes (household structure details, some booleans, asset mix, etc.) there is no single clean ACS variable/table used in this repo yet; those parts are currently driven by curated priors in `config/priors.json` and defaults in code. The design intent is to keep these priors explicit and swappable as more public-data-derived priors are added.
 
 ### Priors defined (what goes into computed_priors.json)
 

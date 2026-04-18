@@ -154,6 +154,7 @@
     "secondly_wedded_paying_alimony"
   ],
   "property_value_priors": {
+    "default_min": 250000.0,
     "segment_min": {
       "affluent": 450000.0,
       "hnw": 800000.0,
@@ -231,6 +232,13 @@
       "cap_fallback_mult_lo": 0.85,
       "cap_fallback_mult_hi": 0.99
     },
+    "mortgage_age_adjustment": {
+      "enabled": true,
+      "near_retirement_window_years": 12,
+      "years_remaining_scale_at_retirement": 0.35,
+      "payment_ratio_scale_at_retirement": 0.6,
+      "years_remaining_min_floor": 1.0
+    },
     "expense_ratio_normal": {
       "default": {"mean": 0.48, "std": 0.1, "min": 0.2, "max": 0.95},
       "family_with_mortgage_and_children": {"mean": 0.58, "std": 0.08, "min": 0.2, "max": 0.95},
@@ -251,10 +259,16 @@
     "income_model": {
       "type": "lognormal",
       "median_multiple_of_public_median": 2.0,
-      "sigma": 0.65,
+      "sigma": 0.75,
       "min_income": 15000.0,
       "max_income": 20000000.0,
       "max_resample": 50
+    },
+    "income_floor": {
+      "enabled": true,
+      "mode": "affluent_income_floor",
+      "strategy": "resample",
+      "max_tries": 50
     },
     "income_calibration": {
       "target_mean_multiple_of_public_median": 2.0,
@@ -284,24 +298,20 @@
       "base_affluent_probability": 0.78
     },
     "investable_assets_model": {
-      "segments": {
-        "affluent": {"median": 700000.0, "sigma": 0.55, "clamp_lo": 250000.0, "clamp_hi": 2000000.0},
-        "hnw": {"median": 3500000.0, "sigma": 0.75, "clamp_lo": 1000000.0, "clamp_hi": 30000000.0},
-        "ultra": {"median": 45000000.0, "sigma": 0.55, "clamp_lo": 30000000.0, "clamp_hi": 150000000.0}
+      "income_multiplier": {
+        "enabled": true,
+        "k_base": 4.0,
+        "k2": {"mean": 1.0, "q10": 0.75, "q90": 1.25, "resample_max_tries": 200},
+        "resample_max_tries": 120
       },
       "scenario_adjustments": {
-        "young_dual_income_low_assets": {"mult": 0.55, "clamp_lo": 250000.0, "clamp_hi": 1200000.0},
-        "financially_stressed_with_debt": {"mult": 0.4, "clamp_lo": 100000.0, "clamp_hi": 3000000.0},
+        "young_dual_income_low_assets": {"mult": 0.55},
+        "financially_stressed_with_debt": {"mult": 0.4},
         "retired_couple_high_assets_low_income": {"mult": 1.15}
-      },
-      "income_tie": {
-        "lower_income_mult": 0.5,
-         "upper_income_mult": 250.0,
-        "segment_floor": {"affluent": 250000.0, "hnw": 1000000.0, "ultra": 30000000.0},
-        "segment_cap": {"affluent": 2000000.0, "hnw": 30000000.0, "ultra": 150000000.0}
       }
     },
     "asset_mix_model": {
+      "default": {"retirement": [0.14, 0.34], "cash": [0.05, 0.16], "alts": [0.0, 0.18]},
       "segments": {
         "affluent": {"retirement": [0.18, 0.38], "cash": [0.06, 0.18], "alts": [0.0, 0.05]},
         "hnw": {"retirement": [0.12, 0.3], "cash": [0.04, 0.12], "alts": [0.03, 0.18]},
@@ -313,14 +323,14 @@
       }
     },
     "property_model": {
+      "default": {"hi_cap": 40000000.0, "mult_lo": 0.20, "mult_hi": 1.40},
       "segments": {
         "affluent": {"hi_cap": 2500000.0, "mult_lo": 0.35, "mult_hi": 1.2},
         "hnw": {"hi_cap": 8000000.0, "mult_lo": 0.25, "mult_hi": 1.5},
         "ultra": {"hi_cap": 40000000.0, "mult_lo": 0.15, "mult_hi": 1.2}
       },
       "scenario_adjustments": {
-        "financially_stressed_with_debt": {"mult": 0.65, "floor": 350000.0},
-        "young_dual_income_low_assets": {"floor": 300000.0, "cap": 1200000.0}
+        "financially_stressed_with_debt": {"mult": 0.65}
       }
     },
     "employment_model": {
@@ -349,7 +359,15 @@
       "secondly_wedded_paying_alimony": {"min": 12000.0, "max": 72000.0},
       "divorced": {"prob": 0.18, "min": 6000.0, "max": 30000.0}
     },
-    "risk_overrides": {"ultra_growth_probability": 0.35, "retired_couple_high_assets_low_income": "moderate"},
+    "risk_tolerance_by_segment": {
+      "ultra": {
+        "conservative": 0.32,
+        "moderate": 0.46,
+        "growth": 0.18,
+        "aggressive": 0.04
+      }
+    },
+    "risk_overrides": {"ultra_growth_probability": 0.05, "retired_couple_high_assets_low_income": "moderate"},
     "net_worth_proxy_model": {"add_uniform_lo": 0.0, "add_uniform_hi_mult": 0.08},
     "person_model": {
       "desired_retirement_age": {"mean": 66.0, "std": 3.0, "min": 55, "max": 75},

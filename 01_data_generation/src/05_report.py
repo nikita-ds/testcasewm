@@ -86,7 +86,17 @@ def save_income_vs_assets_plot(hh: pd.DataFrame, path: Path) -> None:
 
     plt.figure(figsize=(7.5, 5.5))
     if len(df) >= 1500:
-        plt.hexbin(x, y, gridsize=55, xscale="log", yscale="log", mincnt=1)
+        plt.hexbin(
+            x,
+            y,
+            gridsize=110,
+            xscale="log",
+            yscale="log",
+            mincnt=1,
+            bins="log",
+            linewidths=0.0,
+            edgecolors="none",
+        )
         cb = plt.colorbar()
         cb.set_label("count")
     else:
@@ -231,6 +241,23 @@ def main():
             plt.savefig(FIGS / "total_debt_cost_to_income_ratio_hist.png", dpi=180)
             plt.close()
 
+    # Debt service share of monthly expenses (what the user actually feels in cashflow).
+    expenses_m = pd.Series(hh["monthly_expenses_total"]).dropna().astype(float)
+    debt_cost = pd.Series(hh["monthly_debt_cost_total"]).dropna().astype(float)
+    dte = pd.DataFrame({"expenses_m": expenses_m, "debt_cost": debt_cost}).dropna()
+    dte = dte[(dte["expenses_m"] > 1e-9) & (dte["debt_cost"] >= 0)]
+    if len(dte) > 0:
+        share = (dte["debt_cost"] / dte["expenses_m"]).astype(float)
+        share = share[(share >= 0) & (share <= 1.5)]
+        if len(share) > 0:
+            plt.figure(figsize=(8,5))
+            plt.hist(share, bins=35)
+            plt.xlim(0, 1.5)
+            plt.title("Debt payments share of expenses")
+            plt.tight_layout()
+            plt.savefig(FIGS / "debt_cost_to_expenses_ratio_hist.png", dpi=180)
+            plt.close()
+
     # Income / debt ratios (annual income divided by outstanding debt).
     save_ratio_hist(
         hh["annual_household_gross_income"],
@@ -307,6 +334,10 @@ def main():
 ![P(risk_tolerance | wealth_segment)](../figures/condprob_risk_given_wealth_segment.png)
 
 ![P(has_mortgage_or_loan | scenario)](../figures/condprob_has_mortgage_by_scenario.png)
+
+### Debt burden
+
+![Debt payments share of expenses](../figures/debt_cost_to_expenses_ratio_hist.png)
 
 ## Notes
 - Income generation uses a smooth lognormal model anchored to the public median (from open Census ACS where available).

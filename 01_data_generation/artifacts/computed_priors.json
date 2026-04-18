@@ -114,6 +114,7 @@
     }
   },
   "property_value_priors": {
+    "default_min": 250000.0,
     "segment_min": {
       "affluent": 360556.3872937735,
       "hnw": 680787.9544535207,
@@ -366,6 +367,13 @@
       "cap_fallback_mult_lo": 0.85,
       "cap_fallback_mult_hi": 0.99
     },
+    "mortgage_age_adjustment": {
+      "enabled": true,
+      "near_retirement_window_years": 12,
+      "years_remaining_scale_at_retirement": 0.35,
+      "payment_ratio_scale_at_retirement": 0.6,
+      "years_remaining_min_floor": 1.0
+    },
     "expense_ratio_normal": {
       "default": {
         "mean": 0.48,
@@ -435,17 +443,23 @@
     "income_model": {
       "type": "lognormal",
       "median_multiple_of_public_median": 2.0,
-      "sigma": 0.65,
+      "sigma": 0.75,
       "min_income": 15000.0,
       "max_income": 20000000.0,
       "max_resample": 50
+    },
+    "income_floor": {
+      "enabled": true,
+      "mode": "affluent_income_floor",
+      "strategy": "resample",
+      "max_tries": 50
     },
     "income_calibration": {
       "target_mean_multiple_of_public_median": 2.0,
       "public_income_median": 81604.0,
       "target_mean": 163208.0,
-      "baseline_mean_estimate": 163208.0,
-      "scale": 0.8359452894679233,
+      "baseline_mean_estimate": 229934.38197776684,
+      "scale": 0.2202855248480674,
       "simulation_n": 20000,
       "simulation_seed": 0,
       "iterations": 3
@@ -497,57 +511,44 @@
       "base_affluent_probability": 0.78
     },
     "investable_assets_model": {
-      "segments": {
-        "affluent": {
-          "median": 700000.0,
-          "sigma": 0.55,
-          "clamp_lo": 250000.0,
-          "clamp_hi": 2000000.0
+      "income_multiplier": {
+        "enabled": true,
+        "k_base": 4.0,
+        "k2": {
+          "mean": 1.0,
+          "q10": 0.75,
+          "q90": 1.25,
+          "resample_max_tries": 200
         },
-        "hnw": {
-          "median": 3500000.0,
-          "sigma": 0.75,
-          "clamp_lo": 1000000.0,
-          "clamp_hi": 30000000.0
-        },
-        "ultra": {
-          "median": 45000000.0,
-          "sigma": 0.55,
-          "clamp_lo": 30000000.0,
-          "clamp_hi": 150000000.0
-        }
+        "resample_max_tries": 120
       },
       "scenario_adjustments": {
         "young_dual_income_low_assets": {
-          "mult": 0.55,
-          "clamp_lo": 250000.0,
-          "clamp_hi": 1200000.0
+          "mult": 0.55
         },
         "financially_stressed_with_debt": {
-          "mult": 0.4,
-          "clamp_lo": 100000.0,
-          "clamp_hi": 3000000.0
+          "mult": 0.4
         },
         "retired_couple_high_assets_low_income": {
           "mult": 1.15
         }
-      },
-      "income_tie": {
-        "lower_income_mult": 0.5,
-        "upper_income_mult": 250.0,
-        "segment_floor": {
-          "affluent": 250000.0,
-          "hnw": 1000000.0,
-          "ultra": 30000000.0
-        },
-        "segment_cap": {
-          "affluent": 2000000.0,
-          "hnw": 30000000.0,
-          "ultra": 150000000.0
-        }
       }
     },
     "asset_mix_model": {
+      "default": {
+        "retirement": [
+          0.14,
+          0.34
+        ],
+        "cash": [
+          0.05,
+          0.16
+        ],
+        "alts": [
+          0.0,
+          0.18
+        ]
+      },
       "segments": {
         "affluent": {
           "retirement": [
@@ -604,6 +605,11 @@
       }
     },
     "property_model": {
+      "default": {
+        "hi_cap": 40000000.0,
+        "mult_lo": 0.2,
+        "mult_hi": 1.4
+      },
       "segments": {
         "affluent": {
           "hi_cap": 2500000.0,
@@ -623,12 +629,7 @@
       },
       "scenario_adjustments": {
         "financially_stressed_with_debt": {
-          "mult": 0.65,
-          "floor": 350000.0
-        },
-        "young_dual_income_low_assets": {
-          "floor": 300000.0,
-          "cap": 1200000.0
+          "mult": 0.65
         }
       }
     },
@@ -689,8 +690,16 @@
         "max": 30000.0
       }
     },
+    "risk_tolerance_by_segment": {
+      "ultra": {
+        "conservative": 0.32,
+        "moderate": 0.46,
+        "growth": 0.18,
+        "aggressive": 0.04
+      }
+    },
     "risk_overrides": {
-      "ultra_growth_probability": 0.35,
+      "ultra_growth_probability": 0.05,
       "retired_couple_high_assets_low_income": "moderate"
     },
     "net_worth_proxy_model": {

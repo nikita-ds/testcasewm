@@ -518,6 +518,7 @@ def build_priors_from_acs(
         },
         "property_value_priors": {
             # Data-driven floors by segment: use higher quantiles for wealthier segments.
+            "default_min": 250000.0,
             "segment_min": {
                 "affluent": float(home_value_q["p50"]),
                 "hnw": float(home_value_q["p80"]),
@@ -641,6 +642,13 @@ def default_generator_params() -> Dict[str, Any]:
             "cap_fallback_mult_lo": 0.85,
             "cap_fallback_mult_hi": 0.99,
         },
+        "mortgage_age_adjustment": {
+            "enabled": True,
+            "near_retirement_window_years": 12,
+            "years_remaining_scale_at_retirement": 0.35,
+            "payment_ratio_scale_at_retirement": 0.6,
+            "years_remaining_min_floor": 1.0,
+        },
         "expense_ratio_normal": {
             "default": {"mean": 0.48, "std": 0.10, "min": 0.20, "max": 0.95},
             "family_with_mortgage_and_children": {"mean": 0.58, "std": 0.08, "min": 0.20, "max": 0.95},
@@ -661,10 +669,16 @@ def default_generator_params() -> Dict[str, Any]:
         "income_model": {
             "type": "lognormal",
             "median_multiple_of_public_median": 2.0,
-            "sigma": 0.65,
+            "sigma": 0.75,
             "min_income": 15000.0,
             "max_income": 20000000.0,
             "max_resample": 50,
+        },
+        "income_floor": {
+            "enabled": True,
+            "mode": "affluent_income_floor",
+            "strategy": "resample",
+            "max_tries": 50,
         },
         "income_calibration": {
             "target_mean_multiple_of_public_median": 2.0,
@@ -698,24 +712,20 @@ def default_generator_params() -> Dict[str, Any]:
             "base_affluent_probability": 0.78,
         },
         "investable_assets_model": {
-            "segments": {
-                "affluent": {"median": 700000.0, "sigma": 0.55, "clamp_lo": 250000.0, "clamp_hi": 2000000.0},
-                "hnw": {"median": 3500000.0, "sigma": 0.75, "clamp_lo": 1000000.0, "clamp_hi": 30000000.0},
-                "ultra": {"median": 45000000.0, "sigma": 0.55, "clamp_lo": 30000000.0, "clamp_hi": 150000000.0},
+            "income_multiplier": {
+                "enabled": True,
+                "k_base": 4.0,
+                "k2": {"mean": 1.0, "q10": 0.75, "q90": 1.25, "resample_max_tries": 200},
+                "resample_max_tries": 120,
             },
             "scenario_adjustments": {
-                "young_dual_income_low_assets": {"mult": 0.55, "clamp_lo": 250000.0, "clamp_hi": 1200000.0},
-                "financially_stressed_with_debt": {"mult": 0.40, "clamp_lo": 100000.0, "clamp_hi": 3000000.0},
+                "young_dual_income_low_assets": {"mult": 0.55},
+                "financially_stressed_with_debt": {"mult": 0.40},
                 "retired_couple_high_assets_low_income": {"mult": 1.15},
-            },
-            "income_tie": {
-                "lower_income_mult": 0.50,
-                "upper_income_mult": 250.0,
-                "segment_floor": {"affluent": 250000.0, "hnw": 1000000.0, "ultra": 30000000.0},
-                "segment_cap": {"affluent": 2000000.0, "hnw": 30000000.0, "ultra": 150000000.0},
             },
         },
         "asset_mix_model": {
+            "default": {"retirement": [0.14, 0.34], "cash": [0.05, 0.16], "alts": [0.00, 0.18]},
             "segments": {
                 "affluent": {"retirement": [0.18, 0.38], "cash": [0.06, 0.18], "alts": [0.00, 0.05]},
                 "hnw": {"retirement": [0.12, 0.30], "cash": [0.04, 0.12], "alts": [0.03, 0.18]},
@@ -727,14 +737,14 @@ def default_generator_params() -> Dict[str, Any]:
             },
         },
         "property_model": {
+            "default": {"hi_cap": 40000000.0, "mult_lo": 0.20, "mult_hi": 1.40},
             "segments": {
                 "affluent": {"hi_cap": 2500000.0, "mult_lo": 0.35, "mult_hi": 1.20},
                 "hnw": {"hi_cap": 8000000.0, "mult_lo": 0.25, "mult_hi": 1.50},
                 "ultra": {"hi_cap": 40000000.0, "mult_lo": 0.15, "mult_hi": 1.20},
             },
             "scenario_adjustments": {
-                "financially_stressed_with_debt": {"mult": 0.65, "floor": 350000.0},
-                "young_dual_income_low_assets": {"floor": 300000.0, "cap": 1200000.0},
+                "financially_stressed_with_debt": {"mult": 0.65},
             },
         },
         "employment_model": {
@@ -763,8 +773,16 @@ def default_generator_params() -> Dict[str, Any]:
             "secondly_wedded_paying_alimony": {"min": 12000.0, "max": 72000.0},
             "divorced": {"prob": 0.18, "min": 6000.0, "max": 30000.0},
         },
+        "risk_tolerance_by_segment": {
+            "ultra": {
+                "conservative": 0.32,
+                "moderate": 0.46,
+                "growth": 0.18,
+                "aggressive": 0.04,
+            }
+        },
         "risk_overrides": {
-            "ultra_growth_probability": 0.35,
+            "ultra_growth_probability": 0.05,
             "retired_couple_high_assets_low_income": "moderate",
         },
         "net_worth_proxy_model": {"add_uniform_lo": 0.0, "add_uniform_hi_mult": 0.08},
@@ -988,12 +1006,33 @@ def calibrate_income_to_target_mean(priors: Dict[str, Any]) -> Dict[str, Any]:
     def estimate_mean(scale_factor: float) -> float:
         rng = np_mod.random.default_rng(seed)
         vals = np_mod.empty(n, dtype=float)
+
+        income_floor_cfg = (gp.get("income_floor") or {}) if isinstance(gp.get("income_floor"), dict) else {}
+        floor_enabled = bool(income_floor_cfg.get("enabled", False))
+        strategy = str(income_floor_cfg.get("strategy", "resample")) if floor_enabled else ""
+        max_tries = int(income_floor_cfg.get("max_tries", 50)) if floor_enabled else 1
+        floor = (priors.get("meta") or {}).get("affluent_income_floor") if floor_enabled else None
+        floor = float(floor) if floor is not None else None
+
         for i in range(n):
             scenario = str(rng.choice(scenarios, p=weights))
-            base = _sample_household_income_base(priors, rng)
-            hh_income = float(base) * float(scale_factor)
-            hh_income = _apply_income_adjustment(priors, scenario, hh_income, rng)
-            vals[i] = hh_income
+            hh_income = None
+            for _ in range(max(1, max_tries)):
+                base = _sample_household_income_base(priors, rng)
+                cand = float(base) * float(scale_factor)
+                cand = _apply_income_adjustment(priors, scenario, cand, rng)
+                if floor is None or float(floor) <= 0:
+                    hh_income = float(cand)
+                    break
+                if float(cand) >= float(floor):
+                    hh_income = float(cand)
+                    break
+                if strategy != "resample":
+                    hh_income = float(max(float(floor), float(cand)))
+                    break
+            if hh_income is None:
+                hh_income = float(max(float(floor) if floor else 0.0, float(cand)))
+            vals[i] = float(hh_income)
         return float(vals.mean())
 
     baseline_mean = None

@@ -25,6 +25,18 @@ def get_public_income_median(priors: dict) -> float | None:
     return None
 
 
+def get_affluent_income_floor(priors: dict) -> float | None:
+    meta = priors.get("meta") or {}
+    inc = priors.get("income_distribution") or {}
+    for k in ("affluent_income_floor", "affluent_floor_2x_median"):
+        if k in meta and meta.get(k) is not None:
+            return float(meta[k])
+    for k in ("affluent_income_floor", "affluent_floor_2x_median"):
+        if k in inc and inc.get(k) is not None:
+            return float(inc[k])
+    return None
+
+
 def apply_scenario_income_adjustment(priors: dict, scenario: str, hh_income: float, rng) -> float:
     gp = priors.get("generator_params") or {}
     adj_all = gp.get("scenario_income_adjustments") or {}
@@ -125,6 +137,22 @@ def choose_wealth_segment(income: float, scenario: str, priors: dict, rng) -> st
     if scenario in force_affluent:
         return "affluent"
 
+    segs = priors.get("wealth_segments")
+    if isinstance(segs, list) and segs:
+        names = []
+        weights = []
+        for s in segs:
+            if not isinstance(s, dict):
+                continue
+            if "name" not in s or "weight" not in s:
+                continue
+            names.append(str(s["name"]))
+            weights.append(float(s["weight"]))
+        if names and sum(weights) > 0:
+            w = np.array(weights, dtype=float)
+            w = w / w.sum()
+            return str(rng.choice(names, p=w))
+
     scen_hnw = wm.get("scenario_hnw_probability") or {}
     scen_p = scen_hnw.get(scenario)
     if scen_p is not None and float(rng.random()) < float(scen_p):
@@ -140,40 +168,41 @@ def choose_wealth_segment(income: float, scenario: str, priors: dict, rng) -> st
 def sample_assets_for_segment(priors: dict, segment: str, scenario: str, income: float, rng) -> float:
     gp = priors.get("generator_params") or {}
     am = gp.get("investable_assets_model") or {}
-    segs = am.get("segments") or {}
-    spec = segs.get(segment) or {}
+    # NOTE: wealth segments are reporting-only. Generation must not depend on segments.
 
-    x = float(
-        rng.lognormal(
-            mean=float(np.log(max(float(spec["median"]), 1e-9))),
-            sigma=float(spec["sigma"]),
-        )
-    )
-    investable = float(clamp(x, float(spec["clamp_lo"]), float(spec["clamp_hi"])))
+    incm = am.get("income_multiplier") or {}
+    if bool(incm.get("enabled", False)):
+        adj = (am.get("scenario_adjustments") or {}).get(scenario)
+        scen_mult = 1.0
+        if isinstance(adj, dict):
+            if "mult" in adj:
+                scen_mult = float(adj["mult"])
 
-    adj = (am.get("scenario_adjustments") or {}).get(scenario)
-    if isinstance(adj, dict):
-        if "mult" in adj:
-            investable = float(investable) * float(adj["mult"])
-        if "clamp_lo" in adj or "clamp_hi" in adj:
-            investable = float(
-                clamp(
-                    investable,
-                    float(adj.get("clamp_lo", -float("inf"))),
-                    float(adj.get("clamp_hi", float("inf"))),
-                )
-            )
+        k_base = float(incm.get("k_base", 4.0))
+        k2_cfg = incm.get("k2") or {}
+        k2_mean = float(k2_cfg.get("mean", 1.0))
+        q10 = float(k2_cfg.get("q10", 0.75))
+        q90 = float(k2_cfg.get("q90", 1.25))
+        z90 = 1.2815515655446004
+        sigma = (q90 - q10) / (2.0 * z90) if q90 > q10 else 0.0
+        sigma = float(max(0.0, sigma))
+        k2_tries = int(k2_cfg.get("resample_max_tries", 200))
 
-    tie = am.get("income_tie") or {}
-    seg_floor = (tie.get("segment_floor") or {}).get(segment)
-    seg_cap = (tie.get("segment_cap") or {}).get(segment)
-    if seg_floor is None or seg_cap is None:
-        raise KeyError(f"Missing generator_params.investable_assets_model.income_tie.segment_floor/segment_cap for segment={segment!r}")
-    upper_income_mult = float(tie["upper_income_mult"])
-    lower = max(float(seg_floor), float(income) * float(tie["lower_income_mult"]))
-    upper = min(float(seg_cap), float(income) * upper_income_mult)
-    investable = float(clamp(investable, lower, upper))
-    return float(investable)
+        base_income = max(float(income), 1.0)
+        if sigma <= 0:
+            k2 = float(k2_mean)
+        else:
+            k2 = None
+            for _ in range(k2_tries):
+                cand = float(rng.normal(k2_mean, sigma))
+                if cand > 0:
+                    k2 = cand
+                    break
+            if k2 is None:
+                k2 = float(k2_mean)
+        return float(base_income * k_base * k2 * scen_mult)
+
+    raise KeyError("Missing generator_params.investable_assets_model.income_multiplier.enabled=true")
 
 
 def build_expected_samples(priors: dict, n: int, seed: int = 123) -> tuple[np.ndarray, np.ndarray]:
@@ -189,15 +218,33 @@ def build_expected_samples(priors: dict, n: int, seed: int = 123) -> tuple[np.nd
     w = w / w.sum()
     income_scale = float((gp.get("income_calibration") or {}).get("scale", 1.0))
 
+    income_floor_cfg = (gp.get("income_floor") or {}) if isinstance(gp.get("income_floor"), dict) else {}
+    floor_enabled = bool(income_floor_cfg.get("enabled", False))
+    floor = get_affluent_income_floor(priors) if floor_enabled else None
+    max_tries = int(income_floor_cfg.get("max_tries", 50)) if floor_enabled else 1
+    strategy = str(income_floor_cfg.get("strategy", "resample")) if floor_enabled else ""
+
     rng = np.random.default_rng(seed)
     expected_income = np.empty(n, dtype=float)
     expected_assets = np.empty(n, dtype=float)
     for i in range(n):
         scenario = str(rng.choice(scenarios, p=w))
-        hh_income = float(sample_empirical_income(priors, rng)) * income_scale
-        hh_income = float(apply_scenario_income_adjustment(priors, scenario, hh_income, rng))
-        seg = choose_wealth_segment(hh_income, scenario, priors, rng)
-        investable = float(sample_assets_for_segment(priors, seg, scenario, hh_income, rng))
+        hh_income = None
+        for _ in range(max(1, max_tries)):
+            cand = float(sample_empirical_income(priors, rng)) * income_scale
+            cand = float(apply_scenario_income_adjustment(priors, scenario, cand, rng))
+            if floor is None or float(floor) <= 0:
+                hh_income = cand
+                break
+            if cand >= float(floor):
+                hh_income = cand
+                break
+            if strategy != "resample":
+                hh_income = float(max(float(floor), cand))
+                break
+        if hh_income is None:
+            hh_income = float(max(float(floor) if floor else 0.0, cand))
+        investable = float(sample_assets_for_segment(priors, "_unused", scenario, hh_income, rng))
         expected_income[i] = hh_income
         expected_assets[i] = investable
     return expected_income, expected_assets

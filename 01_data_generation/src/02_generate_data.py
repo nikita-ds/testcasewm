@@ -14,6 +14,11 @@ TABLES.mkdir(parents=True, exist_ok=True)
 def clamp(v, lo, hi):
     return max(lo, min(hi, v))
 
+
+def lerp(a: float, b: float, t: float) -> float:
+    t = float(clamp(float(t), 0.0, 1.0))
+    return float(a + (b - a) * t)
+
 def years_ago(ref: date, years: float) -> date:
     return ref - timedelta(days=int(years * 365.25))
 
@@ -31,6 +36,18 @@ def get_public_income_median(priors: dict) -> float | None:
         if k in meta and meta.get(k) is not None:
             return float(meta[k])
     for k in ("public_income_median", "public_income_median_2024", "public_income_median_2023"):
+        if k in inc and inc.get(k) is not None:
+            return float(inc[k])
+    return None
+
+
+def get_affluent_income_floor(priors: dict) -> float | None:
+    meta = priors.get("meta") or {}
+    inc = priors.get("income_distribution") or {}
+    for k in ("affluent_income_floor", "affluent_floor_2x_median"):
+        if k in meta and meta.get(k) is not None:
+            return float(meta[k])
+    for k in ("affluent_income_floor", "affluent_floor_2x_median"):
         if k in inc and inc.get(k) is not None:
             return float(inc[k])
     return None
@@ -162,7 +179,7 @@ def sample_empirical_income(priors, rng):
     return float(clamp(x, float(stage["low"]), float(stage["high"])))
 
 def choose_wealth_segment(income, scenario, priors, rng):
-    # Scenario and income inform wealth segment. Ultra remains very rare.
+    # Prefer explicit segment weights from priors.wealth_segments (more transparent than tuning thresholds).
     gp = priors.get("generator_params") or {}
     wm = gp.get("wealth_segment_model") or {}
 
@@ -170,11 +187,27 @@ def choose_wealth_segment(income, scenario, priors, rng):
     if scenario in force_affluent:
         return "affluent"
 
+    segs = priors.get("wealth_segments")
+    if isinstance(segs, list) and segs:
+        names = []
+        weights = []
+        for s in segs:
+            if not isinstance(s, dict):
+                continue
+            if "name" not in s or "weight" not in s:
+                continue
+            names.append(str(s["name"]))
+            weights.append(float(s["weight"]))
+        if names and sum(weights) > 0:
+            w = np.array(weights, dtype=float)
+            w = w / w.sum()
+            return str(rng.choice(names, p=w))
+
+    # Fallback: scenario+income-based logic.
     scen_hnw = wm.get("scenario_hnw_probability") or {}
     scen_p = scen_hnw.get(scenario)
     if scen_p is not None and float(rng.random()) < float(scen_p):
         return "hnw"
-
     if float(income) >= float(wm["hnw_income_threshold"]) and float(rng.random()) < float(wm["hnw_probability"]):
         return "hnw"
     if float(income) >= float(wm["ultra_income_threshold"]) and float(rng.random()) < float(wm["ultra_probability"]):
@@ -185,39 +218,42 @@ def sample_assets_for_segment(priors, segment, scenario, income, rng):
     # Truncated lognormal by segment. Ranges reflect the user's desired bands.
     gp = priors.get("generator_params") or {}
     am = gp.get("investable_assets_model") or {}
-    segs = am.get("segments") or {}
-    spec = segs.get(segment) or {}
-    x = float(
-        rng.lognormal(
-            mean=float(np.log(max(float(spec["median"]), 1e-9))),
-            sigma=float(spec["sigma"]),
-        )
-    )
-    investable = float(clamp(x, float(spec["clamp_lo"]), float(spec["clamp_hi"])))
+    # NOTE: wealth segments are reporting-only. Generation must not depend on segments.
 
-    # Scenario adjustments
-    adj = (am.get("scenario_adjustments") or {}).get(scenario)
-    if isinstance(adj, dict):
-        if "mult" in adj:
-            investable = float(investable) * float(adj["mult"])
-        if "clamp_lo" in adj or "clamp_hi" in adj:
-            investable = float(
-                clamp(
-                    investable,
-                    float(adj.get("clamp_lo", -float("inf"))),
-                    float(adj.get("clamp_hi", float("inf"))),
-                )
-            )
+    # Optional mode: generate assets primarily as a (noisy) multiple of income.
+    # This helps enforce strong positive correlation and avoids boundary pile-ups
+    # by resampling into the allowed band instead of clamping.
+    incm = am.get("income_multiplier") or {}
+    if bool(incm.get("enabled", False)):
+        adj = (am.get("scenario_adjustments") or {}).get(scenario)
+        scen_mult = float(adj.get("mult", 1.0)) if isinstance(adj, dict) else 1.0
 
-    # Tie to income weakly to avoid absurd mismatch
-    tie = am.get("income_tie") or {}
-    seg_floor = (tie.get("segment_floor") or {}).get(segment)
-    seg_cap = (tie.get("segment_cap") or {}).get(segment)
-    upper_income_mult = float(tie["upper_income_mult"])
-    lower = max(float(seg_floor), float(income) * float(tie["lower_income_mult"]))
-    upper = min(float(seg_cap), float(income) * upper_income_mult)
-    investable = float(clamp(investable, lower, upper))
-    return investable
+        k_base = float(incm.get("k_base", 4.0))
+        k2_cfg = incm.get("k2") or {}
+        k2_mean = float(k2_cfg.get("mean", 1.0))
+        q10 = float(k2_cfg.get("q10", 0.75))
+        q90 = float(k2_cfg.get("q90", 1.25))
+        z90 = 1.2815515655446004
+        sigma = (q90 - q10) / (2.0 * z90) if q90 > q10 else 0.0
+        sigma = float(max(0.0, sigma))
+
+        # No clipping for k2: only reject non-positive samples.
+        k2_tries = int(k2_cfg.get("resample_max_tries", 200))
+        base_income = max(float(income), 1.0)
+        if sigma <= 0:
+            k2 = float(k2_mean)
+        else:
+            k2 = None
+            for _ in range(k2_tries):
+                cand = float(rng.normal(k2_mean, sigma))
+                if cand > 0:
+                    k2 = cand
+                    break
+            if k2 is None:
+                k2 = float(k2_mean)
+        return float(base_income * k_base * k2 * scen_mult)
+
+    raise KeyError("Missing generator_params.investable_assets_model.income_multiplier.enabled=true")
 
 def employment_status(priors, age, scenario, is_primary, rng):
     gp = priors.get("generator_params") or {}
@@ -333,10 +369,29 @@ def gen_one(hidx, ctx: Ctx):
                 child_dobs.append(c_dob)
         child_dobs = sorted(child_dobs)
 
-    hh_income = sample_empirical_income(pri, rng)
-    income_scale = float((gp.get("income_calibration") or {})["scale"])
-    hh_income = float(hh_income) * income_scale
-    hh_income = apply_scenario_income_adjustment(pri, scenario, hh_income, rng)
+    base_income_scale = float((gp.get("income_calibration") or {})["scale"])
+    income_floor_cfg = (gp.get("income_floor") or {}) if isinstance(gp.get("income_floor"), dict) else {}
+    floor_enabled = bool(income_floor_cfg.get("enabled", False))
+    floor = get_affluent_income_floor(pri) if floor_enabled else None
+    max_tries = int(income_floor_cfg.get("max_tries", 50)) if floor_enabled else 1
+    strategy = str(income_floor_cfg.get("strategy", "resample")) if floor_enabled else ""
+
+    hh_income = None
+    for _ in range(max(1, max_tries)):
+        cand = float(sample_empirical_income(pri, rng)) * base_income_scale
+        cand = float(apply_scenario_income_adjustment(pri, scenario, cand, rng))
+        if floor is None or float(floor) <= 0:
+            hh_income = cand
+            break
+        if cand >= float(floor):
+            hh_income = cand
+            break
+        if strategy != "resample":
+            hh_income = float(max(float(floor), cand))
+            break
+    if hh_income is None:
+        # Extremely unlikely unless max_tries is tiny; clamp to avoid violating assumption.
+        hh_income = float(max(float(floor) if floor else 0.0, cand))
 
     split = gp.get("spouse_income_split") or {}
     if scenario == "one_high_earner_one_low_earner" and has_second:
@@ -351,15 +406,42 @@ def gen_one(hidx, ctx: Ctx):
     else:
         inc1, inc2 = hh_income, 0.0
 
-    wealth_segment = choose_wealth_segment(hh_income, scenario, pri, rng)
-    investable = sample_assets_for_segment(pri, wealth_segment, scenario, hh_income, rng)
+    investable = sample_assets_for_segment(pri, "_unused", scenario, hh_income, rng)
 
-    # Asset mix by segment and lifecycle
+    # Wealth segments are NOT used for generation; we derive them post-hoc for reporting only.
+    def derive_wealth_segment_from_assets(priors: dict, investable_assets: float) -> str:
+        segs = priors.get("wealth_segments")
+        if isinstance(segs, list) and segs:
+            for s in segs:
+                if not isinstance(s, dict):
+                    continue
+                name = s.get("name")
+                lo = s.get("assets_lo")
+                hi = s.get("assets_hi")
+                if name is None or lo is None:
+                    continue
+                lo_v = float(lo)
+                hi_v = float(hi) if hi is not None else None
+                if float(investable_assets) >= lo_v and (hi_v is None or float(investable_assets) < hi_v):
+                    return str(name)
+        # Fallback thresholds
+        x = float(investable_assets)
+        if x >= 30000000.0:
+            return "ultra"
+        if x >= 1000000.0:
+            return "hnw"
+        return "affluent"
+
+    wealth_segment = derive_wealth_segment_from_assets(pri, investable)
+
+    # Asset mix is segment-free (segments are reporting-only labels).
     mix = gp.get("asset_mix_model") or {}
-    seg_mix = (mix.get("segments") or {}).get(wealth_segment) or {}
-    retirement_share = float(rng.uniform(*[float(x) for x in seg_mix["retirement"]]))
-    cash_share = float(rng.uniform(*[float(x) for x in seg_mix["cash"]]))
-    alt_share = float(rng.uniform(*[float(x) for x in seg_mix["alts"]]))
+    mx = mix.get("default") or {}
+    if not mx:
+        raise KeyError("Missing generator_params.asset_mix_model.default")
+    retirement_share = float(rng.uniform(*[float(x) for x in mx["retirement"]]))
+    cash_share = float(rng.uniform(*[float(x) for x in mx["cash"]]))
+    alt_share = float(rng.uniform(*[float(x) for x in mx["alts"]]))
 
     scen_adj = (mix.get("scenario_adjustments") or {}).get(scenario) or {}
     if "retirement_add" in scen_adj:
@@ -374,20 +456,14 @@ def gen_one(hidx, ctx: Ctx):
     alternatives_total = investable * alt_share
     brokerage_total = max(0.0, investable - retirement_assets - cash_total - alternatives_total)
 
-    # Property and leverage
-    seg_min = (pri.get("property_value_priors", {}) or {}).get("segment_min", {})
-    affluent_floor = float(seg_min["affluent"])
-    hnw_floor = float(seg_min["hnw"])
-    ultra_floor = float(seg_min["ultra"])
+    # Property model is segment-free.
+    pv = pri.get("property_value_priors", {}) or {}
+    floor = float(pv.get("default_min", 250000.0))
 
     pm = gp.get("property_model") or {}
-    seg_pm = (pm.get("segments") or {}).get(wealth_segment) or {}
-    if wealth_segment == "affluent":
-        floor = affluent_floor
-    elif wealth_segment == "hnw":
-        floor = hnw_floor
-    else:
-        floor = ultra_floor
+    seg_pm = pm.get("default") or {}
+    if not seg_pm:
+        raise KeyError("Missing generator_params.property_model.default")
 
     prop_hi = float(
         min(
@@ -403,10 +479,7 @@ def gen_one(hidx, ctx: Ctx):
     if isinstance(padj, dict):
         if "mult" in padj:
             prop_val = float(prop_val) * float(padj["mult"])
-        if "floor" in padj:
-            prop_val = max(float(padj.get("floor")), float(prop_val))
-        if "cap" in padj:
-            prop_val = min(float(padj.get("cap")), float(prop_val))
+        # Avoid hard floor/cap clips (they create visible histogram steps).
 
     force_mort = set(gp.get("mortgage_force_scenarios") or [])
     force_nm = set(gp.get("non_mortgage_force_scenarios") or [])
@@ -422,10 +495,29 @@ def gen_one(hidx, ctx: Ctx):
         mcfg = mcfg_all.get(scenario) or mcfg_all.get("default")
         if not isinstance(mcfg, dict):
             raise KeyError(f"Missing mortgage_ratio_beta config for {scenario!r} (and missing 'default')")
+
+        maa = gp.get("mortgage_age_adjustment") or {}
+        age_adj_enabled = bool(isinstance(maa, dict) and maa.get("enabled", False))
+        near_window = float(maa.get("near_retirement_window_years", 12)) if age_adj_enabled else 0.0
+        years_scale_at_ret = float(maa.get("years_remaining_scale_at_retirement", 0.35)) if age_adj_enabled else 1.0
+        pay_scale_at_ret = float(maa.get("payment_ratio_scale_at_retirement", 0.6)) if age_adj_enabled else 1.0
+        yrs_min_floor = float(maa.get("years_remaining_min_floor", 1.0)) if age_adj_enabled else 0.0
+
+        retirement_age = int(((gp.get("employment_model") or {}).get("retirement_age") or 68))
+        age_ref = int(max(age1, age2) if age2 is not None else age1)
+        if age_adj_enabled and near_window > 0:
+            c = float(clamp((float(age_ref) - (float(retirement_age) - near_window)) / near_window, 0.0, 1.0))
+        else:
+            c = 0.0
+        payment_ratio_scale = float(lerp(1.0, pay_scale_at_ret, c))
+        years_remaining_scale = float(lerp(1.0, years_scale_at_ret, c))
+
+        lo = max(0.0, float(mcfg["lo"]) * payment_ratio_scale)
+        hi = max(lo, float(mcfg["hi"]) * payment_ratio_scale)
         target_ratio = sample_beta_scaled(
             rng,
-            float(mcfg["lo"]),
-            float(mcfg["hi"]),
+            float(lo),
+            float(hi),
             a=float(mcfg["a"]),
             b=float(mcfg["b"]),
         )
@@ -445,6 +537,11 @@ def gen_one(hidx, ctx: Ctx):
         yrs = mt.get("years_remaining") or {}
         outm = mt.get("outstanding_multiplier") or {}
 
+        yrs_min = float(yrs["min"])
+        yrs_max = float(yrs["max"])
+        yrs_min_adj = max(float(yrs_min_floor), float(yrs_min) * years_remaining_scale)
+        yrs_max_adj = max(float(yrs_min_adj), float(yrs_max) * years_remaining_scale)
+
         # hard caps (apply via resampling to avoid mass piling on the boundary)
         ltv_cap = float(mt["ltv_cap"])
         imc = mt.get("income_multiple_cap") or {}
@@ -458,7 +555,7 @@ def gen_one(hidx, ctx: Ctx):
         years_remaining = None
         mortgage_outstanding = None
         for _ in range(max_tries):
-            yrs_candidate = float(rng.uniform(float(yrs["min"]), float(yrs["max"])))
+            yrs_candidate = float(rng.uniform(float(yrs_min_adj), float(yrs_max_adj)))
             out_candidate = mortgage_payment * 12 * yrs_candidate * float(
                 rng.uniform(float(outm["min"]), float(outm["max"]))
             )
@@ -468,7 +565,7 @@ def gen_one(hidx, ctx: Ctx):
                 break
 
         if mortgage_outstanding is None:
-            years_remaining = float(rng.uniform(float(yrs["min"]), float(yrs["max"])))
+            years_remaining = float(rng.uniform(float(yrs_min_adj), float(yrs_max_adj)))
             mortgage_outstanding = cap * float(rng.uniform(fb_lo, fb_hi))
 
         final_payment = snap + timedelta(days=int(float(years_remaining) * 365.25))
@@ -501,8 +598,18 @@ def gen_one(hidx, ctx: Ctx):
     if not isinstance(ecfg, dict):
         raise KeyError(f"Missing expense_ratio_normal config for {scenario!r} (and missing 'default')")
     base_ratio = rng.normal(float(ecfg["mean"]), float(ecfg["std"]))
-    expense_to_income_ratio = float(clamp(base_ratio, float(ecfg["min"]), float(ecfg["max"])))
-    monthly_expenses_total = hh_income / 12 * expense_to_income_ratio
+    nondebt_ratio = float(clamp(base_ratio, float(ecfg["min"]), float(ecfg["max"])))
+    income_m = float(hh_income) / 12.0
+    nondebt_expenses = income_m * nondebt_ratio
+
+    # Expenses include debt payments. If the resulting total would violate the configured
+    # cap, we shrink non-debt expenses first (debt payments are obligations).
+    total_cap_ratio = float(ecfg["max"])
+    total_allowed = income_m * total_cap_ratio
+    monthly_expenses_total = float(monthly_debt_cost_total) + float(nondebt_expenses)
+    if monthly_expenses_total > total_allowed:
+        monthly_expenses_total = max(float(monthly_debt_cost_total), float(total_allowed))
+    expense_to_income_ratio = float(monthly_expenses_total / income_m) if income_m > 0 else 0.0
 
     annual_alimony_paid = 0.0
     alm = gp.get("alimony_model") or {}
@@ -514,10 +621,9 @@ def gen_one(hidx, ctx: Ctx):
         if float(rng.random()) < float(cfg["prob"]):
             annual_alimony_paid = float(rng.uniform(float(cfg["min"]), float(cfg["max"])))
 
-    risk = sample_cat(pri["categoricals"]["risk_tolerance"], rng)
+    risk_probs = pri["categoricals"]["risk_tolerance"]
+    risk = sample_cat(risk_probs, rng)
     ro = gp.get("risk_overrides") or {}
-    if wealth_segment == "ultra" and float(rng.random()) < float(ro["ultra_growth_probability"]):
-        risk = "growth"
     if scenario == "retired_couple_high_assets_low_income" and isinstance(ro.get("retired_couple_high_assets_low_income"), str):
         risk = str(ro.get("retired_couple_high_assets_low_income"))
     objectives = list(gp.get("objectives") or [])
