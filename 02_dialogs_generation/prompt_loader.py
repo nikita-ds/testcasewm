@@ -16,6 +16,10 @@ class PromptBundle:
     outline: str
     phase_generation: str
     state_update: str
+    evidence_extraction: str
+    field_chunk_generation: str
+    transcript_polish: str
+    chunk_bridge: str
 
 
 def _read_text(path: Path) -> str:
@@ -31,6 +35,10 @@ def load_prompts(prompt_dir: Path) -> PromptBundle:
         outline=_read_text(prompt_dir / "outline_prompt.md"),
         phase_generation=_read_text(prompt_dir / "phase_generation_prompt.md"),
         state_update=_read_text(prompt_dir / "state_update_prompt.md"),
+        evidence_extraction=_read_text(prompt_dir / "evidence_extraction_prompt.md"),
+        field_chunk_generation=_read_text(prompt_dir / "field_chunk_generation_prompt.md"),
+        transcript_polish=_read_text(prompt_dir / "transcript_polish_prompt.md"),
+        chunk_bridge=_read_text(prompt_dir / "chunk_bridge_prompt.md"),
     )
 
 

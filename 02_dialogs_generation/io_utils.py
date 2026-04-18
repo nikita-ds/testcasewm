@@ -4,6 +4,18 @@ import json
 from pathlib import Path
 from typing import Any, Iterable, List
 
+def _drop_none(obj: Any) -> Any:
+    if isinstance(obj, dict):
+        out: dict[Any, Any] = {}
+        for k, v in obj.items():
+            if v is None:
+                continue
+            out[k] = _drop_none(v)
+        return out
+    if isinstance(obj, list):
+        return [_drop_none(v) for v in obj]
+    return obj
+
 
 def load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -20,8 +32,10 @@ def load_jsonl(path: Path) -> List[Any]:
     return items
 
 
-def save_json(path: Path, obj: Any) -> None:
+def save_json(path: Path, obj: Any, *, exclude_none: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    if exclude_none:
+        obj = _drop_none(obj)
     path.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 

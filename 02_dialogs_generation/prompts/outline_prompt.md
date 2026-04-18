@@ -5,6 +5,7 @@ CRITICAL REQUIREMENTS
 - Do NOT generate the full dialogue here.
 - Must be grounded in the provided financial profile and scenario.
 - The conversation must feel natural: repetitions, clarifications, small misunderstandings, topic drift and return.
+- When planning dollar amounts to be said in the conversation, assume rounding to the nearest $50 (no cents).
 
 INPUTS
 - scenario_name: {{scenario_name}}
@@ -38,14 +39,24 @@ OUTPUT JSON SCHEMA
 }
 
 GUIDELINES
-- Use 6–12 phases (prefer more phases for longer conversations).
+- Use 4–6 phases (prefer fewer phases for faster generation).
 - total_target_turns must be between min_turns and max_turns.
 - Sum of phases.target_turns should approximately equal total_target_turns.
-- Keep individual phase target_turns reasonably sized (typically 80–250) to reduce the risk of truncated JSON outputs.
+- Keep individual phase target_turns small (typically 20–60) to reduce runtime and the risk of truncated JSON outputs.
 - Include at least 2 planned moments where the conversation returns to an earlier topic.
 - Include at least 1 planned misunderstanding (term confusion) and a repair.
 - Include at least 1 planned moment of disagreement/negotiation (especially for couples).
 - Make sure the outline covers: goals/objectives, income/cashflow, expenses, debts, investable assets mix, property, risk tolerance, tax bracket band, protection policies (if present), next steps.
+
+PACE / BREVITY (IMPORTANT)
+- Keep phase names and bullets short.
+- Prefer concrete coverage over long storytelling in the outline.
+- HARD LIMITS (STRICT):
+  - phase_name: max 12 words
+  - objectives: 2–4 items, each max 10 words
+  - must_cover_topics: 3–6 items, each max 10 words
+  - realism_hooks: 2–4 items, each max 10 words
+  - Do NOT add any extra keys beyond the schema.
 
 REALISM REQUIREMENTS (ADD AS HOOKS)
 - Plan at least 2 moments of imperfect recall where a client says they don't remember exactly and answers with a range ("between X and Y", "around", "I'd have to check").

@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+from money_rounding import round_money_in_obj
+
 
 def _records(df: pd.DataFrame) -> List[Dict[str, Any]]:
     recs = df.to_dict(orient="records")
@@ -55,4 +57,6 @@ def build_financial_profiles_from_tables(tables_dir: Path) -> List[Dict[str, Any
 
 def save_financial_profiles_json(profiles: List[Dict[str, Any]], out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(profiles, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    # Canonicalize money-like numeric fields: round to nearest $50 and remove cents.
+    rounded = round_money_in_obj(profiles, increment=50.0)
+    out_path.write_text(json.dumps(rounded, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

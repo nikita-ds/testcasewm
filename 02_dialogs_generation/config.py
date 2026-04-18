@@ -9,7 +9,7 @@ from typing import Optional
 class ModelConfig:
     model: str = "gpt-4.1"
     temperature: float = 0.0
-    max_output_tokens: int = 6000
+    max_output_tokens: int = 1200
     seed: Optional[int] = 42
 
 
@@ -30,12 +30,75 @@ class GenerationConfig:
 
     n: int = 1
     workers: int = 1
-    min_turns: int = 1000
-    max_turns: int = 1700
+
+    # Generation strategy:
+    # - "phases": personas + outline + multi-phase generation + state updates (existing)
+    # - "field_chunks": walk financial profile fields in batches and generate transcript chunks
+    mode: str = "phases"
+    # Fast-by-default: keep dialogs short for iteration/testing.
+    min_turns: int = 200
+    max_turns: int = 350
     save_txt: bool = True
+
+    # Prompt context trimming: keep the full transcript for output, but only feed a bounded
+    # window of recent utterances + a rolling summary back into the model.
+    context_last_utterances: int = 30
+    context_summary_last_phases: int = 4
+    context_summary_max_chars: int = 1200
+
+    # Per-step output limits (lets us keep phase/state updates cheap even if one step would otherwise bloat).
+    personas_max_output_tokens: int = 700
+    outline_max_output_tokens: int = 800
+    phase_max_output_tokens: int = 900
+    state_max_output_tokens: int = 500
+
+    # Evidence extraction: post-process transcript into field-level QA excerpts.
+    save_evidence_json: bool = True
+    evidence_batch_size: int = 25
+    evidence_max_output_tokens: int = 1800
+
+    # If True and mode=="phases", evidence is extracted in a second pass (current behavior).
+    # If mode=="field_chunks", evidence is produced inline during generation.
+    evidence_posthoc: bool = True
+
+    # Field-chunks ergonomics: keep chunks topically coherent.
+    field_chunk_group_by_record_type: bool = True
+    field_chunk_shuffle_within_group: bool = True
+
+    # Validation + metrics (primarily for mode=="field_chunks")
+    save_metrics_json: bool = True
+    require_validation_pass: bool = True
+    # strict=True requires exact string match of source_value in evidence/transcript.
+    # strict=False allows "approximate" evidence statuses to count as covered.
+    validation_strict: bool = False
+
+    # Optional final step: rewrite/expand a skeleton transcript with extra "banter",
+    # without changing facts. Runs only after validation passes.
+    finalize_transcript: bool = False
+    # - "bridges": insert bridging utterances between chunks (keeps chunk lines verbatim; best for validation)
+    # - "polish": rewrite/expand entire skeleton transcript (may rephrase)
+    finalize_strategy: str = "bridges"
+    finalize_max_output_tokens: int = 2200
+    finalize_bridge_max_output_tokens: int = 500
 
     model: ModelConfig = ModelConfig()
     seed: int = 42
+
+    # Profile selection + bookkeeping
+    # - "sequential": first N profiles (existing behavior)
+    # - "stratified": stratify by scenario + income/assets buckets
+    sample_mode: str = "sequential"
+    income_bins: int = 3
+    assets_bins: int = 3
+
+    # Registry of already-generated dialogs (to avoid re-generating the same household).
+    skip_existing: bool = True
+    registry_path: Optional[Path] = None
+    # Comma-separated statuses to skip when selecting profiles (e.g. "success" or "success,validation_failed").
+    registry_skip_statuses: str = "success"
+
+    # When generating in parallel, keep going if some dialogs fail, then raise at the end if required.
+    continue_on_error: bool = True
 
 
 def default_repo_root() -> Path:

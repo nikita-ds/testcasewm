@@ -9,6 +9,7 @@ Key properties:
   2) conversation outline
   3) phase-by-phase dialogue generation
   4) state update after each phase
+- Optional: evidence extraction that maps each input field/value to a short advisor-question + client-answer excerpt for downstream verification.
 - Prompts are stored as separate `.md` files under `prompts/` and loaded dynamically.
 - Uses the OpenAI Python SDK (Responses API). Set `OPENAI_API_KEY`.
 
@@ -72,6 +73,25 @@ docker compose up --build
 
 # If phases get truncated (invalid JSON), increase output budget, e.g.
 # MAX_OUTPUT_TOKENS=8000
+
+# Evidence / verification artifacts (recommended while debugging grounding)
+# SAVE_EVIDENCE_JSON=1
+# EVIDENCE_BATCH_SIZE=25
+# EVIDENCE_MAX_OUTPUT_TOKENS=1800
+# SAVE_METRICS_JSON=1
+# REQUIRE_VALIDATION_PASS=1
+# VALIDATION_STRICT=0
+
+# Alternative mode to avoid a second LLM pass for evidence:
+# - field_chunks generates the transcript in batches of input fields and returns inline evidence for each batch.
+# DIALOG_MODE=field_chunks
+# EVIDENCE_POSTHOC=0
+# FIELD_CHUNK_GROUP_BY_RECORD_TYPE=1
+# FIELD_CHUNK_SHUFFLE_WITHIN_GROUP=1
+
+# Optional: after validation passes, expand/polish transcript with "banter" (no new facts).
+# FINALIZE_TRANSCRIPT=1
+# FINALIZE_MAX_OUTPUT_TOKENS=2200
 ```
 
 ### Example transcript guidance in prompts
@@ -103,6 +123,30 @@ python 02_dialogs_generation/generate_dialogs.py \
 Outputs:
 - One JSON per transcript: `DIALOG_<household_id>.json`
 - Optional plain-text transcript alongside: `DIALOG_<household_id>.txt`
+- Optional evidence JSON alongside: `DIALOG_<household_id>_evidence.json`
+- Optional metrics JSON alongside: `DIALOG_<household_id>_metrics.json`
+
+## Aggregate validation across dialogs
+
+If you generated evidence artifacts (`*_evidence.json`), you can aggregate them into a sparse error matrix
+and summaries:
+
+```bash
+python 02_dialogs_generation/aggregate_validation.py \
+  --dialogs-dir 02_dialogs_generation/artifacts/dialogs \
+  --out-dir 02_dialogs_generation/artifacts/validation
+
+# Strict mode: mark a field as error if its source_value (or simple variants) is not found in evidence_text
+python 02_dialogs_generation/aggregate_validation.py \
+  --dialogs-dir 02_dialogs_generation/artifacts/dialogs \
+  --out-dir 02_dialogs_generation/artifacts/validation_strict \
+  --strict
+```
+
+Outputs:
+- `errors_sparse.parquet`: (household_id, scenario_name, field_path) → error flag (sparse matrix)
+- `summary_by_field.csv`: error rates by field_path
+- `summary_by_scenario.csv`: error rates by scenario_name
 
 ## Output format
 Each transcript JSON:
@@ -115,6 +159,11 @@ Each transcript JSON:
   "personas": [ {"id": "client_1", "profile": {...}}, ... ],
   "transcript": "Advisor: ...\nClient: ...\n...",
   "phases": [ ... ],
+  "evidence": {
+    "meta": {"num_targets": 123, "batch_size": 25, "mode": "phases_posthoc"},
+    "targets": [ ... ],
+    "items": [ ... ]
+  },
   "metadata": {
     "num_turns": 123,
     "household_type": "single",

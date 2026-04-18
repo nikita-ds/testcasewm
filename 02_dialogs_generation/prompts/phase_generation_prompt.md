@@ -2,6 +2,7 @@ You will generate ONE PHASE of a long advisor-client conversation.
 
 CRITICAL FORMAT REQUIREMENTS
 - Output MUST be valid JSON only. No markdown. No commentary.
+- Output MUST be a single JSON OBJECT with keys "utterances" and "phase_notes". Do NOT output a JSON array.
 - One utterance per line.
 - Each utterance MUST start with exactly one of these prefixes:
   - "Advisor:"
@@ -31,6 +32,7 @@ REALISM + PACING RULES (STRICT)
 GROUNDING REQUIREMENTS
 - The dialogue must be grounded in the provided financial_profile_digest and scenario.
 - Do NOT invent new numbers. You may round, paraphrase, or reference ranges.
+- When stating dollar amounts, round to the nearest $50 and never mention cents.
 - If a detail is missing, ask a question instead of fabricating.
 - Personas must influence behavior consistently.
 - Use ONLY facts belonging to this household. Do not mix with other households.
@@ -49,7 +51,9 @@ INPUTS
 {{personas_json}}
 - state_json:
 {{state_json}}
-- transcript_so_far (may be empty; last ~200 lines only):
+- transcript_summary_so_far (rolling summary of prior phases; may be empty):
+{{transcript_summary_so_far}}
+- transcript_so_far (may be empty; recent window only):
 {{transcript_so_far}}
 - financial_profile_digest (compact, includes record IDs for coverage tracking):
 {{financial_profile_digest}}
@@ -81,7 +85,13 @@ COVERAGE / ANTI-MIXING RULES (STRICT)
 
 TARGET LENGTH
 - Aim for phase_json.target_turns utterances.
+- HARD LIMIT: NEVER output more than 60 utterances.
+- Prefer 20–45 utterances unless phase_json.target_turns is smaller.
 - If transcript_so_far is long and max_turns is likely to be reached soon, end the phase with a natural stopping point.
+
+JSON SAFETY
+- If you are running out of budget, end the phase early and close the JSON cleanly.
+- Keep phase_notes lists short (usually 1–5 items each).
 
 REALISM CHECKLIST
 - Include at least one brief repetition or re-ask.

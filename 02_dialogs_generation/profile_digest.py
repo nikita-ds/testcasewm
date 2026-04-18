@@ -4,6 +4,8 @@ import json
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
+from money_rounding import format_usd_rounded, is_money_field_name
+
 
 @dataclass(frozen=True)
 class RecordIds:
@@ -47,15 +49,8 @@ def build_profile_digest(profile: Dict[str, Any]) -> str:
     household_id = str(profile.get("household_id") or hh.get("household_id") or "")
 
     def _money(x: Any) -> str:
-        try:
-            v = float(x)
-        except Exception:
-            return "unknown"
-        if v >= 1_000_000:
-            return f"${v/1_000_000:.2f}M"
-        if v >= 1_000:
-            return f"${v/1_000:.1f}k"
-        return f"${v:.0f}"
+        # People typically don't remember cents; keep prompts realistic.
+        return format_usd_rounded(x, increment=50.0)
 
     lines: List[str] = []
     lines.append(f"HOUSEHOLD_ID: {household_id}")
@@ -86,7 +81,7 @@ def build_profile_digest(profile: Dict[str, Any]) -> str:
                 val = r.get(c)
                 if val is None or val == "":
                     continue
-                if c in {"value", "outstanding", "monthly_cost", "amount_annualized", "amount_assured", "monthly_cost"}:
+                if is_money_field_name(c):
                     parts.append(f"{c}={_money(val)}")
                 else:
                     parts.append(f"{c}={val}")

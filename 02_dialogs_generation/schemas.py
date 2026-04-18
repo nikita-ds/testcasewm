@@ -8,6 +8,16 @@ from pydantic import BaseModel, Field, RootModel
 HouseholdType = Literal["single", "couple"]
 
 
+RecordType = Literal[
+    "households",
+    "people",
+    "income_lines",
+    "assets",
+    "liabilities",
+    "protection_policies",
+]
+
+
 class PersonaProfile(BaseModel):
     name: Optional[str] = None
     age: int = Field(..., ge=18, le=95)
@@ -81,3 +91,41 @@ class StateUpdateResult(BaseModel):
     state: ConversationStateModel
     phase_summary: str
     open_questions: List[str] = Field(default_factory=list)
+
+
+EvidenceStatus = Literal["present", "approximate", "missing", "contradiction"]
+
+
+class EvidenceTarget(BaseModel):
+    target_id: str
+    record_type: RecordType
+    record_id: Optional[str] = None
+    field_path: str
+    source_value: Any
+
+
+class EvidenceItem(BaseModel):
+    target_id: str
+    record_type: RecordType
+    record_id: Optional[str] = None
+    field_path: str
+    source_value: Any
+    status: EvidenceStatus
+    evidence_text: str = ""
+    notes: Optional[str] = None
+
+
+class EvidenceExtractionBatchResult(BaseModel):
+    items: List[EvidenceItem]
+
+
+class InlineEvidenceItem(BaseModel):
+    target_id: str
+    status: EvidenceStatus
+    evidence_text: str = ""
+    notes: Optional[str] = None
+
+
+class FieldChunkGenerationResult(BaseModel):
+    utterances: List[str]
+    evidence_items: List[InlineEvidenceItem]
