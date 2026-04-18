@@ -67,7 +67,7 @@ def main():
         hh["isolation_forest_score"] = np.nan
         print("IsolationForest unavailable:", repr(e))
 
-    hh[["household_id", "scenario", "wealth_segment", "reconstruction_error", "isolation_forest_score"]].to_csv(
+    hh[["household_id", "scenario", "reconstruction_error", "isolation_forest_score"]].to_csv(
         TABLES / "anomaly_scores.csv", index=False
     )
 

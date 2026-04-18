@@ -20,10 +20,6 @@
 
 ### Conditional probabilities
 
-![P(scenario | wealth_segment)](../figures/condprob_scenario_given_wealth_segment.png)
-
-![P(risk_tolerance | wealth_segment)](../figures/condprob_risk_given_wealth_segment.png)
-
 ![P(has_mortgage_or_loan | scenario)](../figures/condprob_has_mortgage_by_scenario.png)
 
 ### Debt burden

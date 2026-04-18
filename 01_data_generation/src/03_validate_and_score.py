@@ -129,46 +129,9 @@ def sample_empirical_income(priors: dict, rng) -> float:
     return float(clamp(x, float(stage["low"]), float(stage["high"])))
 
 
-def choose_wealth_segment(income: float, scenario: str, priors: dict, rng) -> str:
-    gp = priors.get("generator_params") or {}
-    wm = gp.get("wealth_segment_model") or {}
-
-    force_affluent = set(wm.get("force_affluent_scenarios") or [])
-    if scenario in force_affluent:
-        return "affluent"
-
-    segs = priors.get("wealth_segments")
-    if isinstance(segs, list) and segs:
-        names = []
-        weights = []
-        for s in segs:
-            if not isinstance(s, dict):
-                continue
-            if "name" not in s or "weight" not in s:
-                continue
-            names.append(str(s["name"]))
-            weights.append(float(s["weight"]))
-        if names and sum(weights) > 0:
-            w = np.array(weights, dtype=float)
-            w = w / w.sum()
-            return str(rng.choice(names, p=w))
-
-    scen_hnw = wm.get("scenario_hnw_probability") or {}
-    scen_p = scen_hnw.get(scenario)
-    if scen_p is not None and float(rng.random()) < float(scen_p):
-        return "hnw"
-
-    if float(income) >= float(wm["hnw_income_threshold"]) and float(rng.random()) < float(wm["hnw_probability"]):
-        return "hnw"
-    if float(income) >= float(wm["ultra_income_threshold"]) and float(rng.random()) < float(wm["ultra_probability"]):
-        return "ultra"
-    return "affluent" if float(rng.random()) < float(wm["base_affluent_probability"]) else "hnw"
-
-
-def sample_assets_for_segment(priors: dict, segment: str, scenario: str, income: float, rng) -> float:
+def sample_investable_assets(priors: dict, scenario: str, income: float, rng) -> float:
     gp = priors.get("generator_params") or {}
     am = gp.get("investable_assets_model") or {}
-    # NOTE: wealth segments are reporting-only. Generation must not depend on segments.
 
     incm = am.get("income_multiplier") or {}
     if bool(incm.get("enabled", False)):
@@ -244,7 +207,7 @@ def build_expected_samples(priors: dict, n: int, seed: int = 123) -> tuple[np.nd
                 break
         if hh_income is None:
             hh_income = float(max(float(floor) if floor else 0.0, cand))
-        investable = float(sample_assets_for_segment(priors, "_unused", scenario, hh_income, rng))
+            investable = float(sample_investable_assets(priors, scenario, hh_income, rng))
         expected_income[i] = hh_income
         expected_assets[i] = investable
     return expected_income, expected_assets
@@ -333,7 +296,7 @@ def main():
     pd.DataFrame(metrics).to_csv(TABLES/"distance_to_priors.csv", index=False)
 
     scen=hh["scenario"].value_counts().reset_index(); scen.columns=["scenario","count"]; scen["share"]=scen["count"]/len(hh); scen.to_csv(TABLES/"scenario_coverage.csv", index=False)
-    seg=hh["wealth_segment"].value_counts().reset_index(); seg.columns=["wealth_segment","count"]; seg["share"]=seg["count"]/len(hh); seg.to_csv(TABLES/"wealth_segment_coverage.csv", index=False)
+    # Wealth segments intentionally removed (they were a post-hoc label and caused confusion).
     print("Validation complete")
 
 if __name__ == "__main__":

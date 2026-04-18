@@ -517,19 +517,9 @@ def build_priors_from_acs(
             "quantiles_us_owner_occupied": home_value_q,
         },
         "property_value_priors": {
-            # Data-driven floors by segment: use higher quantiles for wealthier segments.
             "default_min": 250000.0,
-            "segment_min": {
-                "affluent": float(home_value_q["p50"]),
-                "hnw": float(home_value_q["p80"]),
-                "ultra": float(home_value_q["p95"]),
-            }
+            # Keep generator segment-free; we only provide a conservative global floor.
         },
-        "wealth_segments": [
-            {"name": "affluent", "assets_lo": 250000, "assets_hi": 2000000, "weight": 0.78},
-            {"name": "hnw", "assets_lo": 1000000, "assets_hi": 30000000, "weight": 0.215},
-            {"name": "ultra", "assets_lo": 30000000, "assets_hi": 150000000, "weight": 0.005},
-        ],
         "date_rules": {
             "min_parent_age_at_birth": 16,
             "move_in_after_age": 18,
@@ -699,18 +689,6 @@ def default_generator_params() -> Dict[str, Any]:
             "one_high_earner_one_low_earner": {"high_earner_share_lo": 0.72, "high_earner_share_hi": 0.88},
             "default": {"spouse2_share_lo": 0.20, "spouse2_share_hi": 0.48},
         },
-        "wealth_segment_model": {
-            "force_affluent_scenarios": ["young_dual_income_low_assets"],
-            "scenario_hnw_probability": {
-                "retired_couple_high_assets_low_income": 0.25,
-                "pre_retirement_wealthy": 0.25,
-            },
-            "hnw_income_threshold": 600000.0,
-            "hnw_probability": 0.35,
-            "ultra_income_threshold": 1200000.0,
-            "ultra_probability": 0.08,
-            "base_affluent_probability": 0.78,
-        },
         "investable_assets_model": {
             "income_multiplier": {
                 "enabled": True,
@@ -726,11 +704,6 @@ def default_generator_params() -> Dict[str, Any]:
         },
         "asset_mix_model": {
             "default": {"retirement": [0.14, 0.34], "cash": [0.05, 0.16], "alts": [0.00, 0.18]},
-            "segments": {
-                "affluent": {"retirement": [0.18, 0.38], "cash": [0.06, 0.18], "alts": [0.00, 0.05]},
-                "hnw": {"retirement": [0.12, 0.30], "cash": [0.04, 0.12], "alts": [0.03, 0.18]},
-                "ultra": {"retirement": [0.08, 0.20], "cash": [0.03, 0.10], "alts": [0.12, 0.35]},
-            },
             "scenario_adjustments": {
                 "retired_couple_high_assets_low_income": {"retirement_add": 0.10, "retirement_cap": 0.60},
                 "young_dual_income_low_assets": {"retirement_cap": 0.30, "alts_force": 0.0},
@@ -738,11 +711,6 @@ def default_generator_params() -> Dict[str, Any]:
         },
         "property_model": {
             "default": {"hi_cap": 40000000.0, "mult_lo": 0.20, "mult_hi": 1.40},
-            "segments": {
-                "affluent": {"hi_cap": 2500000.0, "mult_lo": 0.35, "mult_hi": 1.20},
-                "hnw": {"hi_cap": 8000000.0, "mult_lo": 0.25, "mult_hi": 1.50},
-                "ultra": {"hi_cap": 40000000.0, "mult_lo": 0.15, "mult_hi": 1.20},
-            },
             "scenario_adjustments": {
                 "financially_stressed_with_debt": {"mult": 0.65},
             },
@@ -773,16 +741,7 @@ def default_generator_params() -> Dict[str, Any]:
             "secondly_wedded_paying_alimony": {"min": 12000.0, "max": 72000.0},
             "divorced": {"prob": 0.18, "min": 6000.0, "max": 30000.0},
         },
-        "risk_tolerance_by_segment": {
-            "ultra": {
-                "conservative": 0.32,
-                "moderate": 0.46,
-                "growth": 0.18,
-                "aggressive": 0.04,
-            }
-        },
         "risk_overrides": {
-            "ultra_growth_probability": 0.05,
             "retired_couple_high_assets_low_income": "moderate",
         },
         "net_worth_proxy_model": {"add_uniform_lo": 0.0, "add_uniform_hi_mult": 0.08},

@@ -175,7 +175,6 @@ def main():
     people = pd.read_csv(TABLES / "people.csv")
     distance = pd.read_csv(TABLES / "distance_to_priors.csv")
     scenario = pd.read_csv(TABLES / "scenario_coverage.csv")
-    wealth_seg = pd.read_csv(TABLES / "wealth_segment_coverage.csv")
     rules = pd.read_csv(TABLES / "rule_violations.csv") if (TABLES / "rule_violations.csv").exists() else pd.DataFrame(columns=["household_id","rule_violation"])
     top5 = pd.read_csv(TABLES / "top5_anomalous_households.csv") if (TABLES / "top5_anomalous_households.csv").exists() else pd.DataFrame()
     top5_if = pd.read_csv(TABLES / "top5_anomalous_households_iforest.csv") if (TABLES / "top5_anomalous_households_iforest.csv").exists() else pd.DataFrame()
@@ -187,23 +186,6 @@ def main():
     save_hist(hh["monthly_non_mortgage_payment_total"], "Monthly non-mortgage payment total", FIGS / "non_mortgage_payment_hist.png", log_x=False)
 
     save_income_vs_assets_plot(hh, FIGS / "income_vs_investable_assets.png")
-
-    # Conditional probability diagnostics.
-    save_conditional_stacked_bar(
-        hh,
-        group_col="wealth_segment",
-        target_col="scenario",
-        top_n=6,
-        title="P(scenario | wealth_segment) (top 6 + Other)",
-        path=FIGS / "condprob_scenario_given_wealth_segment.png",
-    )
-    save_conditional_stacked_bar(
-        hh,
-        group_col="wealth_segment",
-        target_col="risk_tolerance",
-        title="P(risk_tolerance | wealth_segment)",
-        path=FIGS / "condprob_risk_given_wealth_segment.png",
-    )
     if "has_mortgage_or_loan" in hh.columns:
         save_conditional_prob_bar(
             hh,
@@ -285,13 +267,6 @@ def main():
     plt.savefig(FIGS / "scenario_coverage.png", dpi=180)
     plt.close()
 
-    plt.figure(figsize=(7,5))
-    wealth_seg.sort_values("count", ascending=False).plot(x="wealth_segment", y="count", kind="bar", legend=False)
-    plt.title("Wealth segment coverage")
-    plt.tight_layout()
-    plt.savefig(FIGS / "wealth_segment_coverage.png", dpi=180)
-    plt.close()
-
     plt.figure(figsize=(8,5))
     hh["risk_tolerance"].value_counts(normalize=True).plot(kind="bar")
     plt.title("Risk tolerance share")
@@ -328,10 +303,6 @@ def main():
 ![Income vs investable assets](../figures/income_vs_investable_assets.png)
 
 ### Conditional probabilities
-
-![P(scenario | wealth_segment)](../figures/condprob_scenario_given_wealth_segment.png)
-
-![P(risk_tolerance | wealth_segment)](../figures/condprob_risk_given_wealth_segment.png)
 
 ![P(has_mortgage_or_loan | scenario)](../figures/condprob_has_mortgage_by_scenario.png)
 

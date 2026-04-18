@@ -178,47 +178,9 @@ def sample_empirical_income(priors, rng):
     x = float(float(stage["scale"]) * (1.0 + rng.pareto(float(stage["shape"]))))
     return float(clamp(x, float(stage["low"]), float(stage["high"])))
 
-def choose_wealth_segment(income, scenario, priors, rng):
-    # Prefer explicit segment weights from priors.wealth_segments (more transparent than tuning thresholds).
-    gp = priors.get("generator_params") or {}
-    wm = gp.get("wealth_segment_model") or {}
-
-    force_affluent = set(wm.get("force_affluent_scenarios") or [])
-    if scenario in force_affluent:
-        return "affluent"
-
-    segs = priors.get("wealth_segments")
-    if isinstance(segs, list) and segs:
-        names = []
-        weights = []
-        for s in segs:
-            if not isinstance(s, dict):
-                continue
-            if "name" not in s or "weight" not in s:
-                continue
-            names.append(str(s["name"]))
-            weights.append(float(s["weight"]))
-        if names and sum(weights) > 0:
-            w = np.array(weights, dtype=float)
-            w = w / w.sum()
-            return str(rng.choice(names, p=w))
-
-    # Fallback: scenario+income-based logic.
-    scen_hnw = wm.get("scenario_hnw_probability") or {}
-    scen_p = scen_hnw.get(scenario)
-    if scen_p is not None and float(rng.random()) < float(scen_p):
-        return "hnw"
-    if float(income) >= float(wm["hnw_income_threshold"]) and float(rng.random()) < float(wm["hnw_probability"]):
-        return "hnw"
-    if float(income) >= float(wm["ultra_income_threshold"]) and float(rng.random()) < float(wm["ultra_probability"]):
-        return "ultra"
-    return "affluent" if float(rng.random()) < float(wm["base_affluent_probability"]) else "hnw"
-
-def sample_assets_for_segment(priors, segment, scenario, income, rng):
-    # Truncated lognormal by segment. Ranges reflect the user's desired bands.
+def sample_investable_assets(priors, scenario, income, rng):
     gp = priors.get("generator_params") or {}
     am = gp.get("investable_assets_model") or {}
-    # NOTE: wealth segments are reporting-only. Generation must not depend on segments.
 
     # Optional mode: generate assets primarily as a (noisy) multiple of income.
     # This helps enforce strong positive correlation and avoids boundary pile-ups
@@ -406,33 +368,7 @@ def gen_one(hidx, ctx: Ctx):
     else:
         inc1, inc2 = hh_income, 0.0
 
-    investable = sample_assets_for_segment(pri, "_unused", scenario, hh_income, rng)
-
-    # Wealth segments are NOT used for generation; we derive them post-hoc for reporting only.
-    def derive_wealth_segment_from_assets(priors: dict, investable_assets: float) -> str:
-        segs = priors.get("wealth_segments")
-        if isinstance(segs, list) and segs:
-            for s in segs:
-                if not isinstance(s, dict):
-                    continue
-                name = s.get("name")
-                lo = s.get("assets_lo")
-                hi = s.get("assets_hi")
-                if name is None or lo is None:
-                    continue
-                lo_v = float(lo)
-                hi_v = float(hi) if hi is not None else None
-                if float(investable_assets) >= lo_v and (hi_v is None or float(investable_assets) < hi_v):
-                    return str(name)
-        # Fallback thresholds
-        x = float(investable_assets)
-        if x >= 30000000.0:
-            return "ultra"
-        if x >= 1000000.0:
-            return "hnw"
-        return "affluent"
-
-    wealth_segment = derive_wealth_segment_from_assets(pri, investable)
+    investable = sample_investable_assets(pri, scenario, hh_income, rng)
 
     # Asset mix is segment-free (segments are reporting-only labels).
     mix = gp.get("asset_mix_model") or {}
@@ -642,7 +578,6 @@ def gen_one(hidx, ctx: Ctx):
     household = {
         "household_id": hh_id,
         "scenario": scenario,
-        "wealth_segment": wealth_segment,
         "country": "US",
         "market": "US_RIA",
         "marital_status": marital_status,

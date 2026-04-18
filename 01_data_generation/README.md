@@ -5,8 +5,7 @@ This package generates synthetic household-level financial data for affluent, ad
 ## What is new in this version
 - income generation uses a **smooth lognormal model** anchored to an open Census median (ACS when available)
 - income is **calibrated** so mean household income is approximately a configurable multiple of the public median (default: 2×)
-- wealth is segmented into **affluent / HNW / ultra**
-- investable assets are weakly tied to income with configurable caps to avoid implausible low-income / ultra-high-asset combos
+- investable assets are generated as a **noisy multiple of income** (strong positive correlation; no segment thresholds)
 - payment and ratio plots are cleaned:
   - zeros removed from amount histograms
   - upper tail clipped for readability
