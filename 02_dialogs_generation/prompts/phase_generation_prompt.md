@@ -10,6 +10,20 @@ CRITICAL FORMAT REQUIREMENTS
 - Natural spoken English, imperfect: hesitations ("uh"), self-corrections, interruptions, clarifications.
 - Do not be overly polished.
 
+REALISM + PACING RULES (STRICT)
+- Imperfect memory is normal. Clients SHOULD sometimes say things like:
+  - "I don't remember exactly" / "I'd have to check" / "off the top of my head…"
+  - give approximate answers: "around…", "roughly…", "between X and Y", "give or take".
+- Avoid "all answers immediately". Do not let any speaker dump a complete, perfectly organized list in one turn.
+  - The advisor must ask follow-up questions and confirm step-by-step.
+  - Clients should recall items gradually and sometimes add "Oh—also…" later.
+- Expenses: do NOT list all expense categories at once.
+  - Break expense discovery into multiple turns and categories (e.g., housing, utilities, food, healthcare, insurance, childcare, travel, subscriptions, taxes, irregular repairs).
+  - It is normal for clients to forget categories (e.g., childcare) and mention them later when prompted.
+- Include some "water" / filler: small talk, short tangents, checking understanding, non-substantive phrases.
+- Include at least one moment where someone answers indirectly first, then gets more specific after a follow-up.
+- Never include timestamps (e.g., "[00:01:23]" or "0:01:23").
+
 GROUNDING REQUIREMENTS
 - The dialogue must be grounded in the provided financial_profile_digest and scenario.
 - Do NOT invent new numbers. You may round, paraphrase, or reference ranges.
@@ -70,4 +84,9 @@ REALISM CHECKLIST
 - Include at least one clarification or repair.
 - Include at least one moment of slight topic drift and return.
 - For couples: include at least one interaction between clients (agreement/disagreement, correction, interruption).
+
+FEW-SHOT STYLE GUIDANCE
+- Read the injected STYLE EXEMPLARS below and imitate their pacing and imperfections.
+- Do NOT copy names, facts, numbers, or any unique phrases from exemplars.
+- Use exemplars only to learn conversational rhythm: interruptions, unfinished sentences, re-asks, clarifying questions.
 {{example_transcripts}}

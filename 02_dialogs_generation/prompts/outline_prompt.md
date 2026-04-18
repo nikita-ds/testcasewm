@@ -47,6 +47,12 @@ GUIDELINES
 - Include at least 1 planned moment of disagreement/negotiation (especially for couples).
 - Make sure the outline covers: goals/objectives, income/cashflow, expenses, debts, investable assets mix, property, risk tolerance, tax bracket band, protection policies (if present), next steps.
 
+REALISM REQUIREMENTS (ADD AS HOOKS)
+- Plan at least 2 moments of imperfect recall where a client says they don't remember exactly and answers with a range ("between X and Y", "around", "I'd have to check").
+- Plan expense discovery so it unfolds over multiple back-and-forth turns; avoid a single "here are all our expenses" dump.
+  - Include at least one moment where an expense category is initially missed (e.g., childcare, insurance, subscriptions, irregular repairs) and is remembered later after a prompt.
+- Plan at least 2 brief tangents / small-talk "water" moments that feel human and then return to the agenda.
+
 COVERAGE REQUIREMENT (STRICT)
 - The final conversation must explicitly discuss EVERY record listed in valid_record_ids_json across the phases.
 - Plan at least one phase that systematically reviews and confirms:

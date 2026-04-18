@@ -45,3 +45,8 @@ COUPLE DYNAMICS (if household_type == couple)
 - One may dominate; the other may defer or interrupt.
 - Risk attitudes can differ; if they do, explain how it shows up in behavior.
 - Ensure plausible alignment with financial profile (e.g., a higher-income split often implies more dominance, but not always).
+
+REALISM NOTES
+- In "communication_style", explicitly encode how the client speaks in real meetings:
+  - hedging ("maybe", "I think"), imperfect recall ("I don't remember exactly"), ranges ("between X and Y"), and occasional filler.
+- Do not invent new financial facts; express uncertainty as behavior (e.g., "tends not to remember exact bill amounts").
