@@ -525,6 +525,9 @@ def build_priors_from_acs(
             "move_in_after_age": 18,
             "employment_start_after_age": 16,
             "loan_term_years_range": [2, 35],
+            # Cap generated future end-dates (e.g., insurance assured_until) so they
+            # don't extend into implausible ages for the primary client.
+            "max_age_for_future_dates": 95,
         },
         "scenario_catalog": [
             "young_dual_income_low_assets",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
+import json
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -11,6 +12,24 @@ FIGS = ART / "figures"
 FIGS.mkdir(parents=True, exist_ok=True)
 REP = ART / "report"
 REP.mkdir(parents=True, exist_ok=True)
+
+
+def load_snapshot_date() -> pd.Timestamp | None:
+    # Prefer computed priors (normal pipeline output), fall back to config priors.
+    for p in (ART / "computed_priors.json", ROOT / "config" / "priors.json"):
+        try:
+            if not p.exists():
+                continue
+            obj = json.loads(p.read_text(encoding="utf-8"))
+            meta = obj.get("meta") or {}
+            snap = meta.get("snapshot_date")
+            if snap:
+                ts = pd.to_datetime(str(snap), errors="coerce")
+                if pd.notna(ts):
+                    return pd.Timestamp(ts).normalize()
+        except Exception:
+            continue
+    return None
 
 def positive_clipped(series, upper_q=99.5):
     s = pd.Series(series).dropna().astype(float)
@@ -220,14 +239,93 @@ def save_retirement_proximity_plot(
     plt.savefig(path, dpi=180)
     plt.close()
 
+
+def save_age_vs_term_plots(
+    hh: pd.DataFrame,
+    liabilities: pd.DataFrame,
+    protections: pd.DataFrame,
+    *,
+    snapshot: pd.Timestamp,
+    path: Path,
+) -> None:
+    """Age vs remaining term (years) for mortgage and protection policies."""
+
+    if "household_id" not in hh.columns or "primary_age" not in hh.columns:
+        return
+    age = hh[["household_id", "primary_age"]].dropna().copy()
+    if len(age) == 0:
+        return
+    age["primary_age"] = age["primary_age"].astype(float)
+
+    fig, axes = plt.subplots(1, 2, figsize=(12.5, 5.0), sharex=True)
+
+    # Mortgage: years remaining
+    ax = axes[0]
+    if liabilities is not None and len(liabilities) > 0 and "final_payment_date" in liabilities.columns:
+        li = liabilities.copy()
+        if "type" in li.columns:
+            li = li[li["type"].astype(str) == "mortgage"]
+        li["final_payment_date"] = pd.to_datetime(li["final_payment_date"], errors="coerce")
+        li = li.dropna(subset=["household_id", "final_payment_date"])
+        if len(li) > 0:
+            li = li.merge(age, on="household_id", how="inner")
+            li["years_remaining"] = (li["final_payment_date"] - snapshot).dt.days.astype(float) / 365.25
+            li = li[np.isfinite(li["years_remaining"]) & (li["years_remaining"] >= 0) & (li["years_remaining"] <= 60)]
+            if len(li) > 0:
+                ax.scatter(li["primary_age"], li["years_remaining"], s=10, alpha=0.25)
+    ax.set_title("Mortgage: age vs years remaining")
+    ax.set_xlabel("Primary age (years)")
+    ax.set_ylabel("Years remaining")
+    ax.set_xlim(18, 100)
+    ax.set_ylim(0, 60)
+
+    # Protection policies: years remaining
+    ax = axes[1]
+    if protections is not None and len(protections) > 0 and "assured_until" in protections.columns:
+        pp = protections.copy()
+        pp["assured_until"] = pd.to_datetime(pp["assured_until"], errors="coerce")
+        pp = pp.dropna(subset=["household_id", "assured_until"])
+        if len(pp) > 0:
+            pp = pp.merge(age, on="household_id", how="inner")
+            pp["years_remaining"] = (pp["assured_until"] - snapshot).dt.days.astype(float) / 365.25
+            pp = pp[np.isfinite(pp["years_remaining"]) & (pp["years_remaining"] >= 0) & (pp["years_remaining"] <= 60)]
+            if len(pp) > 0:
+                ax.scatter(pp["primary_age"], pp["years_remaining"], s=10, alpha=0.25)
+    ax.set_title("Protection: age vs years remaining")
+    ax.set_xlabel("Primary age (years)")
+    ax.set_ylabel("Years remaining")
+    ax.set_xlim(18, 100)
+    ax.set_ylim(0, 60)
+
+    plt.suptitle(f"Age vs remaining term (snapshot={snapshot.date().isoformat()})")
+    plt.tight_layout()
+    plt.savefig(path, dpi=180)
+    plt.close(fig)
+
 def main():
     hh = pd.read_csv(TABLES / "households.csv")
     people = pd.read_csv(TABLES / "people.csv")
+    liabilities = pd.read_csv(TABLES / "liabilities.csv") if (TABLES / "liabilities.csv").exists() else pd.DataFrame()
+    protections = (
+        pd.read_csv(TABLES / "protection_policies.csv")
+        if (TABLES / "protection_policies.csv").exists()
+        else pd.DataFrame()
+    )
     distance = pd.read_csv(TABLES / "distance_to_priors.csv")
     scenario = pd.read_csv(TABLES / "scenario_coverage.csv")
     rules = pd.read_csv(TABLES / "rule_violations.csv") if (TABLES / "rule_violations.csv").exists() else pd.DataFrame(columns=["household_id","rule_violation"])
     top5 = pd.read_csv(TABLES / "top5_anomalous_households.csv") if (TABLES / "top5_anomalous_households.csv").exists() else pd.DataFrame()
     top5_if = pd.read_csv(TABLES / "top5_anomalous_households_iforest.csv") if (TABLES / "top5_anomalous_households_iforest.csv").exists() else pd.DataFrame()
+
+    snap = load_snapshot_date()
+    if snap is not None:
+        save_age_vs_term_plots(
+            hh,
+            liabilities,
+            protections,
+            snapshot=snap,
+            path=FIGS / "age_vs_terms_mortgage_and_protection.png",
+        )
 
     save_hist(hh["annual_household_gross_income"], "Household annual gross income", FIGS / "income_hist.png", log_x=True)
     save_hist(hh["investable_assets_total"], "Investable assets total", FIGS / "investable_assets_hist.png", log_x=True)
@@ -399,6 +497,10 @@ def main():
 ### Debt burden
 
 ![Debt payments share of expenses](../figures/debt_cost_to_expenses_ratio_hist.png)
+
+### Age vs terms
+
+![Age vs remaining term (mortgage and protection)](../figures/age_vs_terms_mortgage_and_protection.png)
 
 ## Notes
 - Income generation uses a smooth lognormal model anchored to the public median (from open Census ACS where available).

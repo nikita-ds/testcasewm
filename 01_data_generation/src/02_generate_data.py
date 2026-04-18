@@ -33,6 +33,29 @@ def lerp(a: float, b: float, t: float) -> float:
 def years_ago(ref: date, years: float) -> date:
     return ref - timedelta(days=int(years * 365.25))
 
+
+def cap_future_date_by_dob(
+    *,
+    dob: date,
+    candidate: date,
+    snapshot: date,
+    max_age_years: int,
+    min_years_ahead: float = 0.0,
+) -> date:
+    """Cap a future date so it doesn't imply an implausible age.
+
+    Ensures: snapshot + min_years_ahead <= result <= dob + max_age_years.
+    """
+
+    max_dt = dob + timedelta(days=int(float(max_age_years) * 365.25))
+    min_dt = snapshot + timedelta(days=int(float(min_years_ahead) * 365.25))
+    out = candidate
+    if out > max_dt:
+        out = max_dt
+    if out < min_dt:
+        out = min_dt
+    return out
+
 def sample_cat(prob_map, rng):
     keys = list(prob_map.keys())
     probs = np.array(list(prob_map.values()), dtype=float)
@@ -173,13 +196,30 @@ def sample_beta_scaled(rng, low, high, a=2.0, b=2.0):
     x = rng.beta(a, b)
     return float(low + x * (high - low))
 
-def sample_lognormal_quantile(rng, median, sigma, low=None, high=None):
+def sample_lognormal_quantile(rng, median, sigma, low=None, high=None, max_resample: int = 200):
     import math
-    x = float(rng.lognormal(mean=math.log(max(median, 1e-9)), sigma=sigma))
-    if low is not None:
-        x = max(low, x)
-    if high is not None:
-        x = min(high, x)
+
+    mu = math.log(max(float(median), 1e-9))
+    sigma = float(sigma)
+    lo = None if low is None else float(low)
+    hi = None if high is None else float(high)
+
+    # Prefer rejection sampling to avoid boundary spikes created by clamping.
+    if lo is not None or hi is not None:
+        for _ in range(int(max_resample)):
+            x = float(rng.lognormal(mean=mu, sigma=sigma))
+            if lo is not None and x < lo:
+                continue
+            if hi is not None and x > hi:
+                continue
+            return float(x)
+
+    # Fallback: single sample (and clamp if bounds exist).
+    x = float(rng.lognormal(mean=mu, sigma=sigma))
+    if lo is not None:
+        x = max(lo, x)
+    if hi is not None:
+        x = min(hi, x)
     return float(x)
 
 
@@ -411,6 +451,14 @@ def gen_one(hidx, ctx: Ctx):
     dob_jitter = float(hcm["dob_jitter_years"])
     dob1 = years_ago(snap, age1 + rng.uniform(-dob_jitter, dob_jitter))
     dob2 = years_ago(snap, age2 + rng.uniform(-dob_jitter, dob_jitter)) if age2 is not None else None
+
+    date_rules = pri.get("date_rules") or {}
+    try:
+        max_age_for_future_dates = int(date_rules["max_age_for_future_dates"])
+    except KeyError as e:
+        raise KeyError(
+            "Missing priors.date_rules.max_age_for_future_dates (configure it in config/priors.json or artifacts/computed_priors.json)"
+        ) from e
     st1 = employment_status(pri, age1, scenario, True, rng)
     st2 = employment_status(pri, age2, scenario, False, rng) if age2 is not None else None
     es1 = employment_started(pri, dob1, age1, st1, snap, rng)
@@ -650,11 +698,23 @@ def gen_one(hidx, ctx: Ctx):
             a=float(mcfg["a"]),
             b=float(mcfg["b"]),
         )
-        mortgage_payment = hh_income / 12 * target_ratio
         mt = gp.get("mortgage_terms") or {}
         # Keep mortgage burden compatible with the total-expense budget.
+        # IMPORTANT: sample within the feasible cap (avoid hard clamping which creates spikes).
         pay_cap = min(float(mt["payment_ratio_cap"]), float(debt_allowed_ratio))
-        mortgage_payment = min(mortgage_payment, hh_income / 12 * float(pay_cap))
+        hi_eff = min(float(hi), float(pay_cap))
+        lo_eff = min(float(lo), float(hi_eff))
+        if hi_eff <= 0:
+            mortgage_payment = 0.0
+        else:
+            target_ratio = sample_beta_scaled(
+                rng,
+                float(lo_eff),
+                float(hi_eff),
+                a=float(mcfg["a"]),
+                b=float(mcfg["b"]),
+            )
+            mortgage_payment = (hh_income / 12) * float(target_ratio)
 
         rnorm = mt.get("rate_normal") or {}
         mortgage_rate = float(
@@ -700,6 +760,13 @@ def gen_one(hidx, ctx: Ctx):
             mortgage_outstanding = cap * float(rng.uniform(fb_lo, fb_hi))
 
         final_payment = snap + timedelta(days=int(float(years_remaining) * 365.25))
+        final_payment = cap_future_date_by_dob(
+            dob=dob1,
+            candidate=final_payment,
+            snapshot=snap,
+            max_age_years=max_age_for_future_dates,
+            min_years_ahead=0.0,
+        )
 
     non_mortgage_payment = 0.0; non_mortgage_outstanding = 0.0
     if has_non_mortgage:
@@ -710,8 +777,12 @@ def gen_one(hidx, ctx: Ctx):
             raise KeyError(f"Missing non_mortgage_payment config for {nm_key!r} (and missing 'default')")
         remaining_for_nonmort = max(0.0, float(debt_allowed) - float(mortgage_payment))
         high_cap = min(float(nm["high"]), float(remaining_for_nonmort) if remaining_for_nonmort > 0 else float(nm["low"]))
-        if high_cap <= float(nm["low"]):
-            non_mortgage_payment = max(0.0, float(remaining_for_nonmort))
+        if high_cap <= 0:
+            non_mortgage_payment = 0.0
+        elif high_cap <= float(nm["low"]):
+            # If the feasible cap is below the model's nominal low, sample smoothly below the cap.
+            # (Avoid setting exactly `remaining_for_nonmort`, which creates a point-mass spike.)
+            non_mortgage_payment = float(rng.uniform(0.0, float(high_cap)))
         else:
             non_mortgage_payment = sample_lognormal_quantile(
                 rng,
@@ -719,6 +790,7 @@ def gen_one(hidx, ctx: Ctx):
                 sigma=float(nm["sigma"]),
                 low=float(nm["low"]),
                 high=float(high_cap),
+                max_resample=int(nm.get("resample_max_tries", 200)),
             )
         non_mortgage_outstanding = non_mortgage_payment * rng.uniform(
             float(nm["out_mult_lo"]),
@@ -925,12 +997,24 @@ def gen_one(hidx, ctx: Ctx):
         lm = gp.get("liability_model") or {}
         ir = lm.get("non_mortgage_interest_rate") or {}
         fp = lm.get("non_mortgage_final_payment_years") or {}
+
+        nm_final_payment_date = None
+        if scenario != "financially_stressed_with_debt":
+            cand = snap + timedelta(days=int(float(rng.uniform(float(fp["min"]), float(fp["max"]))) * 365.25))
+            nm_final_payment_date = cap_future_date_by_dob(
+                dob=dob1,
+                candidate=cand,
+                snapshot=snap,
+                max_age_years=max_age_for_future_dates,
+                min_years_ahead=0.0,
+            ).isoformat()
+
         liabilities.append({
             "liability_id": f"{hh_id}_L2","household_id":hh_id,"type":"credit_card" if scenario=="financially_stressed_with_debt" else "loan",
             "monthly_cost": round(non_mortgage_payment,2),
             "outstanding": round(non_mortgage_outstanding,2),
             "interest_rate": round(float(rng.uniform(float(ir["min"]), float(ir["max"]))),2),
-            "final_payment_date": None if scenario=="financially_stressed_with_debt" else (snap + timedelta(days=int(float(rng.uniform(float(fp["min"]), float(fp["max"])))*365.25))).isoformat()
+            "final_payment_date": nm_final_payment_date,
         })
 
     protections = []
@@ -939,11 +1023,23 @@ def gen_one(hidx, ctx: Ctx):
         aim = pm.get("assured_income_mult") or {}
         assured = max(float(pm["assured_min"]), hh_income * float(rng.uniform(float(aim["min"]), float(aim["max"]))))
         policy_types = pm["policy_types"]
+
+        au = pm.get("assured_until_years") or {}
+        assured_until_years = float(rng.uniform(float(au["min"]), float(au["max"])))
+        assured_until_candidate = snap + timedelta(days=int(assured_until_years * 365.25))
+        assured_until = cap_future_date_by_dob(
+            dob=dob1,
+            candidate=assured_until_candidate,
+            snapshot=snap,
+            max_age_years=max_age_for_future_dates,
+            min_years_ahead=1.0,
+        ).isoformat()
+
         protections.append({
             "policy_id": f"{hh_id}_PP1","household_id":hh_id,"owner":"client_1","policy_type": str(rng.choice(policy_types)),
             "monthly_cost": round(assured * float(rng.uniform(float((pm.get("monthly_cost_rate") or {})["min"]), float((pm.get("monthly_cost_rate") or {})["max"]))),2),
             "amount_assured": round(assured,2),
-            "assured_until": (snap + timedelta(days=int(float(rng.uniform(float((pm.get("assured_until_years") or {})["min"]), float((pm.get("assured_until_years") or {})["max"])))*365.25))).isoformat()
+            "assured_until": assured_until,
         })
     return GeneratedHousehold(
         household=HouseholdRow.model_validate(household),
