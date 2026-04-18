@@ -129,3 +129,13 @@ class InlineEvidenceItem(BaseModel):
 class FieldChunkGenerationResult(BaseModel):
     utterances: List[str]
     evidence_items: List[InlineEvidenceItem]
+
+
+class TranscriptRealismJudgeResult(BaseModel):
+    candidate_probability_real: float = Field(..., ge=0.0, le=1.0)
+    decision: Literal["very_likely_real", "likely_real", "uncertain", "likely_synthetic", "very_likely_synthetic"]
+    strengths: List[str] = Field(default_factory=list)
+    synthetic_tells: List[str] = Field(default_factory=list)
+    comparison_to_negative_controls: List[str] = Field(default_factory=list)
+    save_recommended: bool = False
+    summary: str

@@ -22,6 +22,18 @@ REALISM + PACING RULES (STRICT)
 - You MAY interleave targets, but every target must be covered.
 - Never include timestamps.
 
+REALISM SIGNALS (MATCH THE JUDGE)
+- Imperfect memory is normal: clients should sometimes hedge ("I think", "roughly", "I'd have to check").
+- Numeric recall style should sound human: sometimes "about 38k" instead of always exact formal phrasing.
+- Include at least one micro-repair per chunk (a quick self-correction or clarification).
+- Allow one indirect answer that gets specific after a follow-up.
+- Avoid stitched feel: reference the immediate prior context lightly ("as you said earlier…", "going back to…") without introducing new facts.
+
+AVOID SYNTHETIC TELLS
+- Avoid robotic advisor summaries and checklist-like cadence.
+- Avoid abrupt topic jumps; use one short transitional line when switching target groups.
+- Avoid unnaturally tidy, perfectly complete answers in one turn.
+
 GROUNDING RULES
 - Use ONLY the provided source_value(s) for targets.
 - Do NOT invent new numbers.
@@ -32,6 +44,15 @@ GROUNDING RULES
 STABILITY RULES (for easier validation)
 - Prefer covering quantitative/value targets first (amounts, balances, monthly costs), then descriptive details (provider/type/owner).
 - When a target source_value is a number, try to say it in a simple form close to the input (e.g., "$38,200" or "about 38k").
+
+SPECIAL CASES (TO PREVENT FALSE FAILURES)
+- If targets_json includes `households.num_adults`, you MUST explicitly ask and answer the adult count in plain language.
+  Example style (adapt to household_type):
+  - Advisor: "Just to confirm, is it just the two of you—two adults in the household?"
+  - Client: "Yes, two adults."
+- If targets_json includes any `people[...].client_no`, you MUST explicitly confirm the client labeling (Client 1 / Client 2) in the utterances.
+  Do not imply it indirectly; say it explicitly.
+  Do NOT describe this as a "client number 0" or any internal coding. Use only the natural labels "Client 1" / "Client 2".
 
 EVIDENCE RULES
 - You MUST return exactly one evidence_items entry per input target, with the SAME target_id.
@@ -71,6 +92,7 @@ OUTPUT JSON SCHEMA
 }
 
 LENGTH LIMITS
-- HARD LIMIT: NEVER output more than 45 utterances.
-- Prefer 15–35 utterances.
+- HARD LIMIT: NEVER output more than 75 utterances.
+- HARD MINIMUM: output at least 25 utterances unless transcript_so_far is already very long or you are close to a global max-turns cap.
+- Prefer 35–60 utterances.
 - Keep evidence_text short (2–6 lines typically).

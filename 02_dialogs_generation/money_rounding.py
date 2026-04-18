@@ -3,6 +3,38 @@ from __future__ import annotations
 from typing import Any
 
 
+def _tokens(name: str) -> list[str]:
+    s = str(name)
+    if not s:
+        return []
+
+    # Split on non-alphanumerics and camelCase boundaries.
+    out: list[str] = []
+    buf: list[str] = []
+    prev_is_lower = False
+    for ch in s:
+        if ch.isalnum():
+            is_upper = ch.isalpha() and ch.isupper()
+            if buf and prev_is_lower and is_upper:
+                out.append("".join(buf).lower())
+                buf = [ch]
+            else:
+                buf.append(ch)
+            prev_is_lower = ch.isalpha() and ch.islower()
+        else:
+            if buf:
+                out.append("".join(buf).lower())
+                buf = []
+            prev_is_lower = False
+    if buf:
+        out.append("".join(buf).lower())
+    # Further split snake-ish tokens like foo_bar123.
+    final: list[str] = []
+    for t in out:
+        final.extend([p for p in t.replace("_", " ").split() if p])
+    return final
+
+
 def _round_to_increment(value: float, increment: float) -> float:
     if increment <= 0:
         return value
@@ -10,27 +42,45 @@ def _round_to_increment(value: float, increment: float) -> float:
 
 
 def is_money_field_name(name: str) -> bool:
-    n = str(name).strip().lower()
+    n = str(name).strip()
     if not n:
         return False
 
+    toks = _tokens(n)
+    if not toks:
+        return False
+
     # Exclusions: numeric but not money.
-    if any(x in n for x in [
-        "interest_rate",
+    excluded_tokens = {
+        # rates/percents
         "rate",
         "apr",
         "percent",
         "pct",
+        # ratios/shares/probs
+        "ratio",
+        "share",
+        "prob",
+        "probability",
+        # metadata-like
         "bracket",
-        "client_no",
-        "num_",
-        "_count",
-        "years",
+        "client",
+        "no",
+        "num",
+        "count",
         "year",
+        "years",
         "age",
         "date",
         "id",
-    ]):
+    }
+
+    # Special-case: allow "income" money fields like "tax_bracket_band" to be excluded via "bracket".
+    if any(t in excluded_tokens for t in toks):
+        return False
+
+    # Composite exclusions
+    if "interest" in toks and "rate" in toks:
         return False
 
     money_keywords = [
@@ -44,6 +94,8 @@ def is_money_field_name(name: str) -> bool:
         "amount",
         "balance",
         "value",
+        "worth",
+        "cash",
         "assets",
         "asset",
         "liability",
@@ -57,7 +109,7 @@ def is_money_field_name(name: str) -> bool:
         "contribution",
         "withdrawal",
     ]
-    return any(k in n for k in money_keywords)
+    return any(k in toks for k in money_keywords)
 
 
 def is_money_field_path(field_path: str) -> bool:

@@ -9,6 +9,19 @@ import pandas as pd
 from money_rounding import round_money_in_obj
 
 
+def _drop_derived_fields(d: Dict[str, Any]) -> Dict[str, Any]:
+    """Remove derived fields that shouldn't be part of the prompt dataset."""
+    out: Dict[str, Any] = {}
+    for k, v in (d or {}).items():
+        ks = str(k)
+        kl = ks.lower()
+        # Ratios/proxies are computed and not needed for dialog prompting.
+        if "ratio" in kl or "proxy" in kl:
+            continue
+        out[k] = v
+    return out
+
+
 def _records(df: pd.DataFrame) -> List[Dict[str, Any]]:
     recs = df.to_dict(orient="records")
     # Normalize NaN -> None for JSON friendliness.
@@ -32,7 +45,7 @@ def build_financial_profiles_from_tables(tables_dir: Path) -> List[Dict[str, Any
 
     for _, hh in households.iterrows():
         household_id = str(hh["household_id"])
-        hh_obj = hh.to_dict()
+        hh_obj = _drop_derived_fields(hh.to_dict())
         for k, v in list(hh_obj.items()):
             if pd.isna(v):
                 hh_obj[k] = None

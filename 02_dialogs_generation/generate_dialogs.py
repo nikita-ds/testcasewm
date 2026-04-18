@@ -12,10 +12,13 @@ if str(_THIS_DIR) not in sys.path:
 
 
 from config import GenerationConfig, ModelConfig
+from env_utils import load_dotenv_if_present
 from pipeline import DialogGenerationPipeline
 
 
 def main() -> None:
+    load_dotenv_if_present(Path(__file__).resolve().parent)
+
     p = argparse.ArgumentParser(description="Generate synthetic advisor-client dialogue transcripts grounded in financial profiles.")
     p.add_argument("--priors", type=Path, required=True, help="Path to priors.json (or computed_priors.json)")
     p.add_argument("--financial-dataset-json", type=Path, required=True, help="Path to household-level financial profiles JSON")
@@ -91,11 +94,16 @@ def main() -> None:
     p.add_argument(
         "--finalize-strategy",
         type=str,
-        default="bridges",
-        choices=["bridges", "polish"],
+        default="realism_merge",
+        choices=["bridges", "polish", "realism_merge"],
         help="Finalization strategy: insert bridges between chunks (recommended) or rewrite full skeleton",
     )
     p.add_argument("--finalize-bridge-max-output-tokens", type=int, default=500)
+    p.add_argument("--no-deepseek-realism-check", action="store_true", help="Disable DeepSeek realism judging after finalization")
+    p.add_argument("--deepseek-model", type=str, default="deepseek-chat")
+    p.add_argument("--deepseek-max-output-tokens", type=int, default=900)
+    p.add_argument("--deepseek-realism-threshold", type=float, default=90.0)
+    p.add_argument("--deepseek-pass-subdir", type=str, default="realism_passed")
 
     p.add_argument(
         "--field-chunk-group-by-record-type",
@@ -147,6 +155,11 @@ def main() -> None:
         finalize_strategy=str(args.finalize_strategy),
         finalize_max_output_tokens=int(args.finalize_max_output_tokens),
         finalize_bridge_max_output_tokens=int(args.finalize_bridge_max_output_tokens),
+        deepseek_realism_check=not bool(args.no_deepseek_realism_check),
+        deepseek_model=str(args.deepseek_model),
+        deepseek_max_output_tokens=int(args.deepseek_max_output_tokens),
+        deepseek_realism_threshold=float(args.deepseek_realism_threshold),
+        deepseek_pass_subdir=str(args.deepseek_pass_subdir),
         field_chunk_group_by_record_type=bool(args.field_chunk_group_by_record_type),
         field_chunk_shuffle_within_group=not bool(args.no_field_chunk_shuffle_within_group),
         seed=args.seed,

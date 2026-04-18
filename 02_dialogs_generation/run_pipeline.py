@@ -12,6 +12,7 @@ if str(_THIS_DIR) not in sys.path:
 
 
 from config import GenerationConfig, ModelConfig
+from env_utils import load_dotenv_if_present
 from financial_dataset import build_financial_profiles_from_tables, save_financial_profiles_json
 from pipeline import DialogGenerationPipeline
 
@@ -27,6 +28,8 @@ def _env_str(name: str, default: str) -> str:
 
 
 def main() -> None:
+    load_dotenv_if_present(Path(__file__).resolve().parent)
+
     # Paths inside container (repo is mounted to /app by docker-compose.yml)
     tables_dir = Path(_env_str("TABLES_DIR", "/app/01_data_generation/artifacts/tables"))
     priors_path = Path(_env_str("PRIORS_PATH", "/app/01_data_generation/config/priors.json"))
@@ -56,10 +59,15 @@ def main() -> None:
     require_validation_pass = bool(int(os.getenv("REQUIRE_VALIDATION_PASS", "1")))
     validation_strict = bool(int(os.getenv("VALIDATION_STRICT", "0")))
 
-    finalize_transcript = bool(int(os.getenv("FINALIZE_TRANSCRIPT", "0")))
+    finalize_transcript = bool(int(os.getenv("FINALIZE_TRANSCRIPT", "1")))
     finalize_max_output_tokens = _env_int("FINALIZE_MAX_OUTPUT_TOKENS", 2200)
-    finalize_strategy = _env_str("FINALIZE_STRATEGY", "bridges")
+    finalize_strategy = _env_str("FINALIZE_STRATEGY", "realism_merge")
     finalize_bridge_max_output_tokens = _env_int("FINALIZE_BRIDGE_MAX_OUTPUT_TOKENS", 500)
+    deepseek_realism_check = bool(int(os.getenv("DEEPSEEK_REALISM_CHECK", "1")))
+    deepseek_model = _env_str("DEEPSEEK_MODEL", "deepseek-chat")
+    deepseek_max_output_tokens = _env_int("DEEPSEEK_MAX_OUTPUT_TOKENS", 900)
+    deepseek_realism_threshold = float(os.getenv("DEEPSEEK_REALISM_THRESHOLD", "90"))
+    deepseek_pass_subdir = _env_str("DEEPSEEK_PASS_SUBDIR", "realism_passed")
 
     field_chunk_group_by_record_type = bool(int(os.getenv("FIELD_CHUNK_GROUP_BY_RECORD_TYPE", "1")))
     field_chunk_shuffle_within_group = bool(int(os.getenv("FIELD_CHUNK_SHUFFLE_WITHIN_GROUP", "1")))
@@ -117,6 +125,11 @@ def main() -> None:
         finalize_strategy=finalize_strategy,
         finalize_max_output_tokens=finalize_max_output_tokens,
         finalize_bridge_max_output_tokens=finalize_bridge_max_output_tokens,
+        deepseek_realism_check=deepseek_realism_check,
+        deepseek_model=deepseek_model,
+        deepseek_max_output_tokens=deepseek_max_output_tokens,
+        deepseek_realism_threshold=deepseek_realism_threshold,
+        deepseek_pass_subdir=deepseek_pass_subdir,
         field_chunk_group_by_record_type=field_chunk_group_by_record_type,
         field_chunk_shuffle_within_group=field_chunk_shuffle_within_group,
         sample_mode=sample_mode,

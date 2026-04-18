@@ -6,10 +6,13 @@ import os
 import re
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Optional, Type, TypeVar
 
 from openai import OpenAI
 from pydantic import BaseModel
+
+from env_utils import load_dotenv_if_present
 
 
 logger = logging.getLogger(__name__)
@@ -61,6 +64,7 @@ class OpenAIResponsesClient:
     seed: Optional[int] = None
 
     def __post_init__(self) -> None:
+        load_dotenv_if_present(Path(__file__).resolve().parent)
         if not os.getenv("OPENAI_API_KEY"):
             raise LLMError("OPENAI_API_KEY is not set")
 

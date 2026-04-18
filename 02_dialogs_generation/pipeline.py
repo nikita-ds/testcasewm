@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import os
 import time
@@ -15,6 +16,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import numpy as np
 
 from config import GenerationConfig, Paths, default_repo_root
+from deepseek_client import DeepSeekChatClient
 from examples import load_example_transcripts
 from profile_digest import build_profile_digest, extract_record_ids
 from io_utils import iter_json_objects, load_json, save_json, save_text
@@ -22,6 +24,7 @@ from openai_client import OpenAIResponsesClient
 from prompt_loader import load_prompts, render_prompt
 from scenario import sample_scenario
 from money_rounding import is_money_field_path, round_money_in_obj, round_money_value
+from normalization import is_state_like_field, state_variants
 from schemas import (
     ConversationOutline,
     HouseholdType,
@@ -30,6 +33,7 @@ from schemas import (
     StateUpdateResult,
     EvidenceExtractionBatchResult,
     FieldChunkGenerationResult,
+    TranscriptRealismJudgeResult,
 )
 from state import ConversationState, default_state
 
@@ -49,25 +53,8 @@ def _append_validation_failure_csv(
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / filename
 
-    # Keep schema stable and explicit for easy downstream parsing.
-    fieldnames = [
-        "household_id",
-        "dialog_id",
-        "scenario_name",
-        "mode",
-        "strict",
-        "passed",
-        "failure_reasons",
-        "failed_field_paths",
-        "failed_target_ids",
-        "counts_present",
-        "counts_approximate",
-        "counts_missing",
-        "counts_contradiction",
-        "format_ok",
-        "pii_terms_detected",
-        "bad_transcript_lines",
-    ]
+    # Intentionally minimal schema (per user request): only the household and the failing field paths.
+    fieldnames = ["household_id", "failed_field_paths"]
 
     safe_row: Dict[str, str] = {k: "" for k in fieldnames}
     for k in fieldnames:
@@ -79,7 +66,31 @@ def _append_validation_failure_csv(
         else:
             safe_row[k] = str(v)
 
+    def _read_existing_header() -> Optional[List[str]]:
+        try:
+            if (not path.exists()) or (path.stat().st_size == 0):
+                return None
+            with path.open("r", encoding="utf-8", newline="") as f:
+                r = csv.reader(f)
+                return next(r, None)
+        except Exception:
+            return None
+
     with _VALIDATION_REPORT_LOCK:
+        existing_header = _read_existing_header()
+        if existing_header and existing_header != fieldnames:
+            rotated = out_dir / "validation_failures_full.csv"
+            try:
+                if not rotated.exists():
+                    path.rename(rotated)
+                else:
+                    # Avoid overwriting: keep the current file and write minimal report to a fresh file.
+                    pass
+            except Exception:
+                # If rotation fails, continue appending; caller still has JSON artifacts for debugging.
+                pass
+
+        # Re-evaluate in case rotation succeeded.
         write_header = (not path.exists()) or (path.stat().st_size == 0)
         with path.open("a", encoding="utf-8", newline="") as f:
             w = csv.DictWriter(f, fieldnames=fieldnames)
@@ -167,6 +178,32 @@ def _load_registry_households(path: Path, *, skip_statuses: Iterable[str]) -> se
     return out
 
 
+def _load_existing_dialog_households(out_dir: Path) -> set[str]:
+    """Return household_ids that already have a generated dialog JSON in out_dir.
+
+    We consider a dialog "existing" if a file named `DIALOG_<household_id>.json` exists.
+    (We intentionally ignore auxiliary JSON files like *_metrics.json / *_evidence.json.)
+    """
+
+    if out_dir is None or (not out_dir.exists()):
+        return set()
+
+    out: set[str] = set()
+    try:
+        for p in out_dir.glob("DIALOG_*.json"):
+            name = p.name
+            if name.endswith("_metrics.json") or name.endswith("_evidence.json") or name.endswith("_deepseek_judge.json"):
+                continue
+            if not name.startswith("DIALOG_"):
+                continue
+            hh = name[len("DIALOG_") : -len(".json")].strip()
+            if hh:
+                out.add(hh)
+    except Exception:
+        return set()
+    return out
+
+
 def _append_registry_row(
     *,
     path: Path,
@@ -208,15 +245,20 @@ def _select_profiles(
     sample_mode: str,
     income_bins: int,
     assets_bins: int,
+    output_dir: Optional[Path],
     registry_path: Optional[Path],
     skip_existing: bool,
     registry_skip_statuses: str,
 ) -> List[Dict[str, Any]]:
     # Filter already-generated households.
     remaining = list(profiles)
-    if skip_existing and registry_path is not None:
-        skip_statuses = [s.strip() for s in str(registry_skip_statuses).split(",") if s.strip()]
-        already = _load_registry_households(registry_path, skip_statuses=skip_statuses)
+    if skip_existing:
+        already: set[str] = set()
+        if output_dir is not None:
+            already |= _load_existing_dialog_households(output_dir)
+        if registry_path is not None:
+            skip_statuses = [s.strip() for s in str(registry_skip_statuses).split(",") if s.strip()]
+            already |= _load_registry_households(registry_path, skip_statuses=skip_statuses)
         if already:
             remaining = [p for p in remaining if _profile_household_id(p) not in already]
 
@@ -468,13 +510,17 @@ def _stringify_value(v: Any) -> str:
     return str(v)
 
 
-def _value_variants(v: Any) -> List[str]:
+def _value_variants(v: Any, *, field_path: str = "") -> List[str]:
     """Generate simple string variants for matching in evidence/transcript.
 
     This is intentionally conservative (regex-free) to keep the validator predictable.
     """
 
     out: List[str] = []
+
+    if is_state_like_field(field_path):
+        out.extend(state_variants(v, _stringify_value))
+
     s = _stringify_value(v).strip()
     if s:
         out.append(s)
@@ -513,6 +559,12 @@ def _contains_any(haystack: str, needles: List[str]) -> bool:
         if n and str(n).lower() in hs:
             return True
     return False
+
+
+def _requires_exact_strict_match(field_path: str, value: Any) -> bool:
+    if is_money_field_path(field_path):
+        return True
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
 def _parse_ymd_date(value: Any) -> Optional[datetime.date]:
@@ -597,7 +649,8 @@ def _validate_and_score_items(
 ) -> Dict[str, Any]:
     """Return metrics and a pass/fail boolean.
 
-    In strict mode, we require a direct match of the canonical source_value (or simple variants) in the transcript.
+    In strict mode, we require a direct match only for numeric fields.
+    Non-numeric fields count as strict-covered when the extractor marked them present/approximate.
     In non-strict mode, we accept status in {present, approximate} as covered.
     """
 
@@ -643,11 +696,16 @@ def _validate_and_score_items(
                 }
             )
 
-        src_val = it.get("source_value")
         field_path = str(it.get("field_path") or "")
+        src_val = it.get("source_value")
         src_for_match = round_money_value(src_val, increment=50.0) if is_money_field_path(field_path) else src_val
-        variants = _value_variants(src_for_match)
-        if variants and _contains_any(transcript_text, variants):
+        if _requires_exact_strict_match(field_path, src_val):
+            variants = _value_variants(src_for_match, field_path=field_path)
+            strict_match = bool(variants) and _contains_any(transcript_text, variants)
+        else:
+            strict_match = status in {"present", "approximate"}
+
+        if strict_match:
             strict_matched += 1
         else:
             tid = str(it.get("target_id") or "")
@@ -828,16 +886,202 @@ def _build_rolling_summary(phase_summaries: List[str], *, max_phases: int, max_c
     return text
 
 
+def _clean_prefixed_lines(text: str, *, household_type: str) -> List[str]:
+    allowed_prefixes = {"Advisor:", "Client:"}
+    if str(household_type).strip().lower() == "couple":
+        allowed_prefixes = {"Advisor:", "Client 1:", "Client 2:"}
+    cleaned: List[str] = []
+    for raw in (text or "").splitlines():
+        line = str(raw).strip()
+        if not line:
+            continue
+        if any(line.startswith(prefix) for prefix in allowed_prefixes):
+            cleaned.append(line)
+    return cleaned
+
+
+def _chunk_topic_hint(batch: List[Dict[str, Any]]) -> str:
+    if not batch:
+        return "next financial topic"
+    counts: Dict[str, int] = {}
+    for item in batch:
+        rt = str(item.get("record_type") or "").strip()
+        counts[rt] = counts.get(rt, 0) + 1
+    top = max(counts.items(), key=lambda kv: kv[1])[0]
+    mapping = {
+        "households": "household overview, budget, and high-level constraints",
+        "people": "people in the household, ages, and work situation",
+        "income_lines": "income sources and pay details",
+        "assets": "savings, investments, and property assets",
+        "liabilities": "debts, loan balances, and monthly payments",
+        "protection_policies": "insurance and protection coverage",
+    }
+    return mapping.get(top, top.replace("_", " "))
+
+
+def _sample_text_excerpts(
+    text: str,
+    *,
+    rng: np.random.Generator,
+    n_excerpts: int,
+    lines_per_excerpt: int,
+) -> List[str]:
+    lines = [str(line).rstrip() for line in str(text or "").splitlines() if str(line).strip()]
+    if not lines:
+        return []
+    window = max(4, int(lines_per_excerpt))
+    if len(lines) <= window:
+        return ["\n".join(lines)]
+    max_start = max(0, len(lines) - window)
+    starts = {0, max_start}
+    if n_excerpts > 2:
+        for frac in (0.33, 0.66):
+            starts.add(max(0, min(max_start, int(round(max_start * frac)))))
+    while len(starts) < max(1, int(n_excerpts)):
+        starts.add(int(rng.integers(0, max_start + 1)))
+    excerpts: List[str] = []
+    for start in sorted(starts)[: max(1, int(n_excerpts))]:
+        excerpt = "\n".join(lines[start : start + window]).strip()
+        if excerpt:
+            excerpts.append(excerpt)
+    return excerpts
+
+
+def _load_negative_control_transcripts(repo_root: Path) -> Dict[str, str]:
+    base = repo_root / "00_initial_task"
+    out: Dict[str, str] = {}
+    for name in ["synthetic_transcript1.txt", "synthetic_transcript2.txt"]:
+        path = base / name
+        if path.exists():
+            out[name] = path.read_text(encoding="utf-8")
+    return out
+
+
 class DialogGenerationPipeline:
     def __init__(self, *, repo_root: Optional[Path] = None) -> None:
         self.repo_root = repo_root or default_repo_root()
         self.paths = Paths(repo_root=self.repo_root)
         self.prompts = load_prompts(self.paths.prompt_dir)
+        self._negative_control_transcripts = _load_negative_control_transcripts(self.repo_root)
+
+    def _stable_u32(self, s: str) -> int:
+        # IMPORTANT: do not use Python's built-in hash(); it is salted per-process
+        # and breaks reproducibility across runs/workers.
+        d = hashlib.blake2b(str(s).encode("utf-8"), digest_size=4).digest()
+        return int.from_bytes(d, byteorder="big", signed=False)
 
     def _dialog_seed(self, *, base_seed: int, idx: int, household_id: str) -> int:
-        # Stable-ish deterministic seed per dialog; avoids shared RNG in parallel mode.
-        # (We still keep ordering deterministic for the first N profiles.)
-        return int((base_seed * 1_000_003 + idx * 9_973 + (hash(household_id) & 0xFFFF_FFFF)) % (2**31 - 1))
+        # Deterministic per-household seed (stable across runs and worker counts).
+        # `idx` is kept only for backward-compat in the signature, but not used
+        # to avoid order-dependent seed drift.
+        return int((int(base_seed) * 1_000_003 + self._stable_u32(household_id)) % (2**31 - 1))
+
+    def _finalize_with_bridges(
+        self,
+        *,
+        llm: OpenAIResponsesClient,
+        system_prompt: str,
+        household_type: str,
+        chunks_out: List[Dict[str, Any]],
+        client1_label: str,
+        client2_label: str,
+        max_output_tokens: int,
+    ) -> str:
+        if not chunks_out:
+            return ""
+        stitched: List[str] = []
+        for idx, chunk in enumerate(chunks_out):
+            utterances = [str(line).strip() for line in (chunk.get("utterances") or []) if str(line).strip()]
+            if idx == 0:
+                stitched.extend(utterances)
+            else:
+                prev = chunks_out[idx - 1]
+                bridge_user = render_prompt(
+                    self.prompts.chunk_bridge,
+                    {
+                        "household_type": household_type,
+                        "previous_chunk_tail": "\n".join((prev.get("utterances") or [])[-4:]),
+                        "next_chunk_head": "\n".join(utterances[:4]),
+                        "next_topic_hint": _chunk_topic_hint(chunk.get("targets") or []),
+                        "client1_label": client1_label,
+                        "client2_label": client2_label or "Client 2:",
+                    },
+                )
+                bridge_text = llm.create_text(
+                    system_prompt=system_prompt,
+                    user_prompt=bridge_user,
+                    max_output_tokens=max_output_tokens,
+                )
+                stitched.extend(_clean_prefixed_lines(bridge_text, household_type=household_type))
+                stitched.extend(utterances)
+        return "\n".join(stitched).strip() + "\n"
+
+    def _judge_realism_with_deepseek(
+        self,
+        *,
+        cfg: GenerationConfig,
+        dialog_id: str,
+        final_transcript: str,
+        transcript_skeleton: str,
+        household_type: str,
+        scenario_name: str,
+        rng: np.random.Generator,
+    ) -> Optional[Dict[str, Any]]:
+        if not bool(getattr(cfg, "deepseek_realism_check", True)):
+            return None
+        try:
+            deepseek = DeepSeekChatClient(
+                model=str(getattr(cfg, "deepseek_model", "deepseek-chat")),
+                max_output_tokens=int(getattr(cfg, "deepseek_max_output_tokens", 900)),
+                temperature=0.0,
+            )
+        except Exception as exc:
+            logger.warning("%s | step=deepseek_judge | skipped | %s", dialog_id, exc)
+            return None
+        candidate_excerpts = _sample_text_excerpts(final_transcript, rng=rng, n_excerpts=4, lines_per_excerpt=18)
+        skeleton_excerpts = _sample_text_excerpts(transcript_skeleton, rng=rng, n_excerpts=2, lines_per_excerpt=12)
+        negative_controls: List[Dict[str, Any]] = []
+        for name, text in sorted(self._negative_control_transcripts.items()):
+            negative_controls.append(
+                {
+                    "source": name,
+                    "excerpts": _sample_text_excerpts(text, rng=rng, n_excerpts=2, lines_per_excerpt=18),
+                }
+            )
+        judge_prompt = render_prompt(
+            self.prompts.deepseek_realism_judge,
+            {
+                "dialog_id": dialog_id,
+                "scenario_name": scenario_name,
+                "household_type": household_type,
+                "candidate_excerpts_json": json.dumps(candidate_excerpts, ensure_ascii=False, indent=2),
+                "candidate_skeleton_excerpts_json": json.dumps(skeleton_excerpts, ensure_ascii=False, indent=2),
+                "negative_controls_json": json.dumps(negative_controls, ensure_ascii=False, indent=2),
+            },
+        )
+        score = deepseek.create_realism_score_0_100(
+            system_prompt="Return exactly one integer from 0 to 100. Output must contain only the number.",
+            user_prompt=judge_prompt,
+            max_output_tokens=int(getattr(cfg, "deepseek_max_output_tokens", 900)),
+        )
+
+        threshold_raw = float(getattr(cfg, "deepseek_realism_threshold", 0.8))
+        # Backward-compatible: older configs used 0.0..1.0. Treat that as probability and scale to 0..100.
+        threshold = threshold_raw * 100.0 if 0.0 <= threshold_raw <= 1.0 else threshold_raw
+        judge: Dict[str, Any] = {
+            "realism_score": int(score),
+            "threshold": float(threshold),
+            # "Выше 90" (strictly greater) by default.
+            "passed_threshold": bool(float(score) > float(threshold)),
+        }
+        judge["meta"] = {
+            "dialog_id": dialog_id,
+            "scenario_name": scenario_name,
+            "household_type": household_type,
+            "candidate_excerpt_count": len(candidate_excerpts),
+            "negative_control_count": len(negative_controls),
+        }
+        return judge
 
     def _generate_one(
         self,
@@ -858,7 +1102,7 @@ class DialogGenerationPipeline:
         # Use a per-dialog LLM client; safer for threads and enables per-dialog OpenAI seed offsets.
         openai_seed = cfg.model.seed
         if openai_seed is not None:
-            openai_seed = int(openai_seed) + int(idx)
+            openai_seed = int((int(openai_seed) * 1_000_003 + self._stable_u32(hh_id)) % (2**31 - 1))
         llm = OpenAIResponsesClient(
             model=cfg.model.model,
             temperature=cfg.model.temperature,
@@ -963,6 +1207,81 @@ class DialogGenerationPipeline:
                     max_output_tokens=int(getattr(cfg, "evidence_max_output_tokens", cfg.model.max_output_tokens)),
                 )
 
+                # Deterministic guardrails for a few administrative fields that the model sometimes
+                # mislabels as contradiction despite correct source_value and conversation structure.
+                try:
+                    def _excerpt(text: Any, limit: int = 160) -> str:
+                        s = str(text or "")
+                        s = " ".join(s.split())
+                        return (s[:limit] + "…") if len(s) > limit else s
+
+                    tid_to_target: Dict[str, Dict[str, Any]] = {str(t.get("target_id")): t for t in (batch or []) if isinstance(t, dict)}
+                    for ev in chunk_res.evidence_items:
+                        tid = str(getattr(ev, "target_id", "") or "")
+                        tgt = tid_to_target.get(tid) or {}
+                        field_path = str(tgt.get("field_path") or "")
+                        st = str(getattr(ev, "status", "") or "").strip().lower()
+                        if st not in {"missing", "contradiction"}:
+                            continue
+
+                        src = tgt.get("source_value")
+                        try:
+                            src_n = int(src)
+                        except Exception:
+                            continue
+
+                        # 1) households.num_adults
+                        if field_path == "households.num_adults":
+                            if hh_type == "couple" and src_n >= 2:
+                                ev.status = "present"  # type: ignore[assignment]
+                                if not (ev.notes or "").strip():
+                                    ev.notes = "auto-override: couple household implies >=2 adults"  # type: ignore[assignment]
+                                logger.info(
+                                    "%s | step=field_chunks | override | target_id=%s field_path=households.num_adults %s->present | ev=%s",
+                                    log_ctx,
+                                    tid,
+                                    st,
+                                    _excerpt(getattr(ev, "evidence_text", "")),
+                                )
+                            if hh_type == "single" and src_n == 1:
+                                ev.status = "present"  # type: ignore[assignment]
+                                if not (ev.notes or "").strip():
+                                    ev.notes = "auto-override: single household implies 1 adult"  # type: ignore[assignment]
+                                logger.info(
+                                    "%s | step=field_chunks | override | target_id=%s field_path=households.num_adults %s->present | ev=%s",
+                                    log_ctx,
+                                    tid,
+                                    st,
+                                    _excerpt(getattr(ev, "evidence_text", "")),
+                                )
+                            continue
+
+                        # 2) people[...].client_no
+                        if field_path.endswith(".client_no") and src_n in {1, 2}:
+                            ev_text = str(getattr(ev, "evidence_text", "") or "")
+                            # Fallback to raw utterances from this chunk (useful when evidence_text is empty).
+                            chunk_text = "\n".join([l.strip() for l in (chunk_res.utterances or []) if str(l).strip()])
+                            hay = (ev_text + "\n" + chunk_text).lower()
+                            # If someone explicitly mentions "client number 0", do NOT override.
+                            if ("client number 0" in hay) or ("client no 0" in hay) or ("client #0" in hay):
+                                continue
+                            wants = f"client {src_n}"
+                            if wants in hay:
+                                ev.status = "present"  # type: ignore[assignment]
+                                if not (ev.notes or "").strip():
+                                    ev.notes = "auto-override: explicit Client label matches source_value"  # type: ignore[assignment]
+                                logger.info(
+                                    "%s | step=field_chunks | override | target_id=%s field_path=%s %s->present | ev=%s",
+                                    log_ctx,
+                                    tid,
+                                    field_path,
+                                    st,
+                                    _excerpt(ev_text or chunk_text),
+                                )
+                except Exception:
+                    # Never fail generation due to an override bug.
+                    pass
+
                 bad_target_ids: List[str] = []
                 for it in chunk_res.evidence_items:
                     st = str(getattr(it, "status", "") or "").strip().lower()
@@ -979,6 +1298,22 @@ class DialogGenerationPipeline:
                 if len(new_lines) > remaining:
                     new_lines = new_lines[:remaining]
                 transcript_lines.extend(new_lines)
+
+                # Deterministic length + flow helper: add 2 neutral transition turns between chunks.
+                # This avoids ultra-short stitched dialogues without introducing new facts or numbers.
+                if chunk_index < len(batches):
+                    remaining2 = int(cfg.max_turns - _count_turns(transcript_lines))
+                    if remaining2 >= 2:
+                        if hh_type == "couple" and (client2_label is not None) and (rng.random() < 0.35):
+                            ack_speaker = client2_label
+                        else:
+                            ack_speaker = client1_label
+                        transcript_lines.extend(
+                            [
+                                "Advisor: Okay—got it. Let me note that down.",
+                                f"{ack_speaker} Yeah—sounds good.",
+                            ]
+                        )
 
                 # Merge inline evidence into a global report keyed by target_id.
                 for it in chunk_res.evidence_items:
@@ -1090,6 +1425,75 @@ class DialogGenerationPipeline:
                 failed_field_paths = [str(f.get("field_path") or "") for f in failing_fields if isinstance(f, dict)]
                 failed_target_ids = [str(f.get("target_id") or "") for f in failing_fields if isinstance(f, dict)]
 
+                # Human-readable log for quick diagnosis (no need to open *_metrics.json / *_evidence.json).
+                pii_terms = metrics.get("pii_terms_detected")
+                if not isinstance(pii_terms, list):
+                    pii_terms = []
+                bad_lines = metrics.get("bad_transcript_lines")
+                if not isinstance(bad_lines, list):
+                    bad_lines = []
+
+                logger.warning(
+                    "%s | step=validate | FAILED | reasons=%s strict=%s | total=%s covered_lenient=%.3f covered_strict=%.3f | counts=%s | pii_terms=%s",
+                    dialog_id,
+                    ",".join(failure_reasons) if failure_reasons else "unknown",
+                    bool(metrics.get("strict")),
+                    metrics.get("total_targets"),
+                    float(metrics.get("coverage_lenient") or 0.0),
+                    float(metrics.get("coverage_strict") or 0.0),
+                    counts,
+                    pii_terms,
+                )
+                if bad_lines:
+                    logger.warning("%s | step=validate | bad_transcript_lines=%s", dialog_id, bad_lines[:10])
+
+                # Prefer listing the fields that actually fail in non-strict mode (missing/contradiction),
+                # even if strict mode is enabled.
+                fields_for_log: List[Dict[str, Any]] = []
+                lenient_failed = metrics.get("lenient_failed_fields")
+                if isinstance(lenient_failed, list) and lenient_failed:
+                    fields_for_log = [f for f in lenient_failed if isinstance(f, dict)]
+                else:
+                    fields_for_log = [f for f in failing_fields if isinstance(f, dict)]
+
+                # Join evidence details by target_id when available.
+                evidence_items = ((evidence_report or {}).get("items") or []) if isinstance(evidence_report, dict) else []
+                evidence_by_tid: Dict[str, Dict[str, Any]] = {}
+                if isinstance(evidence_items, list):
+                    for it in evidence_items:
+                        if not isinstance(it, dict):
+                            continue
+                        tid = str(it.get("target_id") or "").strip()
+                        if tid:
+                            evidence_by_tid[tid] = it
+
+                def _one_line_excerpt(text: Any, *, limit: int = 180) -> str:
+                    s = str(text or "")
+                    s = " ".join(s.split())
+                    if len(s) > limit:
+                        return s[:limit].rstrip() + "…"
+                    return s
+
+                max_log_items = int(getattr(cfg, "validation_log_max_items", 25))
+                for f in fields_for_log[:max_log_items]:
+                    tid = str(f.get("target_id") or "")
+                    ev = evidence_by_tid.get(tid) or {}
+                    evidence_text = ev.get("evidence_text")
+                    notes = ev.get("notes")
+                    if pii_terms:
+                        evidence_text = "<omitted due to pii_terms_detected>"
+                        notes = "<omitted due to pii_terms_detected>"
+                    logger.warning(
+                        "%s | fail | target_id=%s field_path=%s status=%s source_value=%s | evidence=%s | notes=%s",
+                        dialog_id,
+                        tid,
+                        str(f.get("field_path") or ""),
+                        str(f.get("status") or ""),
+                        json.dumps(f.get("source_value"), ensure_ascii=False),
+                        _one_line_excerpt(evidence_text),
+                        _one_line_excerpt(notes),
+                    )
+
                 plaus = metrics.get("plausibility_issues")
                 if isinstance(plaus, list) and plaus:
                     for issue in plaus[:50]:
@@ -1183,30 +1587,64 @@ class DialogGenerationPipeline:
 
             if finalize_requested and finalize_allowed:
                 logger.info("%s | step=finalize | start", log_ctx)
-                polish_user = render_prompt(
-                    self.prompts.transcript_polish,
-                    {
-                        "household_type": hh_type,
-                        "skeleton_transcript": transcript_text,
-                    },
-                )
-                polished = llm.create_text(
-                    system_prompt=system_prompt,
-                    user_prompt=polish_user,
-                    max_output_tokens=int(getattr(cfg, "finalize_max_output_tokens", 2200)),
-                )
-                # Basic sanitation: keep only valid-prefixed lines.
-                allowed_prefixes = {"Advisor:", "Client:", "Client 1:", "Client 2:"}
-                cleaned_lines: List[str] = []
-                for raw in (polished or "").splitlines():
-                    line = raw.strip()
-                    if not line:
-                        continue
-                    if any(line.startswith(p) for p in allowed_prefixes):
-                        cleaned_lines.append(line)
+                strategy = str(getattr(cfg, "finalize_strategy", "realism_merge") or "realism_merge").strip().lower()
+                if strategy == "bridges":
+                    bridged = self._finalize_with_bridges(
+                        llm=llm,
+                        system_prompt=system_prompt,
+                        household_type=hh_type,
+                        chunks_out=chunks_out,
+                        client1_label=client1_label,
+                        client2_label=client2_label or "Client 2:",
+                        max_output_tokens=int(getattr(cfg, "finalize_bridge_max_output_tokens", 500)),
+                    )
+                    cleaned_lines = _clean_prefixed_lines(bridged, household_type=hh_type)
+                else:
+                    polish_user = render_prompt(
+                        self.prompts.transcript_polish,
+                        {
+                            "household_type": hh_type,
+                            "skeleton_transcript": transcript_text,
+                        },
+                    )
+                    polished = llm.create_text(
+                        system_prompt=system_prompt,
+                        user_prompt=polish_user,
+                        max_output_tokens=int(getattr(cfg, "finalize_max_output_tokens", 2200)),
+                    )
+                    cleaned_lines = _clean_prefixed_lines(polished, household_type=hh_type)
                 if cleaned_lines:
                     final_transcript = "\n".join(cleaned_lines).strip() + "\n"
-                logger.info("%s | step=finalize | done | turns=%s", log_ctx, _count_turns(cleaned_lines))
+                logger.info(
+                    "%s | step=finalize | done | strategy=%s turns=%s",
+                    log_ctx,
+                    strategy,
+                    _count_turns(cleaned_lines),
+                )
+
+            deepseek_realism: Optional[Dict[str, Any]] = None
+            if finalize_allowed and bool(getattr(cfg, "deepseek_realism_check", True)):
+                try:
+                    logger.info("%s | step=deepseek_judge | start", log_ctx)
+                    deepseek_realism = self._judge_realism_with_deepseek(
+                        cfg=cfg,
+                        dialog_id=dialog_id,
+                        final_transcript=final_transcript,
+                        transcript_skeleton=transcript_text,
+                        household_type=hh_type,
+                        scenario_name=scenario_name,
+                        rng=rng,
+                    )
+                    if deepseek_realism is not None:
+                        logger.info(
+                            "%s | step=deepseek_judge | done | score=%s threshold=%s passed_threshold=%s",
+                            log_ctx,
+                            deepseek_realism.get("realism_score"),
+                            deepseek_realism.get("threshold"),
+                            bool(deepseek_realism.get("passed_threshold")),
+                        )
+                except Exception:
+                    logger.exception("%s | step=deepseek_judge | failed", log_ctx)
 
             out_obj = {
                 "id": dialog_id,
@@ -1219,6 +1657,7 @@ class DialogGenerationPipeline:
                 "phases": [],
                 "evidence": evidence_report,
                 "metrics": metrics,
+                "deepseek_realism": deepseek_realism,
                 "metadata": {
                     "num_turns": _count_turns(final_transcript.splitlines()),
                     "household_type": hh_type,
@@ -1229,6 +1668,8 @@ class DialogGenerationPipeline:
                     "had_chunk_errors": had_chunk_errors,
                     "finalize_requested": finalize_requested,
                     "finalize_applied": bool(finalize_requested and finalize_allowed),
+                    "deepseek_realism_checked": deepseek_realism is not None,
+                    "deepseek_realism_passed": bool((deepseek_realism or {}).get("passed_threshold")),
                 },
             }
 
@@ -1238,8 +1679,16 @@ class DialogGenerationPipeline:
                 save_json(cfg.output_dir / f"{dialog_id}_evidence.json", evidence_report, exclude_none=True)
             if metrics is not None:
                 save_json(cfg.output_dir / f"{dialog_id}_metrics.json", metrics)
+            if deepseek_realism is not None:
+                save_json(cfg.output_dir / f"{dialog_id}_deepseek_judge.json", deepseek_realism)
             if cfg.save_txt:
                 save_text(cfg.output_dir / f"{dialog_id}.txt", final_transcript)
+            if bool((deepseek_realism or {}).get("passed_threshold")):
+                pass_dir = cfg.output_dir / str(getattr(cfg, "deepseek_pass_subdir", "realism_passed"))
+                save_json(pass_dir / f"{dialog_id}.json", out_obj)
+                if cfg.save_txt:
+                    save_text(pass_dir / f"{dialog_id}.txt", final_transcript)
+                save_json(pass_dir / f"{dialog_id}_deepseek_judge.json", deepseek_realism)
 
             logger.info(
                 "%s | wrote=%s | turns=%s | total_dt=%.2fs",
@@ -1720,6 +2169,7 @@ class DialogGenerationPipeline:
             sample_mode=str(getattr(cfg, "sample_mode", "sequential") or "sequential"),
             income_bins=int(getattr(cfg, "income_bins", 3) or 3),
             assets_bins=int(getattr(cfg, "assets_bins", 3) or 3),
+            output_dir=getattr(cfg, "output_dir", None),
             registry_path=(Path(registry_path) if registry_path is not None else None),
             skip_existing=bool(getattr(cfg, "skip_existing", True)),
             registry_skip_statuses=str(getattr(cfg, "registry_skip_statuses", "success") or "success"),

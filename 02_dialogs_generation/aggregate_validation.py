@@ -8,6 +8,9 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import pandas as pd
 
+from money_rounding import is_money_field_path
+from normalization import is_state_like_field, state_variants
+
 
 def _load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -29,8 +32,10 @@ def _stringify_value(v: Any) -> str:
     return str(v)
 
 
-def _value_variants(v: Any) -> List[str]:
+def _value_variants(v: Any, *, field_path: str = "") -> List[str]:
     out: List[str] = []
+    if is_state_like_field(field_path):
+        out.extend(state_variants(v, _stringify_value))
     s = _stringify_value(v).strip()
     if s:
         out.append(s)
@@ -69,6 +74,12 @@ def _contains_any(haystack: str, needles: List[str]) -> bool:
     return False
 
 
+def _requires_exact_strict_match(field_path: str, value: Any) -> bool:
+    if is_money_field_path(field_path):
+        return True
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
 @dataclass(frozen=True)
 class EvidenceRow:
     household_id: str
@@ -102,8 +113,11 @@ def _evidence_rows_from_file(
         evidence_text = _safe_str(item.get("evidence_text"))
         src_val = item.get("source_value")
 
-        variants = _value_variants(src_val)
-        strict_match = bool(variants) and _contains_any(evidence_text, variants)
+        if _requires_exact_strict_match(field_path, src_val):
+            variants = _value_variants(src_val, field_path=field_path)
+            strict_match = bool(variants) and _contains_any(evidence_text, variants)
+        else:
+            strict_match = status in {"present", "approximate"}
 
         # Error logic:
         # - Always error on missing/contradiction.

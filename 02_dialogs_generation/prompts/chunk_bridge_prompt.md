@@ -5,6 +5,17 @@ GOAL
 - Smoothly transition from the previous topic to the next topic.
 - Do NOT add any new facts, numbers, dates, or account details.
 
+REALISM SIGNALS TO EMPHASIZE
+- Natural uncertainty and memory behavior: brief "I think", "roughly", "off the top of my head", "I might be mixing that up".
+- Micro-repairs: a speaker starts to say something, then corrects themselves without introducing new facts.
+- Human pacing: short turns, quick acknowledgements, tiny side-comments.
+- Organic transitions: the next topic should feel like a continuation of the same meeting, not a stitched jump.
+
+AVOID SYNTHETIC TELLS
+- Do not sound like a template or a recap bot.
+- Avoid overly neat summaries ("So to summarize...") unless it already appears in the provided tails/heads.
+- Avoid repetitive filler (do not repeat the same phrase across multiple bridge lines).
+
 CRITICAL OUTPUT REQUIREMENTS
 - Output MUST be plain text only (NOT JSON).
 - Each line is exactly one utterance.

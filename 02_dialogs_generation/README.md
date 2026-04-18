@@ -15,7 +15,7 @@ Key properties:
 
 ## Repository constraints
 - This module does **not** modify upstream data generation.
-- No evaluation logic is implemented (no metrics/scoring/judge models).
+- Grounding validation is implemented locally, and an optional DeepSeek judge can score post-finalized transcripts for realism.
 
 ## Inputs
 
@@ -71,6 +71,15 @@ docker compose up --build
 # To generate more dialogs, set DIALOG_N in 02_dialogs_generation/.env, e.g.
 # DIALOG_N=25
 
+# By default, the pipeline skips households that already have a dialog JSON in OUTPUT_DIR
+# (e.g. artifacts/dialogs/DIALOG_HH000123.json). You can control this with:
+# DIALOG_SKIP_EXISTING=1   # default
+# DIALOG_SKIP_EXISTING=0   # regenerate even if a dialog file already exists
+#
+# There is also an optional dialog registry (CSV) that can be used for skipping by status:
+# DIALOG_REGISTRY_PATH=... (default: <OUTPUT_DIR>/dialog_registry.csv)
+# DIALOG_REGISTRY_SKIP_STATUSES=success
+
 # If phases get truncated (invalid JSON), increase output budget, e.g.
 # MAX_OUTPUT_TOKENS=8000
 
@@ -89,9 +98,19 @@ docker compose up --build
 # FIELD_CHUNK_GROUP_BY_RECORD_TYPE=1
 # FIELD_CHUNK_SHUFFLE_WITHIN_GROUP=1
 
-# Optional: after validation passes, expand/polish transcript with "banter" (no new facts).
+# Optional but now recommended: after validation passes, finalize the transcript into a more realistic conversation.
 # FINALIZE_TRANSCRIPT=1
-# FINALIZE_MAX_OUTPUT_TOKENS=2200
+# FINALIZE_STRATEGY=realism_merge
+# FINALIZE_MAX_OUTPUT_TOKENS=3200
+#
+# Optional DeepSeek realism gate after finalization.
+# DEEPSEEK_KEY=...
+# DEEPSEEK_REALISM_CHECK=1
+# DEEPSEEK_MODEL=deepseek-chat
+# DeepSeek returns a single realism score 0..100.
+# The transcript is copied into artifacts/dialogs/realism_passed/ when realism_score > threshold.
+# DEEPSEEK_REALISM_THRESHOLD=90
+# DEEPSEEK_PASS_SUBDIR=realism_passed
 ```
 
 ### Example transcript guidance in prompts
@@ -125,6 +144,12 @@ Outputs:
 - Optional plain-text transcript alongside: `DIALOG_<household_id>.txt`
 - Optional evidence JSON alongside: `DIALOG_<household_id>_evidence.json`
 - Optional metrics JSON alongside: `DIALOG_<household_id>_metrics.json`
+- Optional DeepSeek judge JSON alongside: `DIALOG_<household_id>_deepseek_judge.json`
+- If the DeepSeek realism score passes threshold, the transcript is also copied into `artifacts/dialogs/realism_passed/`
+
+Validation failure report:
+- `validation_failures.csv` is intentionally minimal: it contains only `household_id` and `failed_field_paths`.
+  (If an older, wider-schema file exists, the pipeline rotates it to `validation_failures_full.csv` on the next write.)
 
 ## Aggregate validation across dialogs
 

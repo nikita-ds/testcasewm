@@ -77,9 +77,19 @@ class GenerationConfig:
     finalize_transcript: bool = False
     # - "bridges": insert bridging utterances between chunks (keeps chunk lines verbatim; best for validation)
     # - "polish": rewrite/expand entire skeleton transcript (may rephrase)
-    finalize_strategy: str = "bridges"
+    # - "realism_merge": rewrite/expand with stronger emphasis on natural recall, uncertainty, and granular expenses
+    finalize_strategy: str = "realism_merge"
     finalize_max_output_tokens: int = 2200
     finalize_bridge_max_output_tokens: int = 500
+
+    # Optional DeepSeek realism judging after the final transcript is produced.
+    deepseek_realism_check: bool = True
+    deepseek_model: str = "deepseek-chat"
+    deepseek_max_output_tokens: int = 900
+    # Threshold for passing/copying to deepseek_pass_subdir.
+    # Units: 0..100 (a single realism score). Backwards compatible: values in 0..1 are treated as probability.
+    deepseek_realism_threshold: float = 90.0
+    deepseek_pass_subdir: str = "realism_passed"
 
     model: ModelConfig = ModelConfig()
     seed: int = 42

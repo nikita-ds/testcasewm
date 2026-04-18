@@ -20,6 +20,7 @@ class PromptBundle:
     field_chunk_generation: str
     transcript_polish: str
     chunk_bridge: str
+    deepseek_realism_judge: str
 
 
 def _read_text(path: Path) -> str:
@@ -39,6 +40,7 @@ def load_prompts(prompt_dir: Path) -> PromptBundle:
         field_chunk_generation=_read_text(prompt_dir / "field_chunk_generation_prompt.md"),
         transcript_polish=_read_text(prompt_dir / "transcript_polish_prompt.md"),
         chunk_bridge=_read_text(prompt_dir / "chunk_bridge_prompt.md"),
+        deepseek_realism_judge=_read_text(prompt_dir / "deepseek_realism_judge_prompt.md"),
     )
 
 
