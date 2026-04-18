@@ -478,6 +478,7 @@ def gen_one(hidx, ctx: Ctx):
 
     hh_income = None
     last_final_cand = None
+    best_final_cand = None
     for _ in range(max(1, max_tries)):
         cand = float(sample_empirical_income(pri, rng)) * base_income_scale
         cand = float(apply_scenario_income_adjustment(pri, scenario, cand, rng))
@@ -488,6 +489,8 @@ def gen_one(hidx, ctx: Ctx):
         if has_second and age2 is not None and ret_age2 is not None:
             final_cand *= float(lerp(0.98, 1.08, retirement_progress(age2, ret_age2)))
         last_final_cand = final_cand
+        if best_final_cand is None or final_cand > float(best_final_cand):
+            best_final_cand = final_cand
 
         if floor is None or float(floor) <= 0:
             hh_income = final_cand
@@ -495,13 +498,15 @@ def gen_one(hidx, ctx: Ctx):
 
         if floor_mode == "soft_affluent_income_floor":
             # Smooth conditioning via acceptance probability around the floor.
+            # IMPORTANT: `min_accept_prob` is a cutoff, not a global minimum acceptance rate.
+            # If we clamp to `min_accept_prob`, we will occasionally accept extremely low incomes
+            # (far below the affluent floor) with non-trivial probability.
             if softness <= 0:
-                accept_p = 1.0 if final_cand >= float(floor) else float(min_accept_prob)
+                accept_p = 1.0 if final_cand >= float(floor) else 0.0
             else:
                 t = (final_cand - float(floor)) / float(softness)
-                accept_p = float(min_accept_prob) + (1.0 - float(min_accept_prob)) * (1.0 / (1.0 + math.exp(-t)))
-            accept_p = float(clamp(accept_p, float(min_accept_prob), 1.0))
-            if float(rng.random()) < accept_p:
+                accept_p = 1.0 / (1.0 + math.exp(-t))
+            if accept_p >= float(min_accept_prob) and float(rng.random()) < float(accept_p):
                 hh_income = final_cand
                 break
             if strategy != "resample":
@@ -517,8 +522,12 @@ def gen_one(hidx, ctx: Ctx):
             hh_income = float(max(float(floor), final_cand))
             break
     if hh_income is None:
-        # Extremely unlikely unless max_tries is tiny; clamp to avoid violating assumption.
-        hh_income = float(max(float(floor) if floor else 0.0, float(last_final_cand or 0.0)))
+        # If soft-floor conditioning can't accept within max_tries, do NOT clamp to the floor
+        # (it creates a point-mass spike at exactly `floor`). Fall back to the best candidate.
+        if floor_mode == "soft_affluent_income_floor" and strategy == "resample":
+            hh_income = float(best_final_cand or last_final_cand or 0.0)
+        else:
+            hh_income = float(max(float(floor) if floor else 0.0, float(last_final_cand or 0.0)))
 
     split = gp.get("spouse_income_split") or {}
     if scenario == "one_high_earner_one_low_earner" and has_second:
@@ -592,6 +601,20 @@ def gen_one(hidx, ctx: Ctx):
     has_mortgage = scenario in force_mort or bool(rng.random() < pri["booleans"]["has_mortgage"] * mortgage_keep_scale)
     has_non_mortgage = scenario in force_nm or bool(rng.random() < pri["booleans"]["has_non_mortgage_debt"])
 
+    # Expense model defines a feasible total-expense budget. We use it to avoid pathological
+    # boundary-mass artifacts where debt payments consume ~100% of expenses.
+    ecfg_all = gp.get("expense_ratio_normal") or {}
+    ecfg = ecfg_all.get(scenario) or ecfg_all.get("default")
+    if not isinstance(ecfg, dict):
+        raise KeyError(f"Missing expense_ratio_normal config for {scenario!r} (and missing 'default')")
+    income_m = float(hh_income) / 12.0
+    total_cap_ratio = float(ecfg["max"])  # cap on TOTAL expenses (incl. debt)
+    min_nondebt_ratio = float(ecfg["min"])  # minimum non-debt expense share
+    total_allowed = float(income_m) * float(total_cap_ratio)
+    min_nondebt_allowed = float(income_m) * float(min_nondebt_ratio)
+    debt_allowed = max(0.0, float(total_allowed) - float(min_nondebt_allowed))
+    debt_allowed_ratio = float(debt_allowed / income_m) if income_m > 0 else 0.0
+
     mortgage_outstanding = 0.0; mortgage_payment = 0.0; mortgage_rate = 0.0; final_payment = None
     if has_mortgage:
         # target realistic mortgage burden by scenario
@@ -629,7 +652,9 @@ def gen_one(hidx, ctx: Ctx):
         )
         mortgage_payment = hh_income / 12 * target_ratio
         mt = gp.get("mortgage_terms") or {}
-        mortgage_payment = min(mortgage_payment, hh_income / 12 * float(mt["payment_ratio_cap"]))
+        # Keep mortgage burden compatible with the total-expense budget.
+        pay_cap = min(float(mt["payment_ratio_cap"]), float(debt_allowed_ratio))
+        mortgage_payment = min(mortgage_payment, hh_income / 12 * float(pay_cap))
 
         rnorm = mt.get("rate_normal") or {}
         mortgage_rate = float(
@@ -683,13 +708,18 @@ def gen_one(hidx, ctx: Ctx):
         nm = nm_all.get(nm_key) or nm_all.get("default")
         if not isinstance(nm, dict):
             raise KeyError(f"Missing non_mortgage_payment config for {nm_key!r} (and missing 'default')")
-        non_mortgage_payment = sample_lognormal_quantile(
-            rng,
-            median=float(nm["median"]),
-            sigma=float(nm["sigma"]),
-            low=float(nm["low"]),
-            high=float(nm["high"]),
-        )
+        remaining_for_nonmort = max(0.0, float(debt_allowed) - float(mortgage_payment))
+        high_cap = min(float(nm["high"]), float(remaining_for_nonmort) if remaining_for_nonmort > 0 else float(nm["low"]))
+        if high_cap <= float(nm["low"]):
+            non_mortgage_payment = max(0.0, float(remaining_for_nonmort))
+        else:
+            non_mortgage_payment = sample_lognormal_quantile(
+                rng,
+                median=float(nm["median"]),
+                sigma=float(nm["sigma"]),
+                low=float(nm["low"]),
+                high=float(high_cap),
+            )
         non_mortgage_outstanding = non_mortgage_payment * rng.uniform(
             float(nm["out_mult_lo"]),
             float(nm["out_mult_hi"]),
@@ -698,23 +728,14 @@ def gen_one(hidx, ctx: Ctx):
     monthly_debt_cost_total = mortgage_payment + non_mortgage_payment
     mortgage_ratio = mortgage_payment / (hh_income / 12) if hh_income > 0 else 0.0
 
-    # overall expense ratio
-    ecfg_all = gp.get("expense_ratio_normal") or {}
-    ecfg = ecfg_all.get(scenario) or ecfg_all.get("default")
-    if not isinstance(ecfg, dict):
-        raise KeyError(f"Missing expense_ratio_normal config for {scenario!r} (and missing 'default')")
     base_ratio = rng.normal(float(ecfg["mean"]), float(ecfg["std"]))
     nondebt_ratio = float(clamp(base_ratio, float(ecfg["min"]), float(ecfg["max"])))
-    income_m = float(hh_income) / 12.0
+    # Ensure total expenses stay within the configured cap without collapsing to debt-only.
+    if income_m > 0:
+        feasible_max_nondebt = max(float(ecfg["min"]), float((total_allowed - float(monthly_debt_cost_total)) / float(income_m)))
+        nondebt_ratio = float(min(nondebt_ratio, feasible_max_nondebt))
     nondebt_expenses = income_m * nondebt_ratio
-
-    # Expenses include debt payments. If the resulting total would violate the configured
-    # cap, we shrink non-debt expenses first (debt payments are obligations).
-    total_cap_ratio = float(ecfg["max"])
-    total_allowed = income_m * total_cap_ratio
     monthly_expenses_total = float(monthly_debt_cost_total) + float(nondebt_expenses)
-    if monthly_expenses_total > total_allowed:
-        monthly_expenses_total = max(float(monthly_debt_cost_total), float(total_allowed))
     expense_to_income_ratio = float(monthly_expenses_total / income_m) if income_m > 0 else 0.0
 
     annual_alimony_paid = 0.0

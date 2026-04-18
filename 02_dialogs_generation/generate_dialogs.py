@@ -22,13 +22,14 @@ def main() -> None:
     p.add_argument("--out", type=Path, required=True, help="Output directory")
 
     p.add_argument("--n", type=int, default=1, help="Number of transcripts to generate")
+    p.add_argument("--workers", type=int, default=1, help="Parallel workers (1 = sequential)")
     p.add_argument("--min-turns", type=int, default=1000)
     p.add_argument("--max-turns", type=int, default=1700)
     p.add_argument("--no-txt", action="store_true", help="Do not save .txt transcript alongside JSON")
 
     p.add_argument("--model", type=str, default="gpt-4.1")
     p.add_argument("--temperature", type=float, default=0.0)
-    p.add_argument("--max-output-tokens", type=int, default=8000)
+    p.add_argument("--max-output-tokens", type=int, default=6000)
     p.add_argument("--seed", type=int, default=42, help="Deterministic seed for scenario sampling and ordering")
     p.add_argument("--openai-seed", type=int, default=None, help="Optional seed passed to OpenAI Responses API")
 
@@ -39,6 +40,7 @@ def main() -> None:
         financial_dataset_json_path=args.financial_dataset_json,
         output_dir=args.out,
         n=args.n,
+        workers=max(1, int(args.workers)),
         min_turns=args.min_turns,
         max_turns=args.max_turns,
         save_txt=not args.no_txt,

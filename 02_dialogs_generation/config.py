@@ -9,7 +9,7 @@ from typing import Optional
 class ModelConfig:
     model: str = "gpt-4.1"
     temperature: float = 0.0
-    max_output_tokens: int = 8000
+    max_output_tokens: int = 6000
     seed: Optional[int] = 42
 
 
@@ -29,6 +29,7 @@ class GenerationConfig:
     output_dir: Path
 
     n: int = 1
+    workers: int = 1
     min_turns: int = 1000
     max_turns: int = 1700
     save_txt: bool = True

@@ -238,25 +238,30 @@ def build_expected_samples(priors: dict, n: int, seed: int = 123) -> tuple[np.nd
         retired = scenario == "retired_couple_high_assets_low_income" or age1 >= retirement_age_cfg
         hh_income = None
         last_final_cand = None
+        best_final_cand = None
         for _ in range(max(1, max_tries)):
             cand = float(sample_empirical_income(priors, rng)) * income_scale
             cand = float(apply_scenario_income_adjustment(priors, scenario, cand, rng))
 
             final_cand = float(cand) * float(age_income_multiplier(age1, ret_age1, retired))
             last_final_cand = final_cand
+            if best_final_cand is None or final_cand > float(best_final_cand):
+                best_final_cand = final_cand
 
             if floor is None or float(floor) <= 0:
                 hh_income = final_cand
                 break
 
             if floor_mode == "soft_affluent_income_floor":
+                # IMPORTANT: `min_accept_prob` is a cutoff, not a global minimum acceptance rate.
+                # If we clamp to `min_accept_prob`, we will occasionally accept extremely low incomes
+                # (far below the affluent floor) with non-trivial probability.
                 if softness <= 0:
-                    accept_p = 1.0 if final_cand >= float(floor) else float(min_accept_prob)
+                    accept_p = 1.0 if final_cand >= float(floor) else 0.0
                 else:
                     t = (final_cand - float(floor)) / float(softness)
-                    accept_p = float(min_accept_prob) + (1.0 - float(min_accept_prob)) * (1.0 / (1.0 + math.exp(-t)))
-                accept_p = float(clamp(accept_p, float(min_accept_prob), 1.0))
-                if float(rng.random()) < accept_p:
+                    accept_p = 1.0 / (1.0 + math.exp(-t))
+                if accept_p >= float(min_accept_prob) and float(rng.random()) < float(accept_p):
                     hh_income = final_cand
                     break
                 if strategy != "resample":
@@ -271,7 +276,10 @@ def build_expected_samples(priors: dict, n: int, seed: int = 123) -> tuple[np.nd
                 hh_income = float(max(float(floor), final_cand))
                 break
         if hh_income is None:
-            hh_income = float(max(float(floor) if floor else 0.0, float(last_final_cand or 0.0)))
+            if floor_mode == "soft_affluent_income_floor" and strategy == "resample":
+                hh_income = float(best_final_cand or last_final_cand or 0.0)
+            else:
+                hh_income = float(max(float(floor) if floor else 0.0, float(last_final_cand or 0.0)))
         investable = float(sample_investable_assets(priors, scenario, hh_income, rng))
         investable *= age_assets_multiplier(age1, ret_age1, retired)
         expected_income[i] = hh_income

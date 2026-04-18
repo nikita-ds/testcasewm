@@ -14,6 +14,10 @@ REALISM + PACING RULES (STRICT)
 - Imperfect memory is normal. Clients SHOULD sometimes say things like:
   - "I don't remember exactly" / "I'd have to check" / "off the top of my head…"
   - give approximate answers: "around…", "roughly…", "between X and Y", "give or take".
+- Client answers are usually NOT long.
+  - Default to 1–2 sentences per client turn.
+  - It is normal to have very short turns: "Yeah", "Right", "I think so", "Can you repeat that?".
+  - Avoid client monologues unless the advisor explicitly asks them to walk through something step-by-step.
 - Avoid "all answers immediately". Do not let any speaker dump a complete, perfectly organized list in one turn.
   - The advisor must ask follow-up questions and confirm step-by-step.
   - Clients should recall items gradually and sometimes add "Oh—also…" later.

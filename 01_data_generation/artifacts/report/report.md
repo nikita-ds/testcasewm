@@ -1,16 +1,16 @@
 # US RIA-like synthetic household report
 
 ## Counts
-- households: 10000
-- people: 18375
+- households: 5000
+- people: 9208
 - rule violations: 0
 
 ## Medians
-- annual household gross income: 91,051.69
-- investable assets total: 315,101.45
-- net worth proxy: 475,769.05
-- monthly mortgage payment total (positive only): 1,738.29
-- monthly non-mortgage payment total (positive only): 367.90
+- annual household gross income: 135,211.78
+- investable assets total: 503,317.12
+- net worth proxy: 738,074.14
+- monthly mortgage payment total (positive only): 2,910.48
+- monthly non-mortgage payment total (positive only): 381.16
 
 ## Figures
 

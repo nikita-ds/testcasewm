@@ -35,10 +35,11 @@ def main() -> None:
     out_dir = Path(_env_str("OUTPUT_DIR", "/app/02_dialogs_generation/artifacts/dialogs"))
 
     n = _env_int("DIALOG_N", 1)
+    workers = _env_int("DIALOG_WORKERS", 1)
     seed = _env_int("SEED", 42)
     min_turns = _env_int("MIN_TURNS", 1000)
     max_turns = _env_int("MAX_TURNS", 1700)
-    max_output_tokens = _env_int("MAX_OUTPUT_TOKENS", 8000)
+    max_output_tokens = _env_int("MAX_OUTPUT_TOKENS", 6000)
 
     model = _env_str("MODEL", "gpt-4.1")
 
@@ -53,6 +54,7 @@ def main() -> None:
         financial_dataset_json_path=dataset_out,
         output_dir=out_dir,
         n=n,
+        workers=max(1, int(workers)),
         min_turns=min_turns,
         max_turns=max_turns,
         seed=seed,
