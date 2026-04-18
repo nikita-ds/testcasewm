@@ -35,4 +35,4 @@ GUIDELINES
 - Merge with previous_state_json instead of resetting.
 - Keep keys short and consistent.
 - Track repeated concerns (things clients come back to).
-- Track misunderstood terms (and whether they were repaired).
+- Track misunderstood terms as STRINGS ONLY (e.g. "RMDs (repaired)", "asset allocation (not yet repaired)").

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field, RootModel
 
@@ -36,13 +36,13 @@ class OutlinePhase(BaseModel):
     phase_name: str
     objectives: List[str]
     must_cover_topics: List[str]
-    target_turns: int = Field(..., ge=6, le=1200)
+    target_turns: int = Field(..., ge=20, le=600)
     realism_hooks: List[str] = Field(default_factory=list)
 
 
 class ConversationOutline(BaseModel):
     household_type: HouseholdType
-    total_target_turns: int = Field(..., ge=40, le=5000)
+    total_target_turns: int = Field(..., ge=200, le=2500)
     phases: List[OutlinePhase]
 
 
@@ -62,11 +62,18 @@ class PhaseGenerationResult(BaseModel):
     phase_notes: PhaseNotes = Field(default_factory=PhaseNotes)
 
 
+class MisunderstoodTerm(BaseModel):
+    term: str
+    who: Optional[str] = None
+    repaired: Optional[bool] = None
+    context: Optional[str] = None
+
+
 class ConversationStateModel(BaseModel):
     confirmed_facts: Dict[str, Any] = Field(default_factory=dict)
     open_questions: List[str] = Field(default_factory=list)
     repeated_concerns: List[str] = Field(default_factory=list)
-    misunderstood_terms: List[str] = Field(default_factory=list)
+    misunderstood_terms: List[Union[str, MisunderstoodTerm]] = Field(default_factory=list)
     emotional_tone: Dict[str, str] = Field(default_factory=dict)
 
 

@@ -29,6 +29,52 @@ from state import ConversationState, default_state
 logger = logging.getLogger(__name__)
 
 
+def _norm_ids(values: List[Any]) -> List[str]:
+    out: List[str] = []
+    for v in values or []:
+        s = str(v).strip()
+        if s:
+            out.append(s)
+    return out
+
+
+def _validate_phase_used_ids(*, dialog_id: str, phase_name: str, phase_idx: int, record_ids: Any, phase_notes: Any) -> None:
+    allowed_people = set(_norm_ids(getattr(record_ids, "person_ids", [])))
+    allowed_income = set(_norm_ids(getattr(record_ids, "income_line_ids", [])))
+    allowed_assets = set(_norm_ids(getattr(record_ids, "asset_ids", [])))
+    allowed_liabs = set(_norm_ids(getattr(record_ids, "liability_ids", [])))
+    allowed_policies = set(_norm_ids(getattr(record_ids, "policy_ids", [])))
+
+    used_people = _norm_ids(getattr(phase_notes, "used_person_ids", []))
+    used_income = _norm_ids(getattr(phase_notes, "used_income_line_ids", []))
+    used_assets = _norm_ids(getattr(phase_notes, "used_asset_ids", []))
+    used_liabs = _norm_ids(getattr(phase_notes, "used_liability_ids", []))
+    used_policies = _norm_ids(getattr(phase_notes, "used_policy_ids", []))
+
+    invalid: Dict[str, List[str]] = {}
+    inv_people = sorted({i for i in used_people if i not in allowed_people})
+    inv_income = sorted({i for i in used_income if i not in allowed_income})
+    inv_assets = sorted({i for i in used_assets if i not in allowed_assets})
+    inv_liabs = sorted({i for i in used_liabs if i not in allowed_liabs})
+    inv_policies = sorted({i for i in used_policies if i not in allowed_policies})
+    if inv_people:
+        invalid["used_person_ids"] = inv_people
+    if inv_income:
+        invalid["used_income_line_ids"] = inv_income
+    if inv_assets:
+        invalid["used_asset_ids"] = inv_assets
+    if inv_liabs:
+        invalid["used_liability_ids"] = inv_liabs
+    if inv_policies:
+        invalid["used_policy_ids"] = inv_policies
+
+    if invalid:
+        raise ValueError(
+            "Invalid record IDs returned by model "
+            f"({dialog_id} phase={phase_idx} name={phase_name}): {json.dumps(invalid, ensure_ascii=False)}"
+        )
+
+
 def _household_type(financial_profile: Dict[str, Any]) -> HouseholdType:
     hh = financial_profile.get("households") or {}
     # Prefer explicit schema field if present.
@@ -51,6 +97,27 @@ def _format_profile_for_prompt(profile: Dict[str, Any]) -> str:
 
 def _count_turns(lines: List[str]) -> int:
     return sum(1 for l in lines if l.strip())
+
+
+def _normalize_misunderstood_terms(values: Any) -> List[str]:
+    out: List[str] = []
+    for v in values or []:
+        if isinstance(v, str):
+            s = v.strip()
+            if s:
+                out.append(s)
+            continue
+        if isinstance(v, dict):
+            term = str(v.get("term") or "").strip()
+            if term:
+                out.append(term)
+            continue
+        term = getattr(v, "term", None)
+        if term is not None:
+            s = str(term).strip()
+            if s:
+                out.append(s)
+    return out
 
 
 class DialogGenerationPipeline:
@@ -189,16 +256,26 @@ class DialogGenerationPipeline:
                     schema=PhaseGenerationResult,
                 )
 
+                _validate_phase_used_ids(
+                    dialog_id=dialog_id,
+                    phase_name=phase.phase_name,
+                    phase_idx=phase_idx + 1,
+                    record_ids=record_ids,
+                    phase_notes=phase_res.phase_notes,
+                )
+
                 # Coverage tracking (model provides record ids it referenced)
-                used_person_ids.update([i for i in phase_res.phase_notes.used_person_ids if i in record_ids.person_ids])
+                used_person_ids.update([i for i in _norm_ids(phase_res.phase_notes.used_person_ids) if i in record_ids.person_ids])
                 used_income_line_ids.update(
-                    [i for i in phase_res.phase_notes.used_income_line_ids if i in record_ids.income_line_ids]
+                    [i for i in _norm_ids(phase_res.phase_notes.used_income_line_ids) if i in record_ids.income_line_ids]
                 )
-                used_asset_ids.update([i for i in phase_res.phase_notes.used_asset_ids if i in record_ids.asset_ids])
+                used_asset_ids.update([i for i in _norm_ids(phase_res.phase_notes.used_asset_ids) if i in record_ids.asset_ids])
                 used_liability_ids.update(
-                    [i for i in phase_res.phase_notes.used_liability_ids if i in record_ids.liability_ids]
+                    [i for i in _norm_ids(phase_res.phase_notes.used_liability_ids) if i in record_ids.liability_ids]
                 )
-                used_policy_ids.update([i for i in phase_res.phase_notes.used_policy_ids if i in record_ids.policy_ids])
+                used_policy_ids.update(
+                    [i for i in _norm_ids(phase_res.phase_notes.used_policy_ids) if i in record_ids.policy_ids]
+                )
 
                 new_lines = [l.strip() for l in phase_res.utterances if str(l).strip()]
                 transcript_lines.extend(new_lines)
@@ -223,7 +300,11 @@ class DialogGenerationPipeline:
                     schema=StateUpdateResult,
                 )
 
-                state = ConversationState(**state_res.state.model_dump())
+                state_dict = state_res.state.model_dump()
+                state_dict["misunderstood_terms"] = _normalize_misunderstood_terms(
+                    state_dict.get("misunderstood_terms")
+                )
+                state = ConversationState(**state_dict)
 
                 phases_out.append(
                     {
@@ -237,31 +318,43 @@ class DialogGenerationPipeline:
                     }
                 )
 
-            # If any records were missed, run one extra close-out phase to cover gaps.
-            remaining_income = [i for i in record_ids.income_line_ids if i not in used_income_line_ids]
-            remaining_assets = [i for i in record_ids.asset_ids if i not in used_asset_ids]
-            remaining_liabs = [i for i in record_ids.liability_ids if i not in used_liability_ids]
-            remaining_policies = [i for i in record_ids.policy_ids if i not in used_policy_ids]
+            # If any records were missed, run 1-3 close-out phases to cover gaps.
+            close_out_count = 0
+            while close_out_count < 3 and _count_turns(transcript_lines) < cfg.max_turns:
+                remaining_people = [i for i in record_ids.person_ids if i not in used_person_ids]
+                remaining_income = [i for i in record_ids.income_line_ids if i not in used_income_line_ids]
+                remaining_assets = [i for i in record_ids.asset_ids if i not in used_asset_ids]
+                remaining_liabs = [i for i in record_ids.liability_ids if i not in used_liability_ids]
+                remaining_policies = [i for i in record_ids.policy_ids if i not in used_policy_ids]
 
-            has_gaps = bool(remaining_income or remaining_assets or remaining_liabs or remaining_policies)
-            if has_gaps and _count_turns(transcript_lines) < cfg.max_turns:
+                has_gaps = bool(
+                    remaining_people or remaining_income or remaining_assets or remaining_liabs or remaining_policies
+                )
+                if not has_gaps:
+                    break
+
+                remaining_turn_budget = int(cfg.max_turns - _count_turns(transcript_lines))
+                if remaining_turn_budget <= 0:
+                    break
+
                 gap_phase = {
                     "phase_name": "Coverage close-out (fill missing records)",
                     "objectives": [
-                        "Make sure all remaining income lines/assets/liabilities/policies are explicitly discussed",
+                        "Make sure all remaining PEOPLE / income lines / assets / liabilities / policies are explicitly discussed",
                         "Have the advisor summarize and confirm understanding",
                     ],
                     "must_cover_topics": [
-                        "Remaining record IDs",
+                        "Remaining record IDs (phase_notes only)",
                         "Confirm amounts as ranges/rounded",
                         "Next steps",
                     ],
-                    "target_turns": min(120, max(30, int(cfg.max_turns - _count_turns(transcript_lines)))),
+                    "target_turns": min(300, max(60, remaining_turn_budget)),
                     "realism_hooks": [
                         "Advisor notices they forgot to confirm a few items",
                         "Client corrects one small detail",
                     ],
                     "remaining_record_ids": {
+                        "person_ids": remaining_people,
                         "income_line_ids": remaining_income,
                         "asset_ids": remaining_assets,
                         "liability_ids": remaining_liabs,
@@ -269,12 +362,13 @@ class DialogGenerationPipeline:
                     },
                 }
 
+                phase_index = len(phases_out) + 1
                 phase_user = render_prompt(
                     self.prompts.phase_generation,
                     {
                         "scenario_name": scenario_name,
                         "household_type": hh_type,
-                        "phase_index": str(len(phases_out) + 1),
+                        "phase_index": str(phase_index),
                         "phase_name": str(gap_phase["phase_name"]),
                         "phase_json": json.dumps(gap_phase, ensure_ascii=False, indent=2),
                         "outline_json": json.dumps(outline.model_dump(), ensure_ascii=False, indent=2),
@@ -293,18 +387,80 @@ class DialogGenerationPipeline:
                     user_prompt=phase_user,
                     schema=PhaseGenerationResult,
                 )
+
+                _validate_phase_used_ids(
+                    dialog_id=dialog_id,
+                    phase_name=str(gap_phase["phase_name"]),
+                    phase_idx=phase_index,
+                    record_ids=record_ids,
+                    phase_notes=phase_res.phase_notes,
+                )
+
+                used_person_ids.update([i for i in _norm_ids(phase_res.phase_notes.used_person_ids) if i in record_ids.person_ids])
+                used_income_line_ids.update(
+                    [i for i in _norm_ids(phase_res.phase_notes.used_income_line_ids) if i in record_ids.income_line_ids]
+                )
+                used_asset_ids.update([i for i in _norm_ids(phase_res.phase_notes.used_asset_ids) if i in record_ids.asset_ids])
+                used_liability_ids.update(
+                    [i for i in _norm_ids(phase_res.phase_notes.used_liability_ids) if i in record_ids.liability_ids]
+                )
+                used_policy_ids.update(
+                    [i for i in _norm_ids(phase_res.phase_notes.used_policy_ids) if i in record_ids.policy_ids]
+                )
+
                 new_lines = [l.strip() for l in phase_res.utterances if str(l).strip()]
                 transcript_lines.extend(new_lines)
+
+                state_user = render_prompt(
+                    self.prompts.state_update,
+                    {
+                        "scenario_name": scenario_name,
+                        "household_type": hh_type,
+                        "phase_index": str(phase_index),
+                        "phase_name": str(gap_phase["phase_name"]),
+                        "personas_json": json.dumps(personas, ensure_ascii=False, indent=2),
+                        "financial_profile_digest": digest,
+                        "previous_state_json": json.dumps(state.to_dict(), ensure_ascii=False, indent=2),
+                        "new_utterances": "\n".join(new_lines),
+                    },
+                )
+                state_res = llm.create_json(
+                    system_prompt=system_prompt,
+                    user_prompt=state_user,
+                    schema=StateUpdateResult,
+                )
+                state = ConversationState(**state_res.state.model_dump())
+
                 phases_out.append(
                     {
-                        "phase_index": len(phases_out) + 1,
+                        "phase_index": phase_index,
                         "phase_name": gap_phase["phase_name"],
                         "phase_plan": gap_phase,
                         "utterances": new_lines,
                         "phase_notes": phase_res.phase_notes.model_dump(),
                         "state_after": state.to_dict(),
-                        "phase_summary": "Auto-generated close-out phase to cover remaining records.",
+                        "phase_summary": state_res.phase_summary,
                     }
+                )
+                close_out_count += 1
+
+            # Final hard check for coverage.
+            remaining_people = [i for i in record_ids.person_ids if i not in used_person_ids]
+            remaining_income = [i for i in record_ids.income_line_ids if i not in used_income_line_ids]
+            remaining_assets = [i for i in record_ids.asset_ids if i not in used_asset_ids]
+            remaining_liabs = [i for i in record_ids.liability_ids if i not in used_liability_ids]
+            remaining_policies = [i for i in record_ids.policy_ids if i not in used_policy_ids]
+            if remaining_people or remaining_income or remaining_assets or remaining_liabs or remaining_policies:
+                remaining_by_type = {
+                    "person_ids": remaining_people,
+                    "income_line_ids": remaining_income,
+                    "asset_ids": remaining_assets,
+                    "liability_ids": remaining_liabs,
+                    "policy_ids": remaining_policies,
+                }
+                raise ValueError(
+                    "Coverage incomplete after close-out phases "
+                    f"({dialog_id}): {json.dumps(remaining_by_type, ensure_ascii=False)}"
                 )
 
             transcript_text = "\n".join(transcript_lines).strip() + "\n"

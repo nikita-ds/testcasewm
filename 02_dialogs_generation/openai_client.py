@@ -50,14 +50,12 @@ class OpenAIResponsesClient:
         client = self._client()
         kwargs: Dict[str, Any] = {
             "model": self.model,
+            # Prefer Responses API "instructions" for the system prompt.
+            "instructions": system_prompt,
             "input": [
                 {
-                    "role": "system",
-                    "content": [{"type": "text", "text": system_prompt}],
-                },
-                {
                     "role": "user",
-                    "content": [{"type": "text", "text": user_prompt}],
+                    "content": [{"type": "input_text", "text": user_prompt}],
                 },
             ],
             "temperature": self.temperature,
@@ -66,7 +64,15 @@ class OpenAIResponsesClient:
         if self.seed is not None:
             kwargs["seed"] = self.seed
 
-        resp = client.responses.create(**kwargs)
+        try:
+            resp = client.responses.create(**kwargs)
+        except TypeError as e:
+            # Some OpenAI SDK versions do not support passing `seed` into Responses API.
+            if "seed" in kwargs and "unexpected keyword" in str(e):
+                kwargs.pop("seed", None)
+                resp = client.responses.create(**kwargs)
+            else:
+                raise
         return resp.output_text
 
     def create_json(self, *, system_prompt: str, user_prompt: str, schema: Type[T]) -> T:

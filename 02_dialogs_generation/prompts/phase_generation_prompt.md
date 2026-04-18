@@ -58,6 +58,7 @@ OUTPUT JSON SCHEMA
 COVERAGE / ANTI-MIXING RULES (STRICT)
 - Every time you meaningfully reference a specific person / income line / asset / liability / policy from the digest, add its ID to the corresponding used_*_ids list.
 - The used_*_ids lists must be subsets of valid_record_ids_json.
+- If phase_json contains remaining_record_ids, you MUST ensure every ID in remaining_record_ids appears in the corresponding used_*_ids list in phase_notes.
 - Do NOT output IDs in utterances; IDs are for phase_notes only.
 
 TARGET LENGTH
