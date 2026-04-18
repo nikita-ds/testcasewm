@@ -1,0 +1,11 @@
+services:
+  dialogs:
+    build:
+      context: ..
+      dockerfile: 02_dialogs_generation/Dockerfile
+    working_dir: /app/02_dialogs_generation
+    env_file:
+      - .env
+    volumes:
+      - ..:/app
+    command: ["python", "run_pipeline.py"]

@@ -1,0 +1,144 @@
+# Dialogs generation (02_dialogs_generation)
+
+This folder contains a production-oriented pipeline that generates long, realistic advisor–client dialogue transcripts grounded in **existing generated financial profiles** and **existing scenario definitions**.
+
+Key properties:
+- Uses `generator_params.scenarios` + `generator_params.scenario_weights` from priors (with fallback to `scenario_catalog`) to sample scenarios with the same distribution as the upstream generator.
+- Multi-stage generation (no single-pass full transcript):
+  1) persona generation
+  2) conversation outline
+  3) phase-by-phase dialogue generation
+  4) state update after each phase
+- Prompts are stored as separate `.md` files under `prompts/` and loaded dynamically.
+- Uses the OpenAI Python SDK (Responses API). Set `OPENAI_API_KEY`.
+
+## Repository constraints
+- This module does **not** modify upstream data generation.
+- No evaluation logic is implemented (no metrics/scoring/judge models).
+
+## Inputs
+
+### A) Financial dataset JSON (required by generator)
+The dialogue generator consumes a JSON file containing a list of per-household financial profiles. Each item is a dict containing the same fields as the generated tables:
+
+- `households` (single row as dict)
+- `people` (list)
+- `income_lines` (list)
+- `assets` (list)
+- `liabilities` (list)
+- `protection_policies` (list)
+
+If you only have the CSV tables (default output of `01_data_generation`), first build the JSON:
+
+```bash
+python 02_dialogs_generation/build_financial_dataset.py \
+  --tables-dir 01_data_generation/artifacts/tables \
+  --out-json 02_dialogs_generation/artifacts/financial_profiles.json
+```
+
+### B) Priors
+Use either:
+- `01_data_generation/config/priors.json`, or
+- `01_data_generation/artifacts/computed_priors.json`
+
+## Install
+
+From repo root:
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r 02_dialogs_generation/requirements.txt
+export OPENAI_API_KEY=...  # required
+```
+
+## Run in Docker
+
+This pipeline is designed to run via Docker Compose (so you don't need a local Python environment).
+
+From the `02_dialogs_generation/` directory:
+
+```bash
+cd 02_dialogs_generation
+
+# Put your OpenAI key into 02_dialogs_generation/.env
+# OPENAI_API_KEY=...
+
+# End-to-end run (builds financial_profiles.json from 01_data_generation tables,
+# then generates dialogs). Defaults to 1 dialog.
+docker compose up --build
+
+# To generate more dialogs, set DIALOG_N in 02_dialogs_generation/.env, e.g.
+# DIALOG_N=25
+
+# If phases get truncated (invalid JSON), increase output budget, e.g.
+# MAX_OUTPUT_TOKENS=8000
+```
+
+### Example transcript guidance in prompts
+
+The phase-generation prompt injects two style exemplars from `00_initial_task/`:
+- `synthetic_transcript1.txt`
+- `synthetic_transcript2.txt`
+
+Because those files are very large, the default mode injects **excerpts** only.
+You can control this via `EXAMPLE_TRANSCRIPTS_MODE` in `.env`:
+- `excerpt` (default, recommended)
+- `full` (very large; may exceed context limits)
+- `none`
+
+## Generate dialogues
+
+```bash
+python 02_dialogs_generation/generate_dialogs.py \
+  --priors 01_data_generation/config/priors.json \
+  --financial-dataset-json 02_dialogs_generation/artifacts/financial_profiles.json \
+  --out 02_dialogs_generation/artifacts/dialogs \
+  --n 25 \
+  --min-turns 1000 \
+  --max-turns 1700 \
+  --model gpt-4.1 \
+  --max-output-tokens 8000
+```
+
+Outputs:
+- One JSON per transcript: `DIALOG_<household_id>.json`
+- Optional plain-text transcript alongside: `DIALOG_<household_id>.txt`
+
+## Output format
+Each transcript JSON:
+
+```json
+{
+  "id": "...",
+  "scenario": "...",
+  "financial_profile": { ... },
+  "personas": [ {"id": "client_1", "profile": {...}}, ... ],
+  "transcript": "Advisor: ...\nClient: ...\n...",
+  "phases": [ ... ],
+  "metadata": {
+    "num_turns": 123,
+    "household_type": "single",
+    "scenario_name": "family_with_mortgage_and_children"
+  }
+}
+```
+
+## Architecture
+- `generate_dialogs.py`: CLI entrypoint
+- `pipeline.py`: orchestration (persona → outline → phases → state updates)
+- `openai_client.py`: OpenAI Responses API wrapper + JSON extraction
+- `scenario.py`: scenario sampling logic (matches upstream)
+- `financial_dataset.py`: build profile JSON from CSV tables
+- `schemas.py`: pydantic models for LLM outputs
+- `state.py`: structured state object
+- `prompt_loader.py`: loads `.md` prompts and performs placeholder substitution
+- `prompts/`: prompt templates (no inline prompts in Python)
+
+## Design decisions
+- Keep prompts external and versionable (`prompts/*.md`).
+- Use JSON-only LLM outputs for robust parsing.
+- Keep deterministic components deterministic (scenario sampling uses `--seed`).
+
+## Limitations
+- Determinism of the language model output depends on the underlying model; `--openai-seed` is passed when supported.
+- The generator assumes the financial dataset JSON is a list of household profiles.
