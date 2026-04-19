@@ -3,8 +3,18 @@ You will generate the NEXT CHUNK of an advisor-client conversation AND produce i
 GOAL
 - Continue the conversation naturally from transcript_so_far.
 - The advisor must ask questions that elicit the target fields.
-- The clients must answer using the provided source_value (rounded/ranged wording is allowed).
+- The clients must answer using the provided source_value.
+  Rounded/ranged wording is allowed for realism, but every target's canonical source_value must also appear at least once exactly.
 - Output BOTH the chunk utterances and an evidence_items list mapping each target_id to a short excerpt.
+
+TARGETS_JSON FORMAT (IMPORTANT)
+- targets_json is an array of objects with keys:
+  - target_id
+  - record_type (households/people/income_lines/assets/liabilities/protection_policies)
+  - field (human label)
+  - kind (money|number|date|interest_rate|text)
+  - source_value (the canonical value to be covered in dialogue)
+- These are already sanitized for prompting; NEVER output any internal schema tokens.
 
 CRITICAL FORMAT REQUIREMENTS
 - Output MUST be valid JSON only. No markdown. No commentary.
@@ -28,12 +38,14 @@ REALISM + PACING RULES (STRICT)
 - You MAY interleave targets, but every target must be covered.
 - Never include timestamps.
 
-REQUIRED "LIVELINESS" BEATS (DO NOT SKIP)
-- Include at least ONE of each (somewhere in this chunk):
+"LIVELINESS" BEATS (DOSE CONTROL)
+- Do NOT force a misunderstanding / disagreement / tangent in every chunk.
+- In THIS chunk, include AT MOST ONE of the following beats (0 or 1 is fine):
   1) a mild disagreement or correction between clients (or client corrects advisor)
   2) an interruption / overlap (a cut-in mid-thought)
   3) a small misunderstanding of a concept (e.g., gross vs net, balance vs payment) that gets resolved
-- Include at least ONE brief return to a prior topic from earlier in the conversation ("going back to...").
+- If transcript_so_far already contains a recent misunderstanding or correction, prefer to skip these beats.
+- Only do a "going back to..." return-to-prior-topic line if it genuinely helps; do not add it by default.
 
 REALISM SIGNALS (MATCH THE JUDGE)
 - Imperfect memory is normal: clients should sometimes hedge ("I think", "roughly", "I'd have to check").
@@ -43,6 +55,12 @@ REALISM SIGNALS (MATCH THE JUDGE)
 - Include at least one micro-repair per chunk (a quick self-correction or clarification).
 - Allow one indirect answer that gets specific after a follow-up.
 - Avoid stitched feel: reference the immediate prior context lightly ("as you said earlier…", "going back to…") without introducing new facts.
+
+DOSE TARGETS (CONFIG)
+- Target density for BOTH misunderstandings and recap/check-back moments:
+  within the last {{recap_window_utterances}} utterances, allow at most {{recap_max_per_window}} recap/check-back moment(s).
+  within the last {{misunderstanding_window_utterances}} utterances, allow at most {{misunderstanding_max_per_window}} misunderstanding moment(s).
+  If transcript_so_far already includes one within the recent window, skip adding another in this chunk.
 
 STYLE TARGET (DERIVED FROM THE EXEMPLAR TRANSCRIPTS)
 - Short, messy, realistic turn-taking: lots of "yeah/okay/right" backchannel and occasional interruptions.
@@ -54,6 +72,10 @@ STYLE TARGET (DERIVED FROM THE EXEMPLAR TRANSCRIPTS)
 ABSOLUTE NO-GOS (IMPORTANT)
 - Do NOT include timestamps.
 - Do NOT ask for or mention any PII: Social Security numbers, full addresses, account numbers, passwords, emails, phone numbers.
+
+HARD BAN ON "SCHEMA TOKENS" IN UTTERANCES
+- Never output snake_case tokens (words containing underscores), dotted keys, bracketed paths, internal IDs, or internal table/field names.
+- If source_value is an enum-like concept, express it in natural spoken English (e.g., "married", "primary residence", "advisor platform", "RIA").
 
 AVOID SYNTHETIC TELLS
 - Avoid robotic advisor summaries and checklist-like cadence.
@@ -82,38 +104,61 @@ REALISTIC RESPONSE LATENCY (IMPORTANT)
 GROUNDING RULES
 - Use ONLY the provided source_value(s) for targets.
 - Do NOT invent new numbers.
-- When stating dollar amounts, round to the nearest $50 and never mention cents.
+- When stating dollar amounts, you may add human formatting (e.g., $ and commas) as long as digits are unchanged.
+  You may also use rounded/ranged phrasing ("about", "roughly", "between") for realism, but ensure the exact source_value is stated at least once.
+  Do not introduce cents unless they are present in source_value.
 - It is ok to round or provide a range around the source_value; if you do, mark status="approximate".
 - Do not mention any record IDs or field paths in the utterances.
+
+CANONICAL MENTION RULE (STRICT)
+- For EACH target: ensure that at least one client utterance states the source_value in its exact canonical form.
+  You may additionally include an approximate phrasing elsewhere.
+- If you temporarily say a wrong numeric value, you MUST correct it explicitly within the next 1–3 utterances and still state the canonical source_value exactly.
+
+NO BACKEND LABELS IN SPOKEN DIALOGUE
+- Do NOT expose backend labels (asset type/provider type/subtype/ownership/classification) or internal field names.
+- Express categories in natural English without reading internal labels aloud.
 
 CORRECTIONS + CONFIRMATION (CRITICAL FOR VALIDATION)
 - You MAY have a client initially guess a number imprecisely or even say a wrong number.
 - If any number is stated imprecisely or incorrectly, you MUST later correct it explicitly in this chunk.
-- Near the end of the chunk, do ONE short check-back ("so we have X as Y, right?") covering 2–4 key numeric facts.
+- Check-backs are useful but expensive.
+  Only do ONE short check-back near the end of the chunk IF:
+  (a) you covered multiple new numeric targets in this chunk, AND
+  (b) transcript_so_far does NOT already contain a recent recap/check-back.
   Keep it to 1–2 utterances total; do not do multiple recap blocks.
 - Even if a client pushes to move on, ensure the final captured phrasing contains ONE clear, easy-to-validate mention of each key numeric target.
+
+ANTI-REPETITION (HIGH PRIORITY)
+- Do NOT re-state the same exact numeric value over and over.
+  As a rule of thumb: once a canonical number has been stated clearly, avoid repeating it more than 1 additional time in this chunk.
+- Avoid the template loop: ask → answer → advisor repeats full number → client repeats full number.
+  Prefer short confirmations: "Got it." / "Okay." / "Right." / "Yep." without re-saying the digits.
+- After first mention, refer back with pronouns: "that payment", "that balance", "the policy", "the account".
+- Never use the phrase "Quick check-back".
 
 STABILITY RULES (for easier validation)
 - Prefer covering quantitative/value targets first (amounts, balances, monthly costs), then descriptive details (provider/type/owner).
 - When a target source_value is a number, try to say it in a simple form close to the input (e.g., "$38,200" or "about 38k").
 
 RATE FORMAT (IMPORTANT)
-- If a target field_path ends with `.interest_rate`, ALWAYS speak it as a percentage (e.g., "4.9%" or "about five percent") and keep it close to source_value.
+- If a target has kind="interest_rate", ALWAYS speak it as a percentage (e.g., "4.9%" or "about five percent") and keep it close to source_value.
 - In evidence_items: if you stated the source_value (or a tight human rounding), status must be "present" or "approximate" — never "contradiction".
 
 SPECIAL CASES (TO PREVENT FALSE FAILURES)
-- If targets_json includes `households.num_adults`, you MUST explicitly ask and answer the adult count in plain language.
+- If targets_json includes a target with field "number of adults", you MUST explicitly ask and answer the adult count in plain language.
   Example style (adapt to household_type):
   - Advisor: "Just to confirm, is it just the two of you—two adults in the household?"
   - Client: "Yes, two adults."
-- If targets_json includes any `people[...].client_no`, you MUST explicitly confirm the client labeling (Client 1 / Client 2) in the utterances.
+- If targets_json includes any target with field "client label", you MUST explicitly confirm the client labeling (Client 1 / Client 2) in the utterances.
   Do not imply it indirectly; say it explicitly.
-  Do NOT describe this as a "client number 0" or any internal coding. Use only the natural labels "Client 1" / "Client 2".
+  Do NOT describe any internal coding (no zero-indexing). Use only the natural labels "Client 1" / "Client 2".
 
 EVIDENCE RULES
 - You MUST return exactly one evidence_items entry per input target, with the SAME target_id.
 - evidence_text MUST be copied verbatim from your own utterances.
 - evidence_text should include at least 1 advisor question and at least 1 client answer.
+- Prefer selecting evidence_text that includes the exact canonical source_value mention for that target.
 - If you fail to cover a target, set status="missing" and evidence_text="".
 
 INPUTS
@@ -157,6 +202,6 @@ OUTPUT JSON SCHEMA
 
 LENGTH LIMITS
 - HARD LIMIT: NEVER output more than 75 utterances.
-- HARD MINIMUM: output at least 25 utterances unless transcript_so_far is already very long or you are close to a global max-turns cap.
-- Prefer 35–60 utterances.
+- HARD MINIMUM: output at least 12 utterances unless transcript_so_far is already very long or you are close to a global max-turns cap.
+- Prefer 18–40 utterances.
 - Keep evidence_text short (2–6 lines typically).

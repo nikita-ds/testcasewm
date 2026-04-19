@@ -111,6 +111,15 @@ class GenerationConfig:
     # When generating in parallel, keep going if some dialogs fail, then raise at the end if required.
     continue_on_error: bool = True
 
+    # Realism beat throttles (to avoid repetitive misunderstanding/recap loops).
+    # Interpreted as: within the last `*_window_utterances` turns, allow at most
+    # `*_max_per_window` recap/misunderstanding beats.
+    # Defaults target roughly "1 per 10 utterances".
+    recap_window_utterances: int = 10
+    recap_max_per_window: int = 1
+    misunderstanding_window_utterances: int = 10
+    misunderstanding_max_per_window: int = 1
+
 
 def default_repo_root() -> Path:
     # Assumes scripts are run from within the repo.

@@ -5,7 +5,7 @@ CRITICAL REQUIREMENTS
 - Do NOT generate the full dialogue here.
 - Must be grounded in the provided financial profile and scenario.
 - The conversation must feel natural: repetitions, clarifications, small misunderstandings, topic drift and return.
-- When planning dollar amounts to be said in the conversation, assume rounding to the nearest $50 (no cents).
+- Conversational rounding/ranges are allowed for realism, but you must plan that every canonical numeric value will be stated exactly at least once somewhere in the final conversation.
 
 INPUTS
 - scenario_name: {{scenario_name}}
@@ -42,7 +42,7 @@ GUIDELINES
 - Use 4–6 phases (prefer fewer phases for faster generation).
 - total_target_turns must be between min_turns and max_turns.
 - Sum of phases.target_turns should approximately equal total_target_turns.
-- Keep individual phase target_turns small (typically 20–60) to reduce runtime and the risk of truncated JSON outputs.
+- Keep individual phase target_turns small (typically 15–45) to reduce runtime and the risk of truncated JSON outputs.
 - Include at least 2 planned moments where the conversation returns to an earlier topic.
 - Include at least 1 planned misunderstanding (term confusion) and a repair.
 - Include at least 1 planned moment of disagreement/negotiation (especially for couples).
@@ -60,6 +60,7 @@ PACE / BREVITY (IMPORTANT)
 
 REALISM REQUIREMENTS (ADD AS HOOKS)
 - Plan at least 2 moments of imperfect recall where a client says they don't remember exactly and answers with a range ("between X and Y", "around", "I'd have to check").
+  Ensure the outline also includes a later moment where the exact canonical value is stated clearly.
 - Plan expense discovery so it unfolds over multiple back-and-forth turns; avoid a single "here are all our expenses" dump.
   - Include at least one moment where an expense category is initially missed (e.g., childcare, insurance, subscriptions, irregular repairs) and is remembered later after a prompt.
 - Plan 0–2 brief tangents / small-talk "water" moments TOTAL across the whole conversation.

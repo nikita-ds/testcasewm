@@ -5,6 +5,13 @@ GOAL
 - Expand the conversation noticeably while preserving all grounded facts already present in the skeleton.
 - Increase realism through hesitation, uncertainty, partial recall, small corrections, and natural follow-up questions.
 
+ANTI-REPETITION (HIGH PRIORITY)
+- If the skeleton contains repeated loops (e.g., multiple "check-back" blocks, the same mortgage/payment/policy repeated many times), COMPRESS them.
+- Keep at least ONE clear canonical mention of each grounded number, but avoid re-stating the same digits repeatedly.
+- Avoid the pattern where both advisor and client restate the same number back-to-back.
+  Prefer short confirmations ("yep", "right", "sounds right") without repeating digits.
+- Never use the phrase "Quick check-back".
+
 CRITICAL REQUIREMENTS
 - Output MUST be plain text only (NOT JSON).
 - Each line must be exactly one utterance.
@@ -15,7 +22,8 @@ CRITICAL REQUIREMENTS
   - "Client:" (if household_type == single)
 - Never include timestamps.
 - Do not mention record IDs or field paths.
-- When stating dollar amounts, round to the nearest $50 and never mention cents.
+- Do NOT change any numeric digits that already exist in the skeleton.
+  You may add an approximate restatement ("about", "roughly", ranges) for realism, but ensure the exact canonical number still appears clearly at least once.
 - Do NOT ask for or mention any PII: Social Security numbers, full addresses, account numbers, passwords, emails, phone numbers.
 
 NAME USAGE (IMPORTANT)
@@ -35,6 +43,14 @@ CORRECTIONS + CONFIRMATION (CRITICAL FOR VALIDATION)
 - If you introduce an imprecise or wrong numeric phrasing, you MUST later restate the correct grounded number
   (from the skeleton) explicitly, and have the client(s) confirm.
 
+NO BACKEND LABELS IN SPOKEN DIALOGUE
+- Do NOT expose backend labels (asset type/provider type/subtype/ownership/classification) or internal field names.
+- Express categories in natural English without reading internal labels aloud.
+
+SCHEMA-LEAK CLEANUP (REQUIRED)
+- If the skeleton contains any schema/internal tokens (snake_case words with underscores, dotted keys, bracketed paths, internal IDs), you MUST rewrite them into natural spoken English.
+- Keep all numeric digits and dates exactly the same when rewriting.
+
 REALISM SIGNALS TO ADD
 - Clients should sometimes sound unsure: "I think", "roughly", "off the top of my head", "let me think", "that sounds about right".
 - Let clients remember spending in pieces, not only in one grand total:
@@ -49,13 +65,15 @@ STYLE TARGET (DERIVED FROM synthetic_transcript1/2)
 - Lots of backchannel and fragments: "yeah", "right", "okay", "mm", with occasional overlaps.
 - Light disfluency: repeats ("I—I"), self-corrections, "sorry", "hang on", and trailing dashes "—".
 - Use small admin beats to hide stitching: "Let me write that down", "one second", "okay—go ahead".
-- Small talk often pops up during admin moments (FACT-SAFE): weather, holidays, scheduling, generic weekend plans.
+- Small talk often pops up during admin moments (FACT-SAFE): scheduling, generic weekend plans, brief pleasantries.
+  Avoid repetitive weather/traffic fillers.
 - Mild pushback and repair is normal: a client challenges, advisor reassures, then returns to the agenda.
 - Emotional texture is normal: clients may SOMETIMES sound tired, stressed, or mildly irritated (no rudeness).
   - The advisor should acknowledge briefly and steer back to facts.
 
 LIGHT SMALL-TALK (SAFE "WATER")
-- Add 2–5 brief human moments across the transcript: weather, commute/traffic, scheduling, generic weekend plans.
+- Add 0–2 brief human moments across the transcript: scheduling, generic weekend plans, brief pleasantries.
+  Avoid repetitive weather/traffic fillers.
 - If you include hobbies, do it as a generic question + vague answer (no specific hobby facts) unless the skeleton already mentions a specific hobby.
 - Keep these moments short (1–3 turns each) and naturally return to the agenda.
 
@@ -91,8 +109,8 @@ STYLE
 - Avoid repetitive filler and avoid making every turn equally long.
 
 OUTPUT LENGTH
-- Target expansion: +35% to +80% more lines than the skeleton.
-- The finished dialogue should feel materially richer than the skeleton.
+- Target expansion: +15% to +40% more lines than the skeleton.
+- Prefer quality (natural pacing) over sheer length.
 
 INPUTS
 - household_type: {{household_type}}

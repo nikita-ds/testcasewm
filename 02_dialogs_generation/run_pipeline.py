@@ -72,6 +72,11 @@ def main() -> None:
     field_chunk_group_by_record_type = bool(int(os.getenv("FIELD_CHUNK_GROUP_BY_RECORD_TYPE", "1")))
     field_chunk_shuffle_within_group = bool(int(os.getenv("FIELD_CHUNK_SHUFFLE_WITHIN_GROUP", "1")))
 
+    recap_window_utterances = _env_int("RECAP_WINDOW_UTTERANCES", 10)
+    recap_max_per_window = _env_int("RECAP_MAX_PER_WINDOW", 1)
+    misunderstanding_window_utterances = _env_int("MISUNDERSTANDING_WINDOW_UTTERANCES", 10)
+    misunderstanding_max_per_window = _env_int("MISUNDERSTANDING_MAX_PER_WINDOW", 1)
+
     context_last_utterances = _env_int("CONTEXT_LAST_UTTERANCES", 30)
     context_summary_last_phases = _env_int("CONTEXT_SUMMARY_LAST_PHASES", 4)
     context_summary_max_chars = _env_int("CONTEXT_SUMMARY_MAX_CHARS", 1200)
@@ -132,6 +137,10 @@ def main() -> None:
         deepseek_pass_subdir=deepseek_pass_subdir,
         field_chunk_group_by_record_type=field_chunk_group_by_record_type,
         field_chunk_shuffle_within_group=field_chunk_shuffle_within_group,
+        recap_window_utterances=recap_window_utterances,
+        recap_max_per_window=recap_max_per_window,
+        misunderstanding_window_utterances=misunderstanding_window_utterances,
+        misunderstanding_max_per_window=misunderstanding_max_per_window,
         sample_mode=sample_mode,
         income_bins=income_bins,
         assets_bins=assets_bins,

@@ -7,8 +7,15 @@ GOAL
 - If you mention any number at all, it must be something already said in the transcript tail; otherwise avoid numbers entirely.
 
 CORRECTIONS + CONFIRMATION
-- You MAY add a brief misunderstanding or a quick misstatement, but if you do, you MUST correct it within the added lines.
-- If you restate any key number, prefer a short advisor "restate + confirm" and a client confirmation.
+- You MAY add a brief misunderstanding or a quick misstatement, but if you do, you MUST correct it within the next 1–3 added lines.
+- Avoid adding new recap loops.
+  If you restate any key number, do it sparingly (ideally once), and prefer a very short confirmation that does NOT echo the full digits back.
+  Do NOT add repeated "check-back" blocks if the transcript tail already has recent confirmations.
+
+ANTI-REPETITION (HIGH PRIORITY)
+- Never use the phrase "Quick check-back".
+- Do not repeat the same bridge line across multiple added turns.
+- Prefer non-numeric "water" lines; avoid re-saying digits unless absolutely necessary.
 
 STRICT FORMAT
 - Output ONLY the NEW lines you are adding (do not repeat existing lines).
@@ -26,6 +33,9 @@ STYLE
 - Avoid template-y repetition and long monologues.
 - Emotional texture is normal: clients may SOMETIMES sound tired, impatient, or mildly irritated (no rudeness).
   - The advisor should acknowledge briefly and keep things moving.
+
+SMALL-TALK DOSAGE
+- Avoid repetitive weather/traffic fillers.
 
 ANTI "OVER-COACHING" / REAL-WORLD DOSAGE
 - Do NOT add long loops of reframing/probing/assumption-checking.

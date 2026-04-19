@@ -30,7 +30,8 @@ REALISM + PACING RULES (STRICT)
 - Expenses: do NOT list all expense categories at once.
   - Break expense discovery into multiple turns and categories (e.g., housing, utilities, food, healthcare, insurance, childcare, travel, subscriptions, taxes, irregular repairs).
   - It is normal for clients to forget categories (e.g., childcare) and mention them later when prompted.
-- Include some "water" / filler: small talk, short tangents, checking understanding, non-substantive phrases.
+- Include a small amount of "water" / filler: brief small talk, tiny admin beats, occasional checking understanding.
+  Keep it light; do not create repetitive filler loops.
 - Emotional texture is normal: clients may SOMETIMES sound tired, stressed, impatient, or mildly irritated (no rudeness).
   - The advisor should acknowledge it briefly and keep the meeting on track.
 - Include at least one moment where someone answers indirectly first, then gets more specific after a follow-up.
@@ -41,11 +42,25 @@ ANTI "TRAINING SCRIPT" CONSTRAINTS (HIGH PRIORITY)
 - Keep "definition lectures" minimal. If you explain a term (gross vs net, balance vs payment), do it in one short line.
 - Avoid checklist cadence: do not do repeated multi-item recaps after every topic.
 
+DOSE TARGETS (CONFIG)
+- Target density for BOTH misunderstandings and recap/check-back moments:
+  within the last {{recap_window_utterances}} utterances, allow at most {{recap_max_per_window}} recap/check-back moment(s).
+  within the last {{misunderstanding_window_utterances}} utterances, allow at most {{misunderstanding_max_per_window}} misunderstanding moment(s).
+  If transcript_so_far already includes one within the recent window, skip adding another in this phase.
+
+ANTI-REPETITION (HIGH PRIORITY)
+- Do NOT repeat the same exact numbers over and over.
+  Once a canonical number has been stated clearly, avoid repeating it more than 1–2 additional times in this phase.
+- Avoid the loop: advisor repeats full number → client repeats full number.
+  Prefer short confirmations like "yeah" / "right" / "that's correct" without re-saying digits.
+- Never use the phrase "Quick check-back".
+
 ANTI "OVER-COACHING" / REAL-WORLD DOSAGE (HIGH PRIORITY)
 - Do NOT demonstrate every counseling technique on every detail.
   Keep most numeric discovery to: ask → answer → one clarifying follow-up (optional) → move on.
 - If you notice you're stuck in a loop (e.g., debating whether something is a credit card vs loan), allow a client to push back.
-  The advisor should accept a simple truthful label ("debt" / "card" / "loan" as appropriate to the digest), capture the approximate amount, and keep going.
+  The advisor should accept a simple truthful label ("debt" / "card" / "loan" as appropriate to the digest), capture the number, and keep going.
+  If an approximate phrasing is used, ensure the canonical value is later stated exactly at least once.
 
 REALISTIC RESPONSE LATENCY (IMPORTANT)
 - Avoid "instant" perfect restatements of precise numbers by the advisor.
@@ -56,6 +71,7 @@ REALISTIC RESPONSE LATENCY (IMPORTANT)
 CORRECTIONS + CONFIRMATION (CRITICAL FOR VALIDATION)
 - You MAY have a client initially guess a number imprecisely or even say a wrong number.
 - If any number is stated imprecisely or incorrectly, you MUST later correct it explicitly in the SAME phase.
+- Corrections may clarify concepts (e.g., gross vs net, balance vs payment) but must NEVER alter canonical values.
 - Do at most ONE short mid-phase check-back if needed.
 - Make ONE FINAL restate/confirm near the end of the phase (brief, 2–4 items).
 
@@ -64,7 +80,8 @@ STYLE TARGET (DERIVED FROM synthetic_transcript1/2)
 - Use light disfluency: repeats ("I—I"), self-corrections, "sorry", "hang on", and trailing dashes "—".
 - Transitions often happen during tiny admin beats (FACT-SAFE): "Let me jot that down", "One second", "Okay—go ahead".
 - Build facts via micro-clarifications: re-ask the same thing differently; confirm inclusions/exclusions; client starts vague then gets specific.
-- Allow 1–2 short tangents (weather/holidays/scheduling), then return to the agenda.
+- Allow 1–2 short tangents (scheduling, call logistics, brief pleasantries), then return to the agenda.
+  Avoid repetitive weather/traffic fillers.
 - In couples: let them correct/interrupt each other once per phase.
 
 ABSOLUTE NO-GOS (IMPORTANT)
@@ -72,12 +89,21 @@ ABSOLUTE NO-GOS (IMPORTANT)
 
 GROUNDING REQUIREMENTS
 - The dialogue must be grounded in the provided financial_profile_digest and scenario.
-- Do NOT invent new numbers. You may round, paraphrase, or reference ranges.
-- When stating dollar amounts, round to the nearest $50 and never mention cents.
+- Do NOT invent new numbers.
+- You may round, paraphrase, or reference ranges for natural speech.
+- However, every canonical numeric value that matters for grounding/coverage must appear at least once exactly as provided somewhere in the phase.
 - If a detail is missing, ask a question instead of fabricating.
 - Personas must influence behavior consistently.
 - Use ONLY facts belonging to this household. Do not mix with other households.
 - The transcript must NOT contain any record IDs.
+
+NO BACKEND LABELS IN SPOKEN DIALOGUE
+- Do NOT expose field paths, internal keys, or backend labels such as asset type, provider type, subtype, ownership field, or classification labels.
+- If a categorical fact must be expressed, do so in natural English without reading backend labels aloud.
+
+HARD BAN ON "SCHEMA TOKENS" IN UTTERANCES
+- Never output snake_case tokens (words containing underscores), dotted keys, bracketed field paths, internal IDs, or internal table/field names.
+- If an input value is an enum-like token, translate it into natural spoken English (e.g., "married", "primary residence", "advisor platform", "RIA").
 
 INPUTS
 - scenario_name: {{scenario_name}}
@@ -144,9 +170,10 @@ JSON SAFETY
 REALISM CHECKLIST
 - Include at least one brief repetition or re-ask.
 - Include at least one clarification or repair.
-- Include at least one moment of slight topic drift and return.
+- Include at most one moment of slight topic drift and return (skip if prior phases already had this).
 - For couples: include at least one interaction between clients (agreement/disagreement, correction, interruption).
-- Include at least one small misunderstanding that gets resolved.
+- Misunderstandings are optional per phase.
+  If state_json.misunderstandings is already non-empty, prefer to NOT introduce a new misunderstanding in this phase.
 
 FEW-SHOT STYLE GUIDANCE
 - Read the injected STYLE EXEMPLARS below and imitate their pacing and imperfections.

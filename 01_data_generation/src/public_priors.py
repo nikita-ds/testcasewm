@@ -772,6 +772,8 @@ def default_generator_params() -> Dict[str, Any]:
             "lines_poisson_lambda": 2.1,
             "split_fraction": {"lo": 0.08, "hi": 0.45},
             "owner": {"joint_prob": 0.12, "client2_prob": 0.30},
+            "min_age_for_social_security": 62,
+            "min_age_for_pension_income": 55,
             "frequency": {
                 "values": ["monthly", "weekly", "annual", "quarterly", "ad_hoc"],
                 "probs": [0.64, 0.10, 0.12, 0.08, 0.06],

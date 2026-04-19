@@ -1016,6 +1016,10 @@ def gen_one(hidx, ctx: Ctx):
     income_lines = []
     il = gp.get("income_lines_model") or {}
     income_sources = list(il["sources"])
+    active_income_types = {"salary", "bonus", "business_income"}
+    non_working_statuses = {"retired", "inactive", "unemployed"}
+    min_age_for_social_security = float(il.get("min_age_for_social_security", 62))
+    min_age_for_pension_income = float(il.get("min_age_for_pension_income", 55))
     remaining = hh_income
     n_lines = max(1, int(rng.poisson(float(il["lines_poisson_lambda"]))))
     for i in range(1, n_lines+1):
@@ -1028,11 +1032,47 @@ def gen_one(hidx, ctx: Ctx):
         freq = il.get("frequency") or {}
         freq_vals = freq["values"]
         freq_probs = freq["probs"]
+        owner = "joint" if has_second and rng.random() < joint_prob else ("client_2" if has_second and rng.random() < client2_prob else "client_1")
+
+        # Avoid obvious inconsistencies that the dialogs pipeline treats as hard failures:
+        # non-working statuses should not personally own salary/bonus/business income lines.
+        sources = income_sources
+        if owner == "client_1" and str(st1 or "").strip().lower() in non_working_statuses:
+            sources = [s for s in income_sources if str(s).strip().lower() not in active_income_types] or income_sources
+        elif owner == "client_2" and str(st2 or "").strip().lower() in non_working_statuses:
+            sources = [s for s in income_sources if str(s).strip().lower() not in active_income_types] or income_sources
+        elif owner == "joint" and has_second and (str(st1 or "").strip().lower() in non_working_statuses) and (str(st2 or "").strip().lower() in non_working_statuses):
+            sources = [s for s in income_sources if str(s).strip().lower() not in active_income_types] or income_sources
+
+        # Avoid unrealistic assignments: Social Security and pension income for under-age owners.
+        # (We keep it possible for retired older households.)
+        def _is_retired(status: str | None) -> bool:
+            return str(status or "").strip().lower() == "retired"
+
+        owner_age = None
+        owner_status = None
+        if owner == "client_1":
+            owner_age = age1
+            owner_status = st1
+        elif owner == "client_2":
+            owner_age = age2
+            owner_status = st2
+        elif owner == "joint":
+            owner_age = max([x for x in [age1, age2] if x is not None], default=None)
+            # Treat "joint" as retired only if both are retired.
+            owner_status = "retired" if has_second and _is_retired(st1) and _is_retired(st2) else ""
+
+        if owner_age is not None and not _is_retired(owner_status):
+            if owner_age < min_age_for_social_security:
+                sources = [s for s in sources if str(s).strip().lower() != "social_security"] or sources
+            if owner_age < min_age_for_pension_income:
+                sources = [s for s in sources if str(s).strip().lower() != "pension_income"] or sources
+
         income_lines.append({
             "income_line_id": f"{hh_id}_I{i}",
             "household_id": hh_id,
-            "owner": "joint" if has_second and rng.random() < joint_prob else ("client_2" if has_second and rng.random() < client2_prob else "client_1"),
-            "source_type": str(rng.choice(income_sources)),
+            "owner": owner,
+            "source_type": str(rng.choice(sources)),
             "frequency": str(rng.choice(freq_vals, p=freq_probs)),
             "net_or_gross": "gross",
             "amount_annualized": round(max(0.0, amt),2)

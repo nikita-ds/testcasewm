@@ -6,7 +6,8 @@ GOAL
 - Do NOT add any new facts, numbers, dates, or account details.
 
 SAFE "WATER" YOU MAY ADD
-- Very light small-talk that does NOT assert personal facts: weather, traffic/commute, scheduling, generic weekend plans.
+- Very light small-talk that does NOT assert personal facts: scheduling, generic weekend plans, brief pleasantries.
+  Avoid repetitive weather/traffic fillers.
 - If you mention hobbies, keep it generic and non-committal (e.g., "Any hobbies keeping you busy lately?") and allow the client to answer vaguely.
 - Do NOT claim a specific hobby/interest unless it already appears in the provided tail/head.
 

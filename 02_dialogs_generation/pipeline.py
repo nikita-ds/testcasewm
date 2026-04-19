@@ -529,7 +529,7 @@ def _build_evidence_targets(
     _add_rows(
         "people",
         "person_id",
-        ["gross_annual_income", "employment_status", "occupation_group", "role", "client_no", "date_of_birth"],
+        ["gross_annual_income", "employment_status", "occupation_group", "role", "client_no"],
     )
     _add_rows(
         "income_lines",
@@ -588,6 +588,67 @@ def _value_variants(v: Any, *, field_path: str = "") -> List[str]:
     # transcripts use human forms (spaces, hyphens, punctuation).
     if isinstance(v, str) and s:
         low = s.lower()
+
+        # Income source_type: this one is especially likely to be spoken with different conjunctions
+        # ("interest and dividends" vs "interest_dividends") or shortened ("pension").
+        if field_path.startswith("income_lines[") and field_path.endswith(".source_type"):
+            # Canonical "spoken" aliases.
+            # NOTE: keep these as simple substrings (no regex) to preserve validator predictability.
+            income_aliases: Dict[str, List[str]] = {
+                "interest_dividends": [
+                    "interest and dividends",
+                    "interest & dividends",
+                    "interest/dividends",
+                    "dividends and interest",
+                    "dividends & interest",
+                    "dividends/interest",
+                    "investment income",
+                    "portfolio income",
+                ],
+                "pension_income": [
+                    "pension",
+                    "pension payment",
+                    "pension payments",
+                    "pension check",
+                ],
+                "social_security": [
+                    "Social Security",
+                    "social security",
+                    "Social Security benefits",
+                    "social security benefits",
+                ],
+                "salary": [
+                    "salary",
+                    "wages",
+                    "paycheck",
+                    "paycheque",
+                    "earned income",
+                    "W-2",
+                    "W2",
+                ],
+                "business_income": [
+                    "business income",
+                    "self-employed income",
+                    "self employed income",
+                    "self-employment income",
+                    "self employment income",
+                    "1099 income",
+                    "contract income",
+                ],
+                "rental_income": [
+                    "rental income",
+                    "rent",
+                    "rent coming in",
+                    "income from rent",
+                ],
+                "bonus": [
+                    "bonus",
+                    "performance bonus",
+                    "annual bonus",
+                ],
+            }
+            if low in income_aliases:
+                out.extend(income_aliases[low])
 
         # Common geography abbreviations.
         if low == "us":
@@ -883,9 +944,9 @@ def _strict_date_match(*, source_value: Any, evidence_text: str, transcript_text
     hay = evidence_text if str(evidence_text or "").strip() else transcript_text
 
     # Special case: dataset often encodes month-level dates as YYYY-MM-01.
-    # For final_payment_date, accept month+year mentions like "April 2033" or "04/2033".
+    # For some fields, accept month+year mentions like "April 2033" or "04/2033".
     fp = str(field_path or "").strip().lower()
-    if fp.endswith(".final_payment_date"):
+    if fp.endswith(".final_payment_date") or fp.endswith(".assured_until"):
         for yy, mm in _extract_month_year_mentions(str(hay or "")):
             if int(yy) == int(src.year) and int(mm) == int(src.month):
                 return True
@@ -899,6 +960,402 @@ _NUM_TOKEN_RE = re.compile(
     r"(?P<num>\d{1,3}(?:,\d{3})+|\d+)(?:\.(?P<dec>\d+))?"  # number, optional decimals
     r"\s*(?P<suffix>k|m|b|thousand|million|billion)?"  # optional magnitude suffix
 )
+
+
+# Detect schema/internal tokens leaking into the dialogue.
+# This catches common failure modes: snake_case enums, dotted field paths, bracketed field paths,
+# internal IDs, and explicit mentions of internal table names.
+_SCHEMA_LEAK_RE = re.compile(
+    r"(?i)"
+    r"(\b[a-z]+_[a-z0-9_]+\b|"  # snake_case tokens like married_or_civil_partner
+    r"\b[a-z]{2,}\.[a-z_]{2,}\b|"  # dotted paths like households.num_adults
+    r"\b(?:households|people|income_lines|assets|liabilities|protection_policies)\[|"  # bracketed paths
+    r"\bclient_[12]\b|"  # owner keys
+    r"\bclient_no\b|"  # internal field name
+    r"\bHH\d{6}_[A-Z0-9]+\b"  # internal record IDs
+    r")"
+)
+
+
+def _has_schema_leak(lines: List[str]) -> bool:
+    return any(bool(_SCHEMA_LEAK_RE.search(str(l or ""))) for l in (lines or []))
+
+
+_ENUM_HUMAN_MAP = {
+    "married_or_civil_partner": "married",
+    "spouse_partner": "spouse/partner",
+    "us_ria": "RIA (registered investment advisor)",
+    "advisor_platform": "advisor platform",
+    "primary_residence": "primary residence",
+    "interest_dividends": "interest & dividends",
+    "pension_income": "pension",
+    "private_markets": "private markets",
+    "client_1": "Client 1",
+    "client_2": "Client 2",
+}
+
+
+def _humanize_schema_value(v: Any) -> Any:
+    if v is None:
+        return None
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return v
+    if isinstance(v, bool):
+        return v
+    s = str(v).strip()
+    if not s:
+        return s
+    low = s.lower()
+    if low in _ENUM_HUMAN_MAP:
+        return _ENUM_HUMAN_MAP[low]
+    if "_" in s:
+        return s.replace("_", " ")
+    if s.isupper() and "_" in s:
+        return s.replace("_", " ")
+    return s
+
+
+def _field_key_from_path(field_path: str) -> str:
+    fp = str(field_path or "")
+    return fp.split(".")[-1].strip() if "." in fp else fp.strip()
+
+
+def _field_hint(record_type: str, field_key: str) -> str:
+    rk = str(record_type or "").strip().lower()
+    fk = str(field_key or "").strip().lower()
+    mapping = {
+        # households
+        "annual_household_gross_income": "household gross income (annual)",
+        "monthly_expenses_total": "total monthly expenses",
+        "monthly_debt_cost_total": "monthly debt payments (total)",
+        "investable_assets_total": "investable assets (total)",
+        "property_value_total": "property value (total)",
+        "loan_outstanding_total": "loans outstanding (total)",
+        "mortgage_outstanding_total": "mortgage balance outstanding",
+        "non_mortgage_outstanding_total": "non-mortgage debt outstanding",
+        "risk_tolerance": "risk tolerance",
+        "tax_bracket_band": "tax bracket band",
+        "residence_state": "state of residence",
+        "marital_status": "marital status",
+        "num_adults": "number of adults",
+        "num_dependants": "number of dependents",
+        "country": "country",
+        "market": "advisory channel",
+        # people
+        "gross_annual_income": "gross annual income",
+        "employment_status": "employment status",
+        "occupation_group": "occupation group",
+        "role": "household role",
+        "client_no": "client label",
+        # income lines
+        "amount_annualized": "amount (annual)",
+        "source_type": "income type",
+        "frequency": "payment frequency",
+        "owner": "whose item",
+        # assets/liabilities/policies
+        "value": "current value",
+        "asset_type": "account type",
+        "subtype": "subtype",
+        "provider": "where held",
+        "provider_type": "where held (kind)",
+        "outstanding": "balance outstanding",
+        "monthly_cost": "monthly cost/payment",
+        "interest_rate": "interest rate",
+        "type": "type",
+        "final_payment_date": "final payment date",
+        "amount_assured": "coverage amount",
+        "policy_type": "policy type",
+        "assured_until": "covered until",
+    }
+    if fk in mapping:
+        return mapping[fk]
+    # Fallback: humanize snake_case into spaces.
+    if "_" in fk:
+        return fk.replace("_", " ")
+    return fk or (rk + " field")
+
+
+def _targets_for_llm_prompt(batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Render a safe targets_json for LLM prompting.
+
+    IMPORTANT: Do NOT include raw field_path or record_id here; they leak schema.
+    Validation still uses the original targets list.
+    """
+
+    out: List[Dict[str, Any]] = []
+    for t in (batch or []):
+        tid = str(t.get("target_id") or "")
+        rt = str(t.get("record_type") or "")
+        fp = str(t.get("field_path") or "")
+        fk = _field_key_from_path(fp)
+        src = t.get("source_value")
+
+        # Keep money values stable / human-like in prompting.
+        if is_money_field_path(fp):
+            src2 = round_money_value(src, increment=50.0)
+        else:
+            src2 = src
+
+        # Humanize enum-ish tokens so the model doesn't parrot snake_case.
+        src2 = _humanize_schema_value(src2)
+
+        kind = "text"
+        if _is_rate_field_path(fp):
+            kind = "interest_rate"
+        elif _is_date_field_path(fp):
+            kind = "date"
+        elif is_money_field_path(fp):
+            kind = "money"
+        elif isinstance(src, (int, float)) and not isinstance(src, bool):
+            kind = "number"
+
+        out.append(
+            {
+                "target_id": tid,
+                "record_type": rt,
+                "field": _field_hint(rt, fk),
+                "kind": kind,
+                "source_value": src2,
+            }
+        )
+    return out
+
+
+def _rewrite_to_remove_schema_tokens(
+    *,
+    llm: OpenAIResponsesClient,
+    system_prompt: str,
+    lines: List[str],
+    allowed_prefixes: List[str],
+    max_output_tokens: int,
+) -> List[str]:
+    """Ask the model to rewrite specific utterances without schema tokens.
+
+    Preserves numbers/dates and keeps the same number of lines.
+    """
+
+    if not lines:
+        return []
+
+    user = (
+        "Rewrite the following utterances to remove ANY internal/schema tokens and make them sound like a real onboarding call.\n"
+        "Hard bans in the rewritten text: snake_case, dotted keys, bracketed field paths, internal IDs, and owner keys like client_1/client_2.\n"
+        "Do NOT add or remove facts. Preserve all numeric digits and dates exactly as they appear.\n"
+        "Return the SAME number of lines, each starting with the same speaker prefix.\n\n"
+        "UTTERANCES:\n"
+        + "\n".join(lines)
+    )
+    rewritten = llm.create_text(
+        system_prompt=system_prompt,
+        user_prompt=user,
+        max_output_tokens=max_output_tokens,
+    )
+    cleaned = _clean_prefixed_lines(rewritten, allowed_prefixes=allowed_prefixes)
+    # If the model didn't cooperate, fall back to original.
+    if len(cleaned) != len(lines):
+        return lines
+    return cleaned
+
+
+_RECAP_LIKE_RE = re.compile(
+    r"(?i)\b(check[- ]?back|recap|did i (get|capture)|let me (just )?(make sure|confirm)|so we have|sound right|is that right|did i capture)\b"
+)
+
+_CORRECTION_MARKER_RE = re.compile(r"(?i)\b(no|actually|sorry|wait|i mean)\b")
+_GROSS_NET_RE = re.compile(r"(?i)\b(gross|net)\b")
+_BALANCE_PAYMENT_RE = re.compile(r"(?i)\b(balance|payment)\b")
+
+
+def _is_recap_like(line: str) -> bool:
+    s = str(line or "").strip()
+    if not s.startswith("Advisor:"):
+        return False
+    return bool(_RECAP_LIKE_RE.search(s))
+
+
+def _count_recap_like(lines: List[str]) -> int:
+    return int(sum(1 for l in (lines or []) if _is_recap_like(l)))
+
+
+def _is_misunderstanding_like(line: str) -> bool:
+    """Heuristic for a 'misunderstanding moment'.
+
+    We keep this intentionally conservative: only classic term confusions with explicit correction markers.
+    """
+
+    s = str(line or "").strip()
+    if not s:
+        return False
+    if not _CORRECTION_MARKER_RE.search(s):
+        return False
+
+    # gross vs net
+    gn = _GROSS_NET_RE.findall(s)
+    if "gross" in {g.lower() for g in gn} and "net" in {g.lower() for g in gn}:
+        return True
+
+    # balance vs payment
+    bp = _BALANCE_PAYMENT_RE.findall(s)
+    if "balance" in {b.lower() for b in bp} and "payment" in {b.lower() for b in bp}:
+        return True
+
+    return False
+
+
+def _count_misunderstanding_like(lines: List[str]) -> int:
+    return int(sum(1 for l in (lines or []) if _is_misunderstanding_like(l)))
+
+
+def _rewrite_to_reduce_misunderstanding_density(
+    *,
+    llm: OpenAIResponsesClient,
+    system_prompt: str,
+    lines: List[str],
+    allowed_prefixes: List[str],
+    max_misunderstandings_allowed_in_block: int,
+    max_output_tokens: int,
+) -> List[str]:
+    """Rewrite a block to remove excessive misunderstanding/correction beats.
+
+    Preserves numbers/dates, keeps the same number of lines, and retains speaker prefixes.
+    """
+
+    if not lines:
+        return []
+
+    m = max(0, int(max_misunderstandings_allowed_in_block))
+    user = (
+        "Rewrite the following utterances to sound natural but to AVOID repetitive misunderstanding/correction beats.\n"
+        "Hard rules:\n"
+        "- Do NOT add or remove any facts.\n"
+        "- Preserve ALL numeric digits and dates exactly as they appear.\n"
+        "- Return the SAME number of lines, each starting with the same speaker prefix.\n"
+        "- Do NOT include schema/internal tokens (snake_case, dotted keys, bracketed paths, internal IDs).\n"
+        "Goal:\n"
+        f"- In THIS block, include at most {m} misunderstanding moments.\n"
+        "- If there are extra misunderstandings, convert them into simple, direct questions/answers without confusion loops.\n\n"
+        "UTTERANCES:\n"
+        + "\n".join(lines)
+    )
+    rewritten = llm.create_text(
+        system_prompt=system_prompt,
+        user_prompt=user,
+        max_output_tokens=max_output_tokens,
+    )
+    cleaned = _clean_prefixed_lines(rewritten, allowed_prefixes=allowed_prefixes)
+    if len(cleaned) != len(lines):
+        return lines
+    return cleaned
+
+
+def _throttle_misunderstandings_in_new_block(
+    *,
+    llm: OpenAIResponsesClient,
+    system_prompt: str,
+    transcript_tail: List[str],
+    new_lines: List[str],
+    allowed_prefixes: List[str],
+    window_utterances: int,
+    max_per_window: int,
+    max_output_tokens: int,
+) -> List[str]:
+    w = max(1, int(window_utterances or 1))
+    m = max(0, int(max_per_window or 0))
+
+    tail = (transcript_tail or [])[-w:]
+    existing = _count_misunderstanding_like(tail)
+    budget = max(0, m - existing)
+    if _count_misunderstanding_like(new_lines) <= budget:
+        return new_lines
+
+    rewritten = _rewrite_to_reduce_misunderstanding_density(
+        llm=llm,
+        system_prompt=system_prompt,
+        lines=new_lines,
+        allowed_prefixes=allowed_prefixes,
+        max_misunderstandings_allowed_in_block=budget,
+        max_output_tokens=max_output_tokens,
+    )
+    return rewritten
+
+
+def _rewrite_to_reduce_recap_density(
+    *,
+    llm: OpenAIResponsesClient,
+    system_prompt: str,
+    lines: List[str],
+    allowed_prefixes: List[str],
+    max_recaps_allowed_in_block: int,
+    max_output_tokens: int,
+) -> List[str]:
+    """Rewrite a block to remove excessive recap/check-back lines.
+
+    Preserves numbers/dates, keeps the same number of lines, and retains speaker prefixes.
+    """
+
+    if not lines:
+        return []
+
+    m = max(0, int(max_recaps_allowed_in_block))
+    user = (
+        "Rewrite the following utterances to sound natural and to AVOID repetitive recap/check-back loops.\n"
+        "Hard rules:\n"
+        "- Do NOT add or remove any facts.\n"
+        "- Preserve ALL numeric digits and dates exactly as they appear.\n"
+        "- Return the SAME number of lines, each starting with the same speaker prefix.\n"
+        "- Do NOT include schema/internal tokens (snake_case, dotted keys, bracketed paths, internal IDs).\n"
+        "Goal:\n"
+        f"- In THIS block, include at most {m} recap/check-back style Advisor lines.\n"
+        "- Replace extra recap/check-back lines with short acknowledgements or forward-moving questions WITHOUT repeating digits.\n\n"
+        "UTTERANCES:\n"
+        + "\n".join(lines)
+    )
+    rewritten = llm.create_text(
+        system_prompt=system_prompt,
+        user_prompt=user,
+        max_output_tokens=max_output_tokens,
+    )
+    cleaned = _clean_prefixed_lines(rewritten, allowed_prefixes=allowed_prefixes)
+    if len(cleaned) != len(lines):
+        return lines
+    return cleaned
+
+
+def _throttle_recaps_in_new_block(
+    *,
+    llm: OpenAIResponsesClient,
+    system_prompt: str,
+    transcript_tail: List[str],
+    new_lines: List[str],
+    allowed_prefixes: List[str],
+    window_utterances: int,
+    max_per_window: int,
+    max_output_tokens: int,
+) -> List[str]:
+    """Ensure recap/check-back moments are not over-produced.
+
+    We enforce: within the last `window_utterances` turns (tail + new), allow at most `max_per_window`
+    recap-like Advisor lines.
+    """
+
+    w = max(1, int(window_utterances or 1))
+    m = max(0, int(max_per_window or 0))
+
+    tail = (transcript_tail or [])[-w:]
+    existing = _count_recap_like(tail)
+    budget = max(0, m - existing)
+    if _count_recap_like(new_lines) <= budget:
+        return new_lines
+
+    rewritten = _rewrite_to_reduce_recap_density(
+        llm=llm,
+        system_prompt=system_prompt,
+        lines=new_lines,
+        allowed_prefixes=allowed_prefixes,
+        max_recaps_allowed_in_block=budget,
+        max_output_tokens=max_output_tokens,
+    )
+    return rewritten
 
 
 def _is_rate_field_path(field_path: str) -> bool:
@@ -2627,12 +3084,20 @@ class DialogGenerationPipeline:
                         "chunk_index": str(chunk_index),
                         "personas_json": _json_compact(personas),
                         "financial_profile_digest": digest,
-                        "targets_json": json.dumps(round_money_in_obj(batch, increment=50.0), ensure_ascii=False, indent=2),
+                        "targets_json": json.dumps(_targets_for_llm_prompt(batch), ensure_ascii=False, indent=2),
                         "transcript_so_far": "\n".join(transcript_window),
                         "client1_label": client1_label,
                         "client2_label": client2_label or "Client 2:",
                         "client1_name": client1_name or "",
                         "client2_name": client2_name or "",
+                        "recap_window_utterances": str(int(getattr(cfg, "recap_window_utterances", 10) or 10)),
+                        "recap_max_per_window": str(int(getattr(cfg, "recap_max_per_window", 1) or 1)),
+                        "misunderstanding_window_utterances": str(
+                            int(getattr(cfg, "misunderstanding_window_utterances", 10) or 10)
+                        ),
+                        "misunderstanding_max_per_window": str(
+                            int(getattr(cfg, "misunderstanding_max_per_window", 1) or 1)
+                        ),
                     },
                 )
                 chunk_res = llm.create_json(
@@ -2647,6 +3112,45 @@ class DialogGenerationPipeline:
                 bad_target_ids: List[str] = []
 
                 new_lines = [l.strip() for l in chunk_res.utterances if str(l).strip()]
+                if _has_schema_leak(new_lines):
+                    new_lines = _rewrite_to_remove_schema_tokens(
+                        llm=llm,
+                        system_prompt=system_prompt,
+                        lines=new_lines,
+                        allowed_prefixes=["Advisor:", client1_label, client2_label or "Client 2:"],
+                        max_output_tokens=min(900, int(getattr(cfg, "evidence_max_output_tokens", cfg.model.max_output_tokens))),
+                    )
+
+                # Throttle recap/check-back density (target ~1 per N utterances).
+                new_lines = _throttle_recaps_in_new_block(
+                    llm=llm,
+                    system_prompt=system_prompt,
+                    transcript_tail=transcript_window,
+                    new_lines=new_lines,
+                    allowed_prefixes=["Advisor:", client1_label, client2_label or "Client 2:"],
+                    window_utterances=int(getattr(cfg, "recap_window_utterances", 10) or 10),
+                    max_per_window=int(getattr(cfg, "recap_max_per_window", 1) or 1),
+                    max_output_tokens=min(900, int(getattr(cfg, "evidence_max_output_tokens", cfg.model.max_output_tokens))),
+                )
+
+                new_lines = _throttle_misunderstandings_in_new_block(
+                    llm=llm,
+                    system_prompt=system_prompt,
+                    transcript_tail=transcript_window,
+                    new_lines=new_lines,
+                    allowed_prefixes=["Advisor:", client1_label, client2_label or "Client 2:"],
+                    window_utterances=int(getattr(cfg, "misunderstanding_window_utterances", 10) or 10),
+                    max_per_window=int(getattr(cfg, "misunderstanding_max_per_window", 1) or 1),
+                    max_output_tokens=min(900, int(getattr(cfg, "evidence_max_output_tokens", cfg.model.max_output_tokens))),
+                )
+                if _has_schema_leak(new_lines):
+                    new_lines = _rewrite_to_remove_schema_tokens(
+                        llm=llm,
+                        system_prompt=system_prompt,
+                        lines=new_lines,
+                        allowed_prefixes=["Advisor:", client1_label, client2_label or "Client 2:"],
+                        max_output_tokens=min(900, int(getattr(cfg, "evidence_max_output_tokens", cfg.model.max_output_tokens))),
+                    )
                 # Respect global max_turns.
                 remaining = int(cfg.max_turns - _count_turns(transcript_lines))
                 if remaining <= 0:
@@ -2655,35 +3159,9 @@ class DialogGenerationPipeline:
                     new_lines = new_lines[:remaining]
                 transcript_lines.extend(new_lines)
 
-                # Deterministic length + flow helper: add 2 neutral transition turns between chunks.
-                # This avoids ultra-short stitched dialogues without introducing new facts or numbers.
-                if chunk_index < len(batches):
-                    remaining2 = int(cfg.max_turns - _count_turns(transcript_lines))
-                    if remaining2 >= 2:
-                        if hh_type == "couple" and (client2_label is not None) and (rng.random() < 0.35):
-                            ack_speaker = client2_label
-                        else:
-                            ack_speaker = client1_label
-                        transition_pairs: List[Tuple[str, str]] = [
-                            (
-                                "Advisor: Okay—got it. Let me note that down.",
-                                f"{ack_speaker} Yeah—sounds good.",
-                            ),
-                            (
-                                "Advisor: Thanks—that helps. We can come back if needed.",
-                                f"{ack_speaker} Sure.",
-                            ),
-                            (
-                                "Advisor: Alright—before we jump in, how's your week been?",
-                                f"{ack_speaker} Busy, but good. Okay—yeah.",
-                            ),
-                            (
-                                "Advisor: Okay. And—small thing—the weather's been kind of all over the place.",
-                                f"{ack_speaker} Yeah, seriously. Anyway—go ahead.",
-                            ),
-                        ]
-                        a, b = transition_pairs[int(rng.integers(0, len(transition_pairs)))]
-                        transcript_lines.extend([a, b])
+                # NOTE: We intentionally avoid injecting deterministic "transition pairs" here.
+                # Bridging (when needed) is handled via the LLM bridge/polish steps to reduce
+                # repetitive filler ("before we jump in...", weather) and overall transcript length.
 
                 chunks_out.append(
                     {
@@ -3026,6 +3504,14 @@ class DialogGenerationPipeline:
                             "skeleton_transcript": transcript_text,
                             "client1_name": client1_name or "",
                             "client2_name": client2_name or "",
+                            "recap_window_utterances": str(int(getattr(cfg, "recap_window_utterances", 10) or 10)),
+                            "recap_max_per_window": str(int(getattr(cfg, "recap_max_per_window", 1) or 1)),
+                            "misunderstanding_window_utterances": str(
+                                int(getattr(cfg, "misunderstanding_window_utterances", 10) or 10)
+                            ),
+                            "misunderstanding_max_per_window": str(
+                                int(getattr(cfg, "misunderstanding_max_per_window", 1) or 1)
+                            ),
                         },
                     )
                     polished = llm.create_text(
@@ -3254,6 +3740,14 @@ class DialogGenerationPipeline:
                     "client2_label": client2_label or "Client 2:",
                     "client1_name": client1_name or "",
                     "client2_name": client2_name or "",
+                    "recap_window_utterances": str(int(getattr(cfg, "recap_window_utterances", 10) or 10)),
+                    "recap_max_per_window": str(int(getattr(cfg, "recap_max_per_window", 1) or 1)),
+                    "misunderstanding_window_utterances": str(
+                        int(getattr(cfg, "misunderstanding_window_utterances", 10) or 10)
+                    ),
+                    "misunderstanding_max_per_window": str(
+                        int(getattr(cfg, "misunderstanding_max_per_window", 1) or 1)
+                    ),
                     "example_transcripts": example_transcripts,
                     "financial_profile_digest": digest,
                     "valid_record_ids_json": valid_ids_json,
@@ -3287,6 +3781,47 @@ class DialogGenerationPipeline:
             )
 
             new_lines = [l.strip() for l in phase_res.utterances if str(l).strip()]
+            if _has_schema_leak(new_lines):
+                new_lines = _rewrite_to_remove_schema_tokens(
+                    llm=llm,
+                    system_prompt=system_prompt,
+                    lines=new_lines,
+                    allowed_prefixes=["Advisor:", client1_label, client2_label or "Client 2:"],
+                    max_output_tokens=min(900, int(getattr(cfg, "phase_max_output_tokens", cfg.model.max_output_tokens))),
+                )
+
+            # Throttle recap/check-back density (target ~1 per N utterances).
+            last_n_for_budget = max(0, int(getattr(cfg, "recap_window_utterances", 10) or 10))
+            tail_for_budget = transcript_lines[-last_n_for_budget:] if last_n_for_budget > 0 else []
+            new_lines = _throttle_recaps_in_new_block(
+                llm=llm,
+                system_prompt=system_prompt,
+                transcript_tail=tail_for_budget,
+                new_lines=new_lines,
+                allowed_prefixes=["Advisor:", client1_label, client2_label or "Client 2:"],
+                window_utterances=int(getattr(cfg, "recap_window_utterances", 10) or 10),
+                max_per_window=int(getattr(cfg, "recap_max_per_window", 1) or 1),
+                max_output_tokens=min(900, int(getattr(cfg, "phase_max_output_tokens", cfg.model.max_output_tokens))),
+            )
+
+            new_lines = _throttle_misunderstandings_in_new_block(
+                llm=llm,
+                system_prompt=system_prompt,
+                transcript_tail=tail_for_budget,
+                new_lines=new_lines,
+                allowed_prefixes=["Advisor:", client1_label, client2_label or "Client 2:"],
+                window_utterances=int(getattr(cfg, "misunderstanding_window_utterances", 10) or 10),
+                max_per_window=int(getattr(cfg, "misunderstanding_max_per_window", 1) or 1),
+                max_output_tokens=min(900, int(getattr(cfg, "phase_max_output_tokens", cfg.model.max_output_tokens))),
+            )
+            if _has_schema_leak(new_lines):
+                new_lines = _rewrite_to_remove_schema_tokens(
+                    llm=llm,
+                    system_prompt=system_prompt,
+                    lines=new_lines,
+                    allowed_prefixes=["Advisor:", client1_label, client2_label or "Client 2:"],
+                    max_output_tokens=min(900, int(getattr(cfg, "phase_max_output_tokens", cfg.model.max_output_tokens))),
+                )
             transcript_lines.extend(new_lines)
 
             # State update
@@ -3450,6 +3985,47 @@ class DialogGenerationPipeline:
             )
 
             new_lines = [l.strip() for l in phase_res.utterances if str(l).strip()]
+            if _has_schema_leak(new_lines):
+                new_lines = _rewrite_to_remove_schema_tokens(
+                    llm=llm,
+                    system_prompt=system_prompt,
+                    lines=new_lines,
+                    allowed_prefixes=["Advisor:", client1_label, client2_label or "Client 2:"],
+                    max_output_tokens=min(900, int(getattr(cfg, "phase_max_output_tokens", cfg.model.max_output_tokens))),
+                )
+
+            # Throttle recap/check-back density (target ~1 per N utterances).
+            last_n_for_budget = max(0, int(getattr(cfg, "recap_window_utterances", 10) or 10))
+            tail_for_budget = transcript_lines[-last_n_for_budget:] if last_n_for_budget > 0 else []
+            new_lines = _throttle_recaps_in_new_block(
+                llm=llm,
+                system_prompt=system_prompt,
+                transcript_tail=tail_for_budget,
+                new_lines=new_lines,
+                allowed_prefixes=["Advisor:", client1_label, client2_label or "Client 2:"],
+                window_utterances=int(getattr(cfg, "recap_window_utterances", 10) or 10),
+                max_per_window=int(getattr(cfg, "recap_max_per_window", 1) or 1),
+                max_output_tokens=min(900, int(getattr(cfg, "phase_max_output_tokens", cfg.model.max_output_tokens))),
+            )
+
+            new_lines = _throttle_misunderstandings_in_new_block(
+                llm=llm,
+                system_prompt=system_prompt,
+                transcript_tail=tail_for_budget,
+                new_lines=new_lines,
+                allowed_prefixes=["Advisor:", client1_label, client2_label or "Client 2:"],
+                window_utterances=int(getattr(cfg, "misunderstanding_window_utterances", 10) or 10),
+                max_per_window=int(getattr(cfg, "misunderstanding_max_per_window", 1) or 1),
+                max_output_tokens=min(900, int(getattr(cfg, "phase_max_output_tokens", cfg.model.max_output_tokens))),
+            )
+            if _has_schema_leak(new_lines):
+                new_lines = _rewrite_to_remove_schema_tokens(
+                    llm=llm,
+                    system_prompt=system_prompt,
+                    lines=new_lines,
+                    allowed_prefixes=["Advisor:", client1_label, client2_label or "Client 2:"],
+                    max_output_tokens=min(900, int(getattr(cfg, "phase_max_output_tokens", cfg.model.max_output_tokens))),
+                )
             transcript_lines.extend(new_lines)
 
             state_user = render_prompt(
