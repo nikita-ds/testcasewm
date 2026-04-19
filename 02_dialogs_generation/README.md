@@ -174,6 +174,19 @@ Outputs:
 - `summary_by_field.csv`: error rates by field_path
 - `summary_by_scenario.csv`: error rates by scenario_name
 
+## Export dialog-grounded ground truth (for 03_data_extraction)
+
+If you have `*_evidence.json` artifacts, you can export a **sparse** (dialog-grounded) version of the financial profiles that keeps only fields with evidence (by default `status="present"`). This is useful as a “fair” ground-truth for extraction evaluation.
+
+```bash
+python 03_data_extraction/export_grounded_profiles.py \
+  --dialogs-dir 02_dialogs_generation/artifacts/dialogs \
+  --out-json 02_dialogs_generation/artifacts/grounded_financial_profiles.json
+
+# Optional: also include fields with status="approximate"
+python 03_data_extraction/export_grounded_profiles.py --include-approximate
+```
+
 ## Output format
 Each transcript JSON:
 

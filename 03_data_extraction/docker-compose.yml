@@ -1,7 +1,9 @@
 services:
-  extract_ground_truth:
+  extract_from_dialogs:
     build: .
+    env_file:
+      - .env
     volumes:
       - ..:/repo
     working_dir: /repo/03_data_extraction
-    command: ["python", "run.py"]
+    command: ["python", "run_pipeline.py"]

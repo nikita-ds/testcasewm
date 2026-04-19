@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import argparse
 import json
 import os
+import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -11,11 +14,14 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
+from env_utils import load_dotenv_if_present
+
 
 @dataclass(frozen=True)
 class Paths:
     realism_passed_dir: Path
     financial_profiles_json: Path
+    grounded_profiles_json: Optional[Path]
     output_dir: Path
     pairs_path: Path
     figures_dir: Path
@@ -155,8 +161,31 @@ def _plot_scenarios(scenarios: List[str], *, out_path: Path) -> None:
     plt.close()
 
 
+def _run(cmd: List[str]) -> None:
+    proc = subprocess.run(cmd, text=True)
+    if proc.returncode != 0:
+        raise SystemExit(proc.returncode)
+
+
+def _int_env(name: str, default: int = 0) -> int:
+    try:
+        return int(str(os.environ.get(name, str(default)) or str(default)).strip())
+    except Exception:
+        return default
+
+
 def main() -> None:
+    ap = argparse.ArgumentParser(description="Build ground-truth pairs + plots; optionally run evaluation/analysis if extracted artifacts exist")
+    ap.add_argument(
+        "--reports-only",
+        action="store_true",
+        help="Only build ground-truth pairs + plots; do not run merge/eval/discrepancy analysis",
+    )
+    args = ap.parse_args()
+
     repo_root = _repo_root()
+    # Load .env so EXTRACTION_LIMIT is visible outside Docker.
+    load_dotenv_if_present(Path(__file__).resolve().parent)
 
     realism_dir = Path(
         os.environ.get(
@@ -171,12 +200,22 @@ def main() -> None:
         )
     ).resolve()
 
+    grounded_profiles_env = str(
+        os.environ.get(
+            "GROUNDED_PROFILES_JSON",
+            str(repo_root / "02_dialogs_generation" / "artifacts" / "grounded_financial_profiles.json"),
+        )
+        or ""
+    ).strip()
+    grounded_profiles_path = Path(grounded_profiles_env).resolve() if grounded_profiles_env else None
+
     output_dir = Path(os.environ.get("OUTPUT_DIR", "./artifacts")).resolve()
     pairs_basename = str(os.environ.get("PAIRS_BASENAME", "ground_truth_pairs.jsonl")).strip() or "ground_truth_pairs.jsonl"
 
     paths = Paths(
         realism_passed_dir=realism_dir,
         financial_profiles_json=profiles_path,
+        grounded_profiles_json=(grounded_profiles_path if (grounded_profiles_path and grounded_profiles_path.exists()) else None),
         output_dir=output_dir,
         pairs_path=output_dir / pairs_basename,
         figures_dir=output_dir / "figures",
@@ -191,12 +230,16 @@ def main() -> None:
         raise SystemExit(f"Missing financial profiles json: {paths.financial_profiles_json}")
 
     profiles = _load_profiles(paths.financial_profiles_json)
+    grounded_profiles: Dict[str, Dict[str, Any]] = {}
+    if paths.grounded_profiles_json is not None and paths.grounded_profiles_json.exists():
+        grounded_profiles = _load_profiles(paths.grounded_profiles_json)
     dialog_ids = _iter_dialog_ids(paths.realism_passed_dir)
 
     n_total = 0
     n_written = 0
     n_missing_profile = 0
     n_missing_dialog_text = 0
+    n_grounded_used = 0
 
     incomes: List[float] = []
     assets: List[float] = []
@@ -206,22 +249,32 @@ def main() -> None:
         for dialog_id in dialog_ids:
             n_total += 1
             hh_id = dialog_id[len("DIALOG_") :] if dialog_id.startswith("DIALOG_") else dialog_id
-            profile = profiles.get(hh_id)
-            if profile is None:
+            full_profile = profiles.get(hh_id)
+            if full_profile is None:
                 n_missing_profile += 1
                 continue
+
+            grounded = grounded_profiles.get(hh_id)
+            grounded_used = bool(isinstance(grounded, dict) and grounded)
+            if grounded_used:
+                profile = grounded  # type: ignore[assignment]
+                n_grounded_used += 1
+            else:
+                profile = full_profile
 
             dialog_text = _load_dialog_text(paths.realism_passed_dir, dialog_id)
             if not dialog_text.strip():
                 n_missing_dialog_text += 1
 
-            scen = _profile_scenario(profile)
+            # Scenario + plots should come from the full profile for stability,
+            # even when GT is grounded/sparse.
+            scen = _profile_scenario(full_profile)
 
-            inc = _profile_income(profile)
+            inc = _profile_income(full_profile)
             if inc is not None:
                 incomes.append(inc)
 
-            ast = _profile_assets_total(profile)
+            ast = _profile_assets_total(full_profile)
             if ast is not None:
                 assets.append(ast)
 
@@ -233,6 +286,7 @@ def main() -> None:
                 "scenario": scen,
                 "profile": profile,
                 "dialog": dialog_text,
+                "ground_truth_is_grounded": grounded_used,
             }
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
             n_written += 1
@@ -259,11 +313,13 @@ def main() -> None:
     summary = {
         "realism_passed_dir": str(paths.realism_passed_dir),
         "financial_profiles_json": str(paths.financial_profiles_json),
+        "grounded_profiles_json": (str(paths.grounded_profiles_json) if paths.grounded_profiles_json else None),
         "pairs_path": str(paths.pairs_path),
         "num_dialog_ids_seen": n_total,
         "num_pairs_written": n_written,
         "num_missing_profile": n_missing_profile,
         "num_missing_dialog_text": n_missing_dialog_text,
+        "num_grounded_pairs_used": n_grounded_used,
         "num_incomes": len(incomes),
         "num_assets": len(assets),
         "num_scenarios": len(scenarios),
@@ -271,6 +327,47 @@ def main() -> None:
     paths.summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     print(json.dumps(summary, ensure_ascii=False))
+
+    if args.reports_only:
+        return
+
+    # If extracted artifacts exist, run merge+eval+discrepancy analysis automatically.
+    extracted_dir = paths.output_dir / "extracted"
+    extracted_files = []
+    if extracted_dir.exists():
+        extracted_files = sorted(extracted_dir.glob("DIALOG_*.extracted.json"))
+
+    if not extracted_files:
+        print(
+            json.dumps(
+                {
+                    "step": "post_reports_analysis",
+                    "status": "skipped",
+                    "reason": "no_extracted_artifacts",
+                    "extracted_dir": str(extracted_dir),
+                },
+                ensure_ascii=False,
+            )
+        )
+        return
+
+    extraction_limit = _int_env("EXTRACTION_LIMIT", 0)
+
+    build_cmd: List[str] = [sys.executable, str(Path(__file__).resolve().parent / "build_joint_dataset.py")]
+    if extraction_limit and extraction_limit > 0:
+        build_cmd += ["--limit", str(extraction_limit)]
+    print(json.dumps({"step": "build_joint_dataset", "cmd": build_cmd}, ensure_ascii=False))
+    _run(build_cmd)
+
+    eval_cmd: List[str] = [sys.executable, str(Path(__file__).resolve().parent / "evaluate_extraction.py")]
+    if extraction_limit and extraction_limit > 0:
+        eval_cmd += ["--limit", str(extraction_limit)]
+    print(json.dumps({"step": "evaluate_extraction", "cmd": eval_cmd}, ensure_ascii=False))
+    _run(eval_cmd)
+
+    disc_cmd: List[str] = [sys.executable, str(Path(__file__).resolve().parent / "analyze_discrepancies.py")]
+    print(json.dumps({"step": "analyze_discrepancies", "cmd": disc_cmd}, ensure_ascii=False))
+    _run(disc_cmd)
 
 
 if __name__ == "__main__":
