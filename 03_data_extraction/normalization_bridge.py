@@ -75,21 +75,10 @@ def _infer_asset_fields(rec: Dict[str, Any]) -> Dict[str, Any]:
 
     owner = str(out.get("owner") or "").strip().lower()
     is_joint = out.get("is_joint")
-    asset_type = str(out.get("asset_type") or "").strip().lower()
-    subtype = str(out.get("subtype") or "").strip().lower()
 
     if not owner:
         if is_joint is True:
             out["owner"] = "joint"
-        elif is_joint is False:
-            out["owner"] = "client_1"
-        elif (asset_type, subtype) in {
-            ("property", "primary_residence"),
-            ("cash", "bank_account"),
-            ("alternatives", "private_markets"),
-        }:
-            out["owner"] = "client_1"
-            out["is_joint"] = False
     elif is_joint is None:
         if owner == "joint":
             out["is_joint"] = True

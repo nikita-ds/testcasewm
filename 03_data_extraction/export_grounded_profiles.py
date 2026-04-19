@@ -78,6 +78,23 @@ def _pk_key_for_entity(entity: str) -> str:
     return "id"
 
 
+_CLIENT_LABEL_RE = re.compile(r"Client(?:\s+(?P<n>[12]))?:", re.IGNORECASE)
+
+
+def _last_client_no(text: str) -> Optional[int]:
+    last: Optional[int] = None
+    for m in _CLIENT_LABEL_RE.finditer(str(text or "")):
+        n = m.group("n")
+        if n is None:
+            last = 1
+        else:
+            try:
+                last = int(n)
+            except Exception:
+                pass
+    return last
+
+
 def _should_keep_evidence_item(
     *,
     entity: str,
@@ -89,33 +106,13 @@ def _should_keep_evidence_item(
     text = str(evidence_text or "").lower()
     value_s = str(source_value or "").strip().lower()
     selector_s = str(selector_value or "").strip().upper()
-    ownership_cues = (
-        "in my name",
-        "my name",
-        "his name",
-        "her name",
-        "their names",
-        "both names",
-        "joint",
-        "jointly",
-        "shared",
-        "both of us",
-        "owned by",
-        "belongs to",
-        "it's mine",
-        "it is mine",
-        "it's his",
-        "it's hers",
-        "it is his",
-        "it is hers",
-    )
-
     if entity == "people" and field_name == "occupation_group":
         if value_s in {"retired", "inactive"}:
             return False
-        if selector_s.endswith("_P1") and "client 1:" not in text:
+        last_client = _last_client_no(text)
+        if selector_s.endswith("_P1") and last_client not in {1, None}:
             return False
-        if selector_s.endswith("_P2") and "client 2:" not in text:
+        if selector_s.endswith("_P2") and last_client != 2:
             return False
 
     if entity == "assets" and field_name == "provider_type":
@@ -126,14 +123,6 @@ def _should_keep_evidence_item(
         if value_s in {"advisor_platform", "retirement_platform"} and any(
             w in text for w in ("bank account", "at the bank", "held at a bank", "held at the bank", "brokerage account", "at a brokerage")
         ):
-            return False
-
-    if entity == "assets" and field_name == "owner":
-        if not any(w in text for w in ownership_cues):
-            return False
-        if value_s == "joint" and not any(w in text for w in ("joint", "jointly", "both of us", "both names", "shared", "together")):
-            return False
-        if value_s in {"client_1", "client_2"} and not any(w in text for w in ("in my name", "my name", "his name", "her name", "owned by", "belongs to")):
             return False
 
     return True

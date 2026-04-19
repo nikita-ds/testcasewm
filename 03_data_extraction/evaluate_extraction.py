@@ -305,6 +305,45 @@ def _protection_policy_pair_score(
     return score
 
 
+def _people_pair_score(
+    *,
+    gt: Dict[str, Any],
+    ex: Dict[str, Any],
+    numeric_rel_tol: float,
+) -> float:
+    score = 0.0
+
+    def _eq(a: Any, b: Any) -> bool:
+        return _norm_str(a).lower() == _norm_str(b).lower()
+
+    if gt.get("client_no") is not None and ex.get("client_no") is not None:
+        if gt.get("client_no") == ex.get("client_no"):
+            score += 6.0
+
+    if _eq(gt.get("role"), ex.get("role")):
+        score += 4.0
+    if _eq(gt.get("employment_status"), ex.get("employment_status")):
+        score += 2.0
+    if _eq(gt.get("occupation_group"), ex.get("occupation_group")):
+        score += 1.0
+    if _eq(gt.get("first_name"), ex.get("first_name")):
+        score += 1.0
+
+    g = gt.get("gross_annual_income")
+    e = ex.get("gross_annual_income")
+    if _is_number(g) and _is_number(e):
+        gtf = float(g)
+        exf = float(e)
+        tol = max(abs(gtf) * float(numeric_rel_tol), 1e-9)
+        if abs(exf - gtf) <= tol:
+            score += 5.0
+        else:
+            denom = max(abs(gtf), 1.0)
+            score += max(0.0, 0.5 - abs(exf - gtf) / denom)
+
+    return score
+
+
 def _pair_records_by_content_generic(
     *,
     gt_records: List[Dict[str, Any]],
@@ -411,6 +450,16 @@ def _pair_records(
             ex_records=ex_records,
             pk=pk,
             numeric_rel_tol=numeric_rel_tol,
+        )
+
+    if entity == "people" and _truthy_env("PAIR_PEOPLE_BY_CONTENT", default=True):
+        return _pair_records_by_content_generic(
+            gt_records=gt_records,
+            ex_records=ex_records,
+            pk=pk,
+            numeric_rel_tol=numeric_rel_tol,
+            score_fn=_people_pair_score,
+            min_score=6.0,
         )
 
     if entity == "assets" and _truthy_env("PAIR_ASSETS_BY_CONTENT", default=True):
