@@ -1,0 +1,1344 @@
+{
+  "meta": {
+    "dialog_id": "DIALOG_HH002044",
+    "household_id": "HH002044",
+    "scenario_name": "pre_retirement_wealthy",
+    "household_type": "couple",
+    "num_targets": 80,
+    "batch_size": 4,
+    "mode": "field_chunks",
+    "extractor": "rule_based_first_correct_v1"
+  },
+  "targets": [
+    {
+      "target_id": "t00001",
+      "record_type": "households",
+      "field_path": "households.annual_household_gross_income",
+      "source_value": 173100
+    },
+    {
+      "target_id": "t00002",
+      "record_type": "households",
+      "field_path": "households.monthly_expenses_total",
+      "source_value": 7850
+    },
+    {
+      "target_id": "t00003",
+      "record_type": "households",
+      "field_path": "households.monthly_debt_cost_total",
+      "source_value": 350
+    },
+    {
+      "target_id": "t00004",
+      "record_type": "households",
+      "field_path": "households.investable_assets_total",
+      "source_value": 662950
+    },
+    {
+      "target_id": "t00005",
+      "record_type": "households",
+      "field_path": "households.property_value_total",
+      "source_value": 446250
+    },
+    {
+      "target_id": "t00006",
+      "record_type": "households",
+      "field_path": "households.loan_outstanding_total",
+      "source_value": 3100
+    },
+    {
+      "target_id": "t00007",
+      "record_type": "households",
+      "field_path": "households.mortgage_outstanding_total",
+      "source_value": 0
+    },
+    {
+      "target_id": "t00008",
+      "record_type": "households",
+      "field_path": "households.non_mortgage_outstanding_total",
+      "source_value": 3100
+    },
+    {
+      "target_id": "t00009",
+      "record_type": "households",
+      "field_path": "households.num_adults",
+      "source_value": 2
+    },
+    {
+      "target_id": "t00010",
+      "record_type": "households",
+      "field_path": "households.tax_bracket_band",
+      "source_value": "32%"
+    },
+    {
+      "target_id": "t00011",
+      "record_type": "households",
+      "field_path": "households.residence_state",
+      "source_value": "MA"
+    },
+    {
+      "target_id": "t00012",
+      "record_type": "households",
+      "field_path": "households.market",
+      "source_value": "US_RIA"
+    },
+    {
+      "target_id": "t00013",
+      "record_type": "households",
+      "field_path": "households.country",
+      "source_value": "US"
+    },
+    {
+      "target_id": "t00014",
+      "record_type": "households",
+      "field_path": "households.num_dependants",
+      "source_value": 0
+    },
+    {
+      "target_id": "t00015",
+      "record_type": "households",
+      "field_path": "households.risk_tolerance",
+      "source_value": "aggressive"
+    },
+    {
+      "target_id": "t00016",
+      "record_type": "households",
+      "field_path": "households.marital_status",
+      "source_value": "married_or_civil_partner"
+    },
+    {
+      "target_id": "t00017",
+      "record_type": "people",
+      "record_id": "HH002044_P1",
+      "field_path": "people[person_id=HH002044_P1].gross_annual_income",
+      "source_value": 113900
+    },
+    {
+      "target_id": "t00018",
+      "record_type": "people",
+      "record_id": "HH002044_P1",
+      "field_path": "people[person_id=HH002044_P1].role",
+      "source_value": "primary"
+    },
+    {
+      "target_id": "t00019",
+      "record_type": "people",
+      "record_id": "HH002044_P1",
+      "field_path": "people[person_id=HH002044_P1].client_no",
+      "source_value": 1
+    },
+    {
+      "target_id": "t00020",
+      "record_type": "people",
+      "record_id": "HH002044_P1",
+      "field_path": "people[person_id=HH002044_P1].occupation_group",
+      "source_value": "operations"
+    },
+    {
+      "target_id": "t00021",
+      "record_type": "people",
+      "record_id": "HH002044_P1",
+      "field_path": "people[person_id=HH002044_P1].employment_status",
+      "source_value": "employed"
+    },
+    {
+      "target_id": "t00022",
+      "record_type": "people",
+      "record_id": "HH002044_P2",
+      "field_path": "people[person_id=HH002044_P2].gross_annual_income",
+      "source_value": 59200
+    },
+    {
+      "target_id": "t00023",
+      "record_type": "people",
+      "record_id": "HH002044_P2",
+      "field_path": "people[person_id=HH002044_P2].client_no",
+      "source_value": 2
+    },
+    {
+      "target_id": "t00024",
+      "record_type": "people",
+      "record_id": "HH002044_P2",
+      "field_path": "people[person_id=HH002044_P2].occupation_group",
+      "source_value": "healthcare"
+    },
+    {
+      "target_id": "t00025",
+      "record_type": "people",
+      "record_id": "HH002044_P2",
+      "field_path": "people[person_id=HH002044_P2].role",
+      "source_value": "spouse_partner"
+    },
+    {
+      "target_id": "t00026",
+      "record_type": "people",
+      "record_id": "HH002044_P2",
+      "field_path": "people[person_id=HH002044_P2].employment_status",
+      "source_value": "employed"
+    },
+    {
+      "target_id": "t00027",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I3",
+      "field_path": "income_lines[income_line_id=HH002044_I3].amount_annualized",
+      "source_value": 74800
+    },
+    {
+      "target_id": "t00028",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I3",
+      "field_path": "income_lines[income_line_id=HH002044_I3].owner",
+      "source_value": "client_1"
+    },
+    {
+      "target_id": "t00029",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I3",
+      "field_path": "income_lines[income_line_id=HH002044_I3].frequency",
+      "source_value": "weekly"
+    },
+    {
+      "target_id": "t00030",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I3",
+      "field_path": "income_lines[income_line_id=HH002044_I3].source_type",
+      "source_value": "business_income"
+    },
+    {
+      "target_id": "t00031",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I6",
+      "field_path": "income_lines[income_line_id=HH002044_I6].amount_annualized",
+      "source_value": 0
+    },
+    {
+      "target_id": "t00032",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I6",
+      "field_path": "income_lines[income_line_id=HH002044_I6].source_type",
+      "source_value": "salary"
+    },
+    {
+      "target_id": "t00033",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I6",
+      "field_path": "income_lines[income_line_id=HH002044_I6].frequency",
+      "source_value": "annual"
+    },
+    {
+      "target_id": "t00034",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I6",
+      "field_path": "income_lines[income_line_id=HH002044_I6].owner",
+      "source_value": "client_1"
+    },
+    {
+      "target_id": "t00035",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I2",
+      "field_path": "income_lines[income_line_id=HH002044_I2].amount_annualized",
+      "source_value": 52600
+    },
+    {
+      "target_id": "t00036",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I2",
+      "field_path": "income_lines[income_line_id=HH002044_I2].source_type",
+      "source_value": "bonus"
+    },
+    {
+      "target_id": "t00037",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I2",
+      "field_path": "income_lines[income_line_id=HH002044_I2].frequency",
+      "source_value": "annual"
+    },
+    {
+      "target_id": "t00038",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I2",
+      "field_path": "income_lines[income_line_id=HH002044_I2].owner",
+      "source_value": "client_1"
+    },
+    {
+      "target_id": "t00039",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I4",
+      "field_path": "income_lines[income_line_id=HH002044_I4].amount_annualized",
+      "source_value": 8400
+    },
+    {
+      "target_id": "t00040",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I4",
+      "field_path": "income_lines[income_line_id=HH002044_I4].source_type",
+      "source_value": "rental_income"
+    },
+    {
+      "target_id": "t00041",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I4",
+      "field_path": "income_lines[income_line_id=HH002044_I4].owner",
+      "source_value": "client_2"
+    },
+    {
+      "target_id": "t00042",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I4",
+      "field_path": "income_lines[income_line_id=HH002044_I4].frequency",
+      "source_value": "monthly"
+    },
+    {
+      "target_id": "t00043",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I5",
+      "field_path": "income_lines[income_line_id=HH002044_I5].amount_annualized",
+      "source_value": 0
+    },
+    {
+      "target_id": "t00044",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I5",
+      "field_path": "income_lines[income_line_id=HH002044_I5].owner",
+      "source_value": "client_1"
+    },
+    {
+      "target_id": "t00045",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I5",
+      "field_path": "income_lines[income_line_id=HH002044_I5].frequency",
+      "source_value": "ad_hoc"
+    },
+    {
+      "target_id": "t00046",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I5",
+      "field_path": "income_lines[income_line_id=HH002044_I5].source_type",
+      "source_value": "bonus"
+    },
+    {
+      "target_id": "t00047",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I1",
+      "field_path": "income_lines[income_line_id=HH002044_I1].amount_annualized",
+      "source_value": 37350
+    },
+    {
+      "target_id": "t00048",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I1",
+      "field_path": "income_lines[income_line_id=HH002044_I1].owner",
+      "source_value": "client_1"
+    },
+    {
+      "target_id": "t00049",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I1",
+      "field_path": "income_lines[income_line_id=HH002044_I1].source_type",
+      "source_value": "bonus"
+    },
+    {
+      "target_id": "t00050",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I1",
+      "field_path": "income_lines[income_line_id=HH002044_I1].frequency",
+      "source_value": "monthly"
+    },
+    {
+      "target_id": "t00051",
+      "record_type": "assets",
+      "record_id": "HH002044_A1",
+      "field_path": "assets[asset_id=HH002044_A1].value",
+      "source_value": 323600
+    },
+    {
+      "target_id": "t00052",
+      "record_type": "assets",
+      "record_id": "HH002044_A1",
+      "field_path": "assets[asset_id=HH002044_A1].owner",
+      "source_value": "joint"
+    },
+    {
+      "target_id": "t00053",
+      "record_type": "assets",
+      "record_id": "HH002044_A1",
+      "field_path": "assets[asset_id=HH002044_A1].subtype",
+      "source_value": "taxable"
+    },
+    {
+      "target_id": "t00054",
+      "record_type": "assets",
+      "record_id": "HH002044_A1",
+      "field_path": "assets[asset_id=HH002044_A1].provider_type",
+      "source_value": "brokerage"
+    },
+    {
+      "target_id": "t00055",
+      "record_type": "assets",
+      "record_id": "HH002044_A1",
+      "field_path": "assets[asset_id=HH002044_A1].asset_type",
+      "source_value": "brokerage"
+    },
+    {
+      "target_id": "t00056",
+      "record_type": "assets",
+      "record_id": "HH002044_A3",
+      "field_path": "assets[asset_id=HH002044_A3].value",
+      "source_value": 94700
+    },
+    {
+      "target_id": "t00057",
+      "record_type": "assets",
+      "record_id": "HH002044_A3",
+      "field_path": "assets[asset_id=HH002044_A3].asset_type",
+      "source_value": "cash"
+    },
+    {
+      "target_id": "t00058",
+      "record_type": "assets",
+      "record_id": "HH002044_A3",
+      "field_path": "assets[asset_id=HH002044_A3].owner",
+      "source_value": "joint"
+    },
+    {
+      "target_id": "t00059",
+      "record_type": "assets",
+      "record_id": "HH002044_A3",
+      "field_path": "assets[asset_id=HH002044_A3].provider_type",
+      "source_value": "retirement_platform"
+    },
+    {
+      "target_id": "t00060",
+      "record_type": "assets",
+      "record_id": "HH002044_A3",
+      "field_path": "assets[asset_id=HH002044_A3].subtype",
+      "source_value": "bank"
+    },
+    {
+      "target_id": "t00061",
+      "record_type": "assets",
+      "record_id": "HH002044_A5",
+      "field_path": "assets[asset_id=HH002044_A5].value",
+      "source_value": 446250
+    },
+    {
+      "target_id": "t00062",
+      "record_type": "assets",
+      "record_id": "HH002044_A5",
+      "field_path": "assets[asset_id=HH002044_A5].asset_type",
+      "source_value": "property"
+    },
+    {
+      "target_id": "t00063",
+      "record_type": "assets",
+      "record_id": "HH002044_A5",
+      "field_path": "assets[asset_id=HH002044_A5].provider_type",
+      "source_value": "bank"
+    },
+    {
+      "target_id": "t00064",
+      "record_type": "assets",
+      "record_id": "HH002044_A5",
+      "field_path": "assets[asset_id=HH002044_A5].subtype",
+      "source_value": "primary_residence"
+    },
+    {
+      "target_id": "t00065",
+      "record_type": "assets",
+      "record_id": "HH002044_A5",
+      "field_path": "assets[asset_id=HH002044_A5].owner",
+      "source_value": "joint"
+    },
+    {
+      "target_id": "t00066",
+      "record_type": "assets",
+      "record_id": "HH002044_A2",
+      "field_path": "assets[asset_id=HH002044_A2].value",
+      "source_value": 222700
+    },
+    {
+      "target_id": "t00067",
+      "record_type": "assets",
+      "record_id": "HH002044_A2",
+      "field_path": "assets[asset_id=HH002044_A2].subtype",
+      "source_value": "401k_ira"
+    },
+    {
+      "target_id": "t00068",
+      "record_type": "assets",
+      "record_id": "HH002044_A2",
+      "field_path": "assets[asset_id=HH002044_A2].provider_type",
+      "source_value": "bank"
+    },
+    {
+      "target_id": "t00069",
+      "record_type": "assets",
+      "record_id": "HH002044_A2",
+      "field_path": "assets[asset_id=HH002044_A2].owner",
+      "source_value": "client_2"
+    },
+    {
+      "target_id": "t00070",
+      "record_type": "assets",
+      "record_id": "HH002044_A2",
+      "field_path": "assets[asset_id=HH002044_A2].asset_type",
+      "source_value": "retirement"
+    },
+    {
+      "target_id": "t00071",
+      "record_type": "assets",
+      "record_id": "HH002044_A4",
+      "field_path": "assets[asset_id=HH002044_A4].value",
+      "source_value": 21950
+    },
+    {
+      "target_id": "t00072",
+      "record_type": "assets",
+      "record_id": "HH002044_A4",
+      "field_path": "assets[asset_id=HH002044_A4].owner",
+      "source_value": "client_1"
+    },
+    {
+      "target_id": "t00073",
+      "record_type": "assets",
+      "record_id": "HH002044_A4",
+      "field_path": "assets[asset_id=HH002044_A4].subtype",
+      "source_value": "private_markets"
+    },
+    {
+      "target_id": "t00074",
+      "record_type": "assets",
+      "record_id": "HH002044_A4",
+      "field_path": "assets[asset_id=HH002044_A4].asset_type",
+      "source_value": "alternatives"
+    },
+    {
+      "target_id": "t00075",
+      "record_type": "assets",
+      "record_id": "HH002044_A4",
+      "field_path": "assets[asset_id=HH002044_A4].provider_type",
+      "source_value": "retirement_platform"
+    },
+    {
+      "target_id": "t00076",
+      "record_type": "liabilities",
+      "record_id": "HH002044_L2",
+      "field_path": "liabilities[liability_id=HH002044_L2].outstanding",
+      "source_value": 3100
+    },
+    {
+      "target_id": "t00077",
+      "record_type": "liabilities",
+      "record_id": "HH002044_L2",
+      "field_path": "liabilities[liability_id=HH002044_L2].monthly_cost",
+      "source_value": 350
+    },
+    {
+      "target_id": "t00078",
+      "record_type": "liabilities",
+      "record_id": "HH002044_L2",
+      "field_path": "liabilities[liability_id=HH002044_L2].interest_rate",
+      "source_value": 15.19
+    },
+    {
+      "target_id": "t00079",
+      "record_type": "liabilities",
+      "record_id": "HH002044_L2",
+      "field_path": "liabilities[liability_id=HH002044_L2].final_payment_date",
+      "source_value": "2030-01-19"
+    },
+    {
+      "target_id": "t00080",
+      "record_type": "liabilities",
+      "record_id": "HH002044_L2",
+      "field_path": "liabilities[liability_id=HH002044_L2].type",
+      "source_value": "loan"
+    }
+  ],
+  "items": [
+    {
+      "target_id": "t00001",
+      "record_type": "households",
+      "field_path": "households.annual_household_gross_income",
+      "source_value": 173100,
+      "status": "present",
+      "evidence_text": "Client 1: Yep—let’s quantify it.\nAdvisor: Great. Starting with household income—ballpark is fine, but what do you have as your total gross income per year for the two of you combined?\nClient 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00002",
+      "record_type": "households",
+      "field_path": "households.monthly_expenses_total",
+      "source_value": 7850,
+      "status": "present",
+      "evidence_text": "Client 1: Yeah—those are both 0 right now. The ad hoc bonus is 0 and the salary line is 0.\nAdvisor: Okay. Switching to spending—what are you seeing as your total monthly expenses, all-in? Mortgage or rent, utilities, groceries, insurance, travel—everything.\nClient 2: Roughly eight-ish. The number we use is 7850 per month.\nAdvisor: Thanks. Now debt—do you have any loans or cards with a regular payment we should bake in?\nClient 1: Just one loan. Balance is 3100.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00003",
+      "record_type": "households",
+      "field_path": "households.monthly_debt_cost_total",
+      "source_value": 350,
+      "status": "present",
+      "evidence_text": "Client 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00004",
+      "record_type": "households",
+      "field_path": "households.investable_assets_total",
+      "source_value": 662950,
+      "status": "present",
+      "evidence_text": "Advisor: Got it—thank you. So total monthly debt payments, just that one, is 350. Now let’s talk assets—what you’ve accumulated and where it sits.\nAdvisor: When you think about investable assets—so not the house—what’s the total you’re tracking across accounts?\nClient 1: Investable assets total is 662950.\nAdvisor: Okay. Let’s break that down so I understand what’s joint versus individual. Do you have a joint taxable brokerage account?\nClient 1: Yes—joint taxable brokerage is 323600.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00005",
+      "record_type": "households",
+      "field_path": "households.property_value_total",
+      "source_value": 446250,
+      "status": "present",
+      "evidence_text": "Client 1: Yes, that one is 21950.\nAdvisor: And then the home—what are you using as the current value of your primary residence?\nClient 2: We use 446250 for the house value.\nAdvisor: Helpful. On protection—life insurance, disability, long-term care—anything in place that you want us to factor in today?\nClient 1: Nothing formal to list right now—no policies we’re tracking.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00006",
+      "record_type": "households",
+      "field_path": "households.loan_outstanding_total",
+      "source_value": 3100,
+      "status": "present",
+      "evidence_text": "Client 1: Yep—let’s quantify it.\nAdvisor: Great. Starting with household income—ballpark is fine, but what do you have as your total gross income per year for the two of you combined?\nClient 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00007",
+      "record_type": "households",
+      "field_path": "households.mortgage_outstanding_total",
+      "source_value": 0,
+      "status": "present",
+      "evidence_text": "Client 1: Yep—let’s quantify it.\nAdvisor: Great. Starting with household income—ballpark is fine, but what do you have as your total gross income per year for the two of you combined?\nClient 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00008",
+      "record_type": "households",
+      "field_path": "households.non_mortgage_outstanding_total",
+      "source_value": 3100,
+      "status": "present",
+      "evidence_text": "Client 1: Yep—let’s quantify it.\nAdvisor: Great. Starting with household income—ballpark is fine, but what do you have as your total gross income per year for the two of you combined?\nClient 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00009",
+      "record_type": "households",
+      "field_path": "households.num_adults",
+      "source_value": 2,
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Elizabeth—nice to meet you both. I’m glad you made the time. Before we get into the numbers, what prompted you to reach out now?\nClient 1: Thanks. I’m William. We’re trying to sanity-check retirement timing and taxes—like, are we actually on track or just assuming we are.\nClient 2: And I’m Elizabeth. I mostly want to know what we’d need to change month to month, if anything, without it feeling scary.\nAdvisor: That makes sense. Let’s anchor on the basics first—income, spending, what you’ve built up, and any debt. Then we can talk options. Sound okay?\nClient 1: Yep—let’s quantify it.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00010",
+      "record_type": "households",
+      "field_path": "households.tax_bracket_band",
+      "source_value": "32%",
+      "status": "present",
+      "evidence_text": "Client 2: MA.\nAdvisor: Got it—Massachusetts. And tax-wise, what bracket are we planning around right now? Just the band is fine.\nClient 1: 32%.\nAdvisor: Okay. And last admin-ish thing: how did you come to us—what’s the relationship channel you want this to be under? Like, are we acting as your RIA, or is this through a brokerage arrangement?\nClient 2: RIA (registered investment advisor).",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00011",
+      "record_type": "households",
+      "field_path": "households.residence_state",
+      "source_value": "MA",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Elizabeth—nice to meet you both. I’m glad you made the time. Before we get into the numbers, what prompted you to reach out now?\nClient 1: Thanks. I’m William. We’re trying to sanity-check retirement timing and taxes—like, are we actually on track or just assuming we are.\nClient 2: And I’m Elizabeth. I mostly want to know what we’d need to change month to month, if anything, without it feeling scary.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00012",
+      "record_type": "households",
+      "field_path": "households.market",
+      "source_value": "US_RIA",
+      "status": "present",
+      "evidence_text": "Advisor: Great. On protection, you said nothing formal to list—so no life insurance, disability coverage, or long-term care policies we’re tracking right now?\nClient 2: Right—nothing we’re tracking.\nAdvisor: Okay. And on assets—just to keep the categories clean—your investable accounts were the joint taxable brokerage, Elizabeth’s retirement account at the bank, the joint retirement-platform account, and William’s private markets holding. Anything else material we didn’t mention?\nClient 1: No, that’s the full list we’re using.\nAdvisor: Perfect—thank you. Next we’ll talk goals and timing, but I wanted to make sure the debt and home pieces were nailed down first.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00013",
+      "record_type": "households",
+      "field_path": "households.country",
+      "source_value": "US",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Elizabeth—nice to meet you both. I’m glad you made the time. Before we get into the numbers, what prompted you to reach out now?\nClient 1: Thanks. I’m William. We’re trying to sanity-check retirement timing and taxes—like, are we actually on track or just assuming we are.\nClient 2: And I’m Elizabeth. I mostly want to know what we’d need to change month to month, if anything, without it feeling scary.\nAdvisor: That makes sense. Let’s anchor on the basics first—income, spending, what you’ve built up, and any debt. Then we can talk options. Sound okay?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00014",
+      "record_type": "households",
+      "field_path": "households.num_dependants",
+      "source_value": 0,
+      "status": "present",
+      "evidence_text": "Client 1: Yep—let’s quantify it.\nAdvisor: Great. Starting with household income—ballpark is fine, but what do you have as your total gross income per year for the two of you combined?\nClient 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00015",
+      "record_type": "households",
+      "field_path": "households.risk_tolerance",
+      "source_value": "aggressive",
+      "status": "present",
+      "evidence_text": "Advisor: Okay. Dependents—any kids or anyone financially dependent on you right now?\nClient 2: No—number of dependents is 0.\nAdvisor: Got it. And then risk—when markets get choppy, how do you want the portfolio positioned? More conservative, moderate, or aggressive?\nClient 1: Aggressive.\nAdvisor: Okay—thanks, William. And Elizabeth, when you say aggressive, does that feel right to you too, or do you want some guardrails around cash and drawdowns?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00016",
+      "record_type": "households",
+      "field_path": "households.marital_status",
+      "source_value": "married_or_civil_partner",
+      "status": "present",
+      "evidence_text": "Advisor: Alright—before we get into retirement timing, I want to confirm a few household basics so I’m not building the plan on assumptions. First one: you’re in the US, correct?\nClient 1: Yes, US.\nAdvisor: Great. And marital status—are you two married?\nClient 2: Yes, married.\nAdvisor: Okay. Dependents—any kids or anyone financially dependent on you right now?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00017",
+      "record_type": "people",
+      "record_id": "HH002044_P1",
+      "field_path": "people[person_id=HH002044_P1].gross_annual_income",
+      "source_value": 113900,
+      "status": "present",
+      "evidence_text": "Client 1: Operations. I’m in operations.\nAdvisor: Great—thank you. And then income: earlier we had household gross at 173100 a year, but I want to anchor your base number. William, what’s your gross annual income before bonuses and the business income pieces—what do you consider your gross annual income?\nClient 1: My gross annual income is 113900.\nAdvisor: Okay—thanks. And that 113900 is the steady gross pay you’re counting on, then we layer the other items like the weekly business income and the bonuses on top—fair?\nClient 1: Yeah, that’s fair—113900 is the core number for me.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00018",
+      "record_type": "people",
+      "record_id": "HH002044_P1",
+      "field_path": "people[person_id=HH002044_P1].role",
+      "source_value": "primary",
+      "status": "present",
+      "evidence_text": "Advisor: Any private investments—private markets—held on a retirement platform in your name, William?\nClient 1: Yes, that one is 21950.\nAdvisor: And then the home—what are you using as the current value of your primary residence?\nClient 2: We use 446250 for the house value.\nAdvisor: Helpful. On protection—life insurance, disability, long-term care—anything in place that you want us to factor in today?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00019",
+      "record_type": "people",
+      "record_id": "HH002044_P1",
+      "field_path": "people[person_id=HH002044_P1].client_no",
+      "source_value": 1,
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Elizabeth—nice to meet you both. I’m glad you made the time. Before we get into the numbers, what prompted you to reach out now?\nClient 1: Thanks. I’m William. We’re trying to sanity-check retirement timing and taxes—like, are we actually on track or just assuming we are.\nClient 2: And I’m Elizabeth. I mostly want to know what we’d need to change month to month, if anything, without it feeling scary.\nAdvisor: That makes sense. Let’s anchor on the basics first—income, spending, what you’ve built up, and any debt. Then we can talk options. Sound okay?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00020",
+      "record_type": "people",
+      "record_id": "HH002044_P1",
+      "field_path": "people[person_id=HH002044_P1].occupation_group",
+      "source_value": "operations",
+      "status": "present",
+      "evidence_text": "Client 2: And I’m Client 2, yes.\nAdvisor: Perfect. William, for your employment—what’s your general function or department? I don’t need the company name, just the lane you’re in.\nClient 1: Operations. I’m in operations.\nAdvisor: Great—thank you. And then income: earlier we had household gross at 173100 a year, but I want to anchor your base number. William, what’s your gross annual income before bonuses and the business income pieces—what do you consider your gross annual income?\nClient 1: My gross annual income is 113900.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00021",
+      "record_type": "people",
+      "record_id": "HH002044_P1",
+      "field_path": "people[person_id=HH002044_P1].employment_status",
+      "source_value": "employed",
+      "status": "present",
+      "evidence_text": "Advisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?\nClient 1: Yeah—those are both 0 right now. The ad hoc bonus is 0 and the salary line is 0.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00022",
+      "record_type": "people",
+      "record_id": "HH002044_P2",
+      "field_path": "people[person_id=HH002044_P2].gross_annual_income",
+      "source_value": 59200,
+      "status": "present",
+      "evidence_text": "Advisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?\nClient 1: Yeah—those are both 0 right now. The ad hoc bonus is 0 and the salary line is 0.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00023",
+      "record_type": "people",
+      "record_id": "HH002044_P2",
+      "field_path": "people[person_id=HH002044_P2].client_no",
+      "source_value": 2,
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Elizabeth—nice to meet you both. I’m glad you made the time. Before we get into the numbers, what prompted you to reach out now?\nClient 1: Thanks. I’m William. We’re trying to sanity-check retirement timing and taxes—like, are we actually on track or just assuming we are.\nClient 2: And I’m Elizabeth. I mostly want to know what we’d need to change month to month, if anything, without it feeling scary.\nAdvisor: That makes sense. Let’s anchor on the basics first—income, spending, what you’ve built up, and any debt. Then we can talk options. Sound okay?\nClient 1: Yep—let’s quantify it.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00024",
+      "record_type": "people",
+      "record_id": "HH002044_P2",
+      "field_path": "people[person_id=HH002044_P2].occupation_group",
+      "source_value": "healthcare",
+      "status": "present",
+      "evidence_text": "Advisor: Got it. And what’s your gross annual income, Elizabeth—before any deductions or anything like that?\nClient 2: Roughly sixty-ish, but the exact gross annual income is 59200.\nAdvisor: Perfect, thank you. And what kind of work is that in broad strokes—like healthcare, education, tech—just the general lane?\nClient 2: Healthcare.\nAdvisor: Okay—thanks. And just to double-check the labeling we set earlier, Elizabeth, you’re Client 2 in my notes, correct?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00025",
+      "record_type": "people",
+      "record_id": "HH002044_P2",
+      "field_path": "people[person_id=HH002044_P2].role",
+      "source_value": "spouse_partner",
+      "status": "present",
+      "evidence_text": "Advisor: Okay. Now we can actually pressure-test retirement timing without the inputs wobbling. Elizabeth, when you think about retirement, are you picturing stopping work at a specific age, or more like “when the numbers work”?\nClient 2: More like “when the numbers work,” honestly. I don’t have a hard age in my head.\nAdvisor: That makes sense. And just so I’m framing it right, Elizabeth—within the household, you’re William’s spouse/partner, correct?\nClient 2: Yes, I’m the spouse/partner.\nAdvisor: Got it. And you’re still employed right now, yeah?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00026",
+      "record_type": "people",
+      "record_id": "HH002044_P2",
+      "field_path": "people[person_id=HH002044_P2].employment_status",
+      "source_value": "employed",
+      "status": "present",
+      "evidence_text": "Advisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?\nClient 1: Yeah—those are both 0 right now. The ad hoc bonus is 0 and the salary line is 0.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00027",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I3",
+      "field_path": "income_lines[income_line_id=HH002044_I3].amount_annualized",
+      "source_value": 74800,
+      "status": "present",
+      "evidence_text": "Client 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00028",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I3",
+      "field_path": "income_lines[income_line_id=HH002044_I3].owner",
+      "source_value": "client_1",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Elizabeth—nice to meet you both. I’m glad you made the time. Before we get into the numbers, what prompted you to reach out now?\nClient 1: Thanks. I’m William. We’re trying to sanity-check retirement timing and taxes—like, are we actually on track or just assuming we are.\nClient 2: And I’m Elizabeth. I mostly want to know what we’d need to change month to month, if anything, without it feeling scary.\nAdvisor: That makes sense. Let’s anchor on the basics first—income, spending, what you’ve built up, and any debt. Then we can talk options. Sound okay?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00029",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I3",
+      "field_path": "income_lines[income_line_id=HH002044_I3].frequency",
+      "source_value": "weekly",
+      "status": "present",
+      "evidence_text": "Client 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00030",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I3",
+      "field_path": "income_lines[income_line_id=HH002044_I3].source_type",
+      "source_value": "business_income",
+      "status": "present",
+      "evidence_text": "Advisor: Great. Starting with household income—ballpark is fine, but what do you have as your total gross income per year for the two of you combined?\nClient 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00031",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I6",
+      "field_path": "income_lines[income_line_id=HH002044_I6].amount_annualized",
+      "source_value": 0,
+      "status": "present",
+      "evidence_text": "Client 1: Yep—let’s quantify it.\nAdvisor: Great. Starting with household income—ballpark is fine, but what do you have as your total gross income per year for the two of you combined?\nClient 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00032",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I6",
+      "field_path": "income_lines[income_line_id=HH002044_I6].source_type",
+      "source_value": "salary",
+      "status": "present",
+      "evidence_text": "Advisor: Great. Starting with household income—ballpark is fine, but what do you have as your total gross income per year for the two of you combined?\nClient 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00033",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I6",
+      "field_path": "income_lines[income_line_id=HH002044_I6].frequency",
+      "source_value": "annual",
+      "status": "present",
+      "evidence_text": "Client 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00034",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I6",
+      "field_path": "income_lines[income_line_id=HH002044_I6].owner",
+      "source_value": "client_1",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Elizabeth—nice to meet you both. I’m glad you made the time. Before we get into the numbers, what prompted you to reach out now?\nClient 1: Thanks. I’m William. We’re trying to sanity-check retirement timing and taxes—like, are we actually on track or just assuming we are.\nClient 2: And I’m Elizabeth. I mostly want to know what we’d need to change month to month, if anything, without it feeling scary.\nAdvisor: That makes sense. Let’s anchor on the basics first—income, spending, what you’ve built up, and any debt. Then we can talk options. Sound okay?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00035",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I2",
+      "field_path": "income_lines[income_line_id=HH002044_I2].amount_annualized",
+      "source_value": 52600,
+      "status": "present",
+      "evidence_text": "Client 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00036",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I2",
+      "field_path": "income_lines[income_line_id=HH002044_I2].source_type",
+      "source_value": "bonus",
+      "status": "present",
+      "evidence_text": "Advisor: Great. Starting with household income—ballpark is fine, but what do you have as your total gross income per year for the two of you combined?\nClient 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00037",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I2",
+      "field_path": "income_lines[income_line_id=HH002044_I2].frequency",
+      "source_value": "annual",
+      "status": "present",
+      "evidence_text": "Client 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00038",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I2",
+      "field_path": "income_lines[income_line_id=HH002044_I2].owner",
+      "source_value": "client_1",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Elizabeth—nice to meet you both. I’m glad you made the time. Before we get into the numbers, what prompted you to reach out now?\nClient 1: Thanks. I’m William. We’re trying to sanity-check retirement timing and taxes—like, are we actually on track or just assuming we are.\nClient 2: And I’m Elizabeth. I mostly want to know what we’d need to change month to month, if anything, without it feeling scary.\nAdvisor: That makes sense. Let’s anchor on the basics first—income, spending, what you’ve built up, and any debt. Then we can talk options. Sound okay?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00039",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I4",
+      "field_path": "income_lines[income_line_id=HH002044_I4].amount_annualized",
+      "source_value": 8400,
+      "status": "present",
+      "evidence_text": "Advisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?\nClient 1: Yeah—those are both 0 right now. The ad hoc bonus is 0 and the salary line is 0.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00040",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I4",
+      "field_path": "income_lines[income_line_id=HH002044_I4].source_type",
+      "source_value": "rental_income",
+      "status": "present",
+      "evidence_text": "Advisor: Great. Starting with household income—ballpark is fine, but what do you have as your total gross income per year for the two of you combined?\nClient 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00041",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I4",
+      "field_path": "income_lines[income_line_id=HH002044_I4].owner",
+      "source_value": "client_2",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Elizabeth—nice to meet you both. I’m glad you made the time. Before we get into the numbers, what prompted you to reach out now?\nClient 1: Thanks. I’m William. We’re trying to sanity-check retirement timing and taxes—like, are we actually on track or just assuming we are.\nClient 2: And I’m Elizabeth. I mostly want to know what we’d need to change month to month, if anything, without it feeling scary.\nAdvisor: That makes sense. Let’s anchor on the basics first—income, spending, what you’ve built up, and any debt. Then we can talk options. Sound okay?\nClient 1: Yep—let’s quantify it.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00042",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I4",
+      "field_path": "income_lines[income_line_id=HH002044_I4].frequency",
+      "source_value": "monthly",
+      "status": "present",
+      "evidence_text": "Client 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00043",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I5",
+      "field_path": "income_lines[income_line_id=HH002044_I5].amount_annualized",
+      "source_value": 0,
+      "status": "present",
+      "evidence_text": "Client 1: Yep—let’s quantify it.\nAdvisor: Great. Starting with household income—ballpark is fine, but what do you have as your total gross income per year for the two of you combined?\nClient 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00044",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I5",
+      "field_path": "income_lines[income_line_id=HH002044_I5].owner",
+      "source_value": "client_1",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Elizabeth—nice to meet you both. I’m glad you made the time. Before we get into the numbers, what prompted you to reach out now?\nClient 1: Thanks. I’m William. We’re trying to sanity-check retirement timing and taxes—like, are we actually on track or just assuming we are.\nClient 2: And I’m Elizabeth. I mostly want to know what we’d need to change month to month, if anything, without it feeling scary.\nAdvisor: That makes sense. Let’s anchor on the basics first—income, spending, what you’ve built up, and any debt. Then we can talk options. Sound okay?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00045",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I5",
+      "field_path": "income_lines[income_line_id=HH002044_I5].frequency",
+      "source_value": "ad_hoc",
+      "status": "present",
+      "evidence_text": "Client 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?\nClient 1: Yeah—those are both 0 right now. The ad hoc bonus is 0 and the salary line is 0.\nAdvisor: Okay. Switching to spending—what are you seeing as your total monthly expenses, all-in? Mortgage or rent, utilities, groceries, insurance, travel—everything.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00046",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I5",
+      "field_path": "income_lines[income_line_id=HH002044_I5].source_type",
+      "source_value": "bonus",
+      "status": "present",
+      "evidence_text": "Advisor: Great. Starting with household income—ballpark is fine, but what do you have as your total gross income per year for the two of you combined?\nClient 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00047",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I1",
+      "field_path": "income_lines[income_line_id=HH002044_I1].amount_annualized",
+      "source_value": 37350,
+      "status": "present",
+      "evidence_text": "Client 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00048",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I1",
+      "field_path": "income_lines[income_line_id=HH002044_I1].owner",
+      "source_value": "client_1",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Elizabeth—nice to meet you both. I’m glad you made the time. Before we get into the numbers, what prompted you to reach out now?\nClient 1: Thanks. I’m William. We’re trying to sanity-check retirement timing and taxes—like, are we actually on track or just assuming we are.\nClient 2: And I’m Elizabeth. I mostly want to know what we’d need to change month to month, if anything, without it feeling scary.\nAdvisor: That makes sense. Let’s anchor on the basics first—income, spending, what you’ve built up, and any debt. Then we can talk options. Sound okay?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00049",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I1",
+      "field_path": "income_lines[income_line_id=HH002044_I1].source_type",
+      "source_value": "bonus",
+      "status": "present",
+      "evidence_text": "Advisor: Great. Starting with household income—ballpark is fine, but what do you have as your total gross income per year for the two of you combined?\nClient 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00050",
+      "record_type": "income_lines",
+      "record_id": "HH002044_I1",
+      "field_path": "income_lines[income_line_id=HH002044_I1].frequency",
+      "source_value": "monthly",
+      "status": "present",
+      "evidence_text": "Client 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00051",
+      "record_type": "assets",
+      "record_id": "HH002044_A1",
+      "field_path": "assets[asset_id=HH002044_A1].value",
+      "source_value": 323600,
+      "status": "present",
+      "evidence_text": "Client 1: Investable assets total is 662950.\nAdvisor: Okay. Let’s break that down so I understand what’s joint versus individual. Do you have a joint taxable brokerage account?\nClient 1: Yes—joint taxable brokerage is 323600.\nAdvisor: Great. Any retirement accounts in Elizabeth’s name—like a 401(k) or IRA—held at a bank?\nClient 2: Yes, mine is 222700.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00052",
+      "record_type": "assets",
+      "record_id": "HH002044_A1",
+      "field_path": "assets[asset_id=HH002044_A1].owner",
+      "source_value": "joint",
+      "status": "present",
+      "evidence_text": "Advisor: When you think about investable assets—so not the house—what’s the total you’re tracking across accounts?\nClient 1: Investable assets total is 662950.\nAdvisor: Okay. Let’s break that down so I understand what’s joint versus individual. Do you have a joint taxable brokerage account?\nClient 1: Yes—joint taxable brokerage is 323600.\nAdvisor: Great. Any retirement accounts in Elizabeth’s name—like a 401(k) or IRA—held at a bank?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00053",
+      "record_type": "assets",
+      "record_id": "HH002044_A1",
+      "field_path": "assets[asset_id=HH002044_A1].subtype",
+      "source_value": "taxable",
+      "status": "present",
+      "evidence_text": "Advisor: When you think about investable assets—so not the house—what’s the total you’re tracking across accounts?\nClient 1: Investable assets total is 662950.\nAdvisor: Okay. Let’s break that down so I understand what’s joint versus individual. Do you have a joint taxable brokerage account?\nClient 1: Yes—joint taxable brokerage is 323600.\nAdvisor: Great. Any retirement accounts in Elizabeth’s name—like a 401(k) or IRA—held at a bank?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00054",
+      "record_type": "assets",
+      "record_id": "HH002044_A1",
+      "field_path": "assets[asset_id=HH002044_A1].provider_type",
+      "source_value": "brokerage",
+      "status": "present",
+      "evidence_text": "Advisor: When you think about investable assets—so not the house—what’s the total you’re tracking across accounts?\nClient 1: Investable assets total is 662950.\nAdvisor: Okay. Let’s break that down so I understand what’s joint versus individual. Do you have a joint taxable brokerage account?\nClient 1: Yes—joint taxable brokerage is 323600.\nAdvisor: Great. Any retirement accounts in Elizabeth’s name—like a 401(k) or IRA—held at a bank?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00055",
+      "record_type": "assets",
+      "record_id": "HH002044_A1",
+      "field_path": "assets[asset_id=HH002044_A1].asset_type",
+      "source_value": "brokerage",
+      "status": "present",
+      "evidence_text": "Advisor: When you think about investable assets—so not the house—what’s the total you’re tracking across accounts?\nClient 1: Investable assets total is 662950.\nAdvisor: Okay. Let’s break that down so I understand what’s joint versus individual. Do you have a joint taxable brokerage account?\nClient 1: Yes—joint taxable brokerage is 323600.\nAdvisor: Great. Any retirement accounts in Elizabeth’s name—like a 401(k) or IRA—held at a bank?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00056",
+      "record_type": "assets",
+      "record_id": "HH002044_A3",
+      "field_path": "assets[asset_id=HH002044_A3].value",
+      "source_value": 94700,
+      "status": "present",
+      "evidence_text": "Client 2: Yes, mine is 222700.\nAdvisor: And do you have any other joint retirement-type account—something held on a retirement platform—separate from the brokerage?\nClient 1: We do. Joint account on a retirement platform is 94700.\nAdvisor: Any private investments—private markets—held on a retirement platform in your name, William?\nClient 1: Yes, that one is 21950.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00057",
+      "record_type": "assets",
+      "record_id": "HH002044_A3",
+      "field_path": "assets[asset_id=HH002044_A3].asset_type",
+      "source_value": "cash",
+      "status": "present",
+      "evidence_text": "Advisor: Got it. And then risk—when markets get choppy, how do you want the portfolio positioned? More conservative, moderate, or aggressive?\nClient 1: Aggressive.\nAdvisor: Okay—thanks, William. And Elizabeth, when you say aggressive, does that feel right to you too, or do you want some guardrails around cash and drawdowns?\nClient 2: I’m okay with aggressive as long as we keep a cushion and we’re not forced to sell at a bad time.\nAdvisor: Totally fair. We can design it so the overall stance is aggressive, but with a cash buffer and a rules-based rebalancing plan.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00058",
+      "record_type": "assets",
+      "record_id": "HH002044_A3",
+      "field_path": "assets[asset_id=HH002044_A3].owner",
+      "source_value": "joint",
+      "status": "present",
+      "evidence_text": "Advisor: When you think about investable assets—so not the house—what’s the total you’re tracking across accounts?\nClient 1: Investable assets total is 662950.\nAdvisor: Okay. Let’s break that down so I understand what’s joint versus individual. Do you have a joint taxable brokerage account?\nClient 1: Yes—joint taxable brokerage is 323600.\nAdvisor: Great. Any retirement accounts in Elizabeth’s name—like a 401(k) or IRA—held at a bank?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00059",
+      "record_type": "assets",
+      "record_id": "HH002044_A3",
+      "field_path": "assets[asset_id=HH002044_A3].provider_type",
+      "source_value": "retirement_platform",
+      "status": "present",
+      "evidence_text": "Advisor: Great. Any retirement accounts in Elizabeth’s name—like a 401(k) or IRA—held at a bank?\nClient 2: Yes, mine is 222700.\nAdvisor: And do you have any other joint retirement-type account—something held on a retirement platform—separate from the brokerage?\nClient 1: We do. Joint account on a retirement platform is 94700.\nAdvisor: Any private investments—private markets—held on a retirement platform in your name, William?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00060",
+      "record_type": "assets",
+      "record_id": "HH002044_A3",
+      "field_path": "assets[asset_id=HH002044_A3].subtype",
+      "source_value": "bank",
+      "status": "present",
+      "evidence_text": "Advisor: Okay. Let’s break that down so I understand what’s joint versus individual. Do you have a joint taxable brokerage account?\nClient 1: Yes—joint taxable brokerage is 323600.\nAdvisor: Great. Any retirement accounts in Elizabeth’s name—like a 401(k) or IRA—held at a bank?\nClient 2: Yes, mine is 222700.\nAdvisor: And do you have any other joint retirement-type account—something held on a retirement platform—separate from the brokerage?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00061",
+      "record_type": "assets",
+      "record_id": "HH002044_A5",
+      "field_path": "assets[asset_id=HH002044_A5].value",
+      "source_value": 446250,
+      "status": "present",
+      "evidence_text": "Client 1: Yes, that one is 21950.\nAdvisor: And then the home—what are you using as the current value of your primary residence?\nClient 2: We use 446250 for the house value.\nAdvisor: Helpful. On protection—life insurance, disability, long-term care—anything in place that you want us to factor in today?\nClient 1: Nothing formal to list right now—no policies we’re tracking.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00062",
+      "record_type": "assets",
+      "record_id": "HH002044_A5",
+      "field_path": "assets[asset_id=HH002044_A5].asset_type",
+      "source_value": "property",
+      "status": "present",
+      "evidence_text": "Advisor: Perfect. And that loan we talked about—still the one with the $350 monthly payment, 15.19% interest, and the final payment date 2030-01-19, right?\nClient 2: Yes, same one.\nAdvisor: Okay. Switching back to the home for a moment—Elizabeth, you mentioned the house value earlier. What number are you using today for the property value?\nClient 2: We’re using 446250 for the property value.\nAdvisor: Thanks. And just so I’m not missing anything—no second property or anything else tied to the house, like a home equity line?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00063",
+      "record_type": "assets",
+      "record_id": "HH002044_A5",
+      "field_path": "assets[asset_id=HH002044_A5].provider_type",
+      "source_value": "bank",
+      "status": "present",
+      "evidence_text": "Advisor: Okay. Let’s break that down so I understand what’s joint versus individual. Do you have a joint taxable brokerage account?\nClient 1: Yes—joint taxable brokerage is 323600.\nAdvisor: Great. Any retirement accounts in Elizabeth’s name—like a 401(k) or IRA—held at a bank?\nClient 2: Yes, mine is 222700.\nAdvisor: And do you have any other joint retirement-type account—something held on a retirement platform—separate from the brokerage?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00064",
+      "record_type": "assets",
+      "record_id": "HH002044_A5",
+      "field_path": "assets[asset_id=HH002044_A5].subtype",
+      "source_value": "primary_residence",
+      "status": "present",
+      "evidence_text": "Advisor: Any private investments—private markets—held on a retirement platform in your name, William?\nClient 1: Yes, that one is 21950.\nAdvisor: And then the home—what are you using as the current value of your primary residence?\nClient 2: We use 446250 for the house value.\nAdvisor: Helpful. On protection—life insurance, disability, long-term care—anything in place that you want us to factor in today?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00065",
+      "record_type": "assets",
+      "record_id": "HH002044_A5",
+      "field_path": "assets[asset_id=HH002044_A5].owner",
+      "source_value": "joint",
+      "status": "present",
+      "evidence_text": "Advisor: When you think about investable assets—so not the house—what’s the total you’re tracking across accounts?\nClient 1: Investable assets total is 662950.\nAdvisor: Okay. Let’s break that down so I understand what’s joint versus individual. Do you have a joint taxable brokerage account?\nClient 1: Yes—joint taxable brokerage is 323600.\nAdvisor: Great. Any retirement accounts in Elizabeth’s name—like a 401(k) or IRA—held at a bank?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00066",
+      "record_type": "assets",
+      "record_id": "HH002044_A2",
+      "field_path": "assets[asset_id=HH002044_A2].value",
+      "source_value": 222700,
+      "status": "present",
+      "evidence_text": "Client 1: Yes—joint taxable brokerage is 323600.\nAdvisor: Great. Any retirement accounts in Elizabeth’s name—like a 401(k) or IRA—held at a bank?\nClient 2: Yes, mine is 222700.\nAdvisor: And do you have any other joint retirement-type account—something held on a retirement platform—separate from the brokerage?\nClient 1: We do. Joint account on a retirement platform is 94700.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00067",
+      "record_type": "assets",
+      "record_id": "HH002044_A2",
+      "field_path": "assets[asset_id=HH002044_A2].subtype",
+      "source_value": "401k_ira",
+      "status": "present",
+      "evidence_text": "Advisor: Okay. Let’s break that down so I understand what’s joint versus individual. Do you have a joint taxable brokerage account?\nClient 1: Yes—joint taxable brokerage is 323600.\nAdvisor: Great. Any retirement accounts in Elizabeth’s name—like a 401(k) or IRA—held at a bank?\nClient 2: Yes, mine is 222700.\nAdvisor: And do you have any other joint retirement-type account—something held on a retirement platform—separate from the brokerage?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00068",
+      "record_type": "assets",
+      "record_id": "HH002044_A2",
+      "field_path": "assets[asset_id=HH002044_A2].provider_type",
+      "source_value": "bank",
+      "status": "present",
+      "evidence_text": "Advisor: Okay. Let’s break that down so I understand what’s joint versus individual. Do you have a joint taxable brokerage account?\nClient 1: Yes—joint taxable brokerage is 323600.\nAdvisor: Great. Any retirement accounts in Elizabeth’s name—like a 401(k) or IRA—held at a bank?\nClient 2: Yes, mine is 222700.\nAdvisor: And do you have any other joint retirement-type account—something held on a retirement platform—separate from the brokerage?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00069",
+      "record_type": "assets",
+      "record_id": "HH002044_A2",
+      "field_path": "assets[asset_id=HH002044_A2].owner",
+      "source_value": "client_2",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Elizabeth—nice to meet you both. I’m glad you made the time. Before we get into the numbers, what prompted you to reach out now?\nClient 1: Thanks. I’m William. We’re trying to sanity-check retirement timing and taxes—like, are we actually on track or just assuming we are.\nClient 2: And I’m Elizabeth. I mostly want to know what we’d need to change month to month, if anything, without it feeling scary.\nAdvisor: That makes sense. Let’s anchor on the basics first—income, spending, what you’ve built up, and any debt. Then we can talk options. Sound okay?\nClient 1: Yep—let’s quantify it.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00070",
+      "record_type": "assets",
+      "record_id": "HH002044_A2",
+      "field_path": "assets[asset_id=HH002044_A2].asset_type",
+      "source_value": "retirement",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Elizabeth—nice to meet you both. I’m glad you made the time. Before we get into the numbers, what prompted you to reach out now?\nClient 1: Thanks. I’m William. We’re trying to sanity-check retirement timing and taxes—like, are we actually on track or just assuming we are.\nClient 2: And I’m Elizabeth. I mostly want to know what we’d need to change month to month, if anything, without it feeling scary.\nAdvisor: That makes sense. Let’s anchor on the basics first—income, spending, what you’ve built up, and any debt. Then we can talk options. Sound okay?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00071",
+      "record_type": "assets",
+      "record_id": "HH002044_A4",
+      "field_path": "assets[asset_id=HH002044_A4].value",
+      "source_value": 21950,
+      "status": "present",
+      "evidence_text": "Client 1: We do. Joint account on a retirement platform is 94700.\nAdvisor: Any private investments—private markets—held on a retirement platform in your name, William?\nClient 1: Yes, that one is 21950.\nAdvisor: And then the home—what are you using as the current value of your primary residence?\nClient 2: We use 446250 for the house value.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00072",
+      "record_type": "assets",
+      "record_id": "HH002044_A4",
+      "field_path": "assets[asset_id=HH002044_A4].owner",
+      "source_value": "client_1",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Elizabeth—nice to meet you both. I’m glad you made the time. Before we get into the numbers, what prompted you to reach out now?\nClient 1: Thanks. I’m William. We’re trying to sanity-check retirement timing and taxes—like, are we actually on track or just assuming we are.\nClient 2: And I’m Elizabeth. I mostly want to know what we’d need to change month to month, if anything, without it feeling scary.\nAdvisor: That makes sense. Let’s anchor on the basics first—income, spending, what you’ve built up, and any debt. Then we can talk options. Sound okay?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00073",
+      "record_type": "assets",
+      "record_id": "HH002044_A4",
+      "field_path": "assets[asset_id=HH002044_A4].subtype",
+      "source_value": "private_markets",
+      "status": "present",
+      "evidence_text": "Advisor: And do you have any other joint retirement-type account—something held on a retirement platform—separate from the brokerage?\nClient 1: We do. Joint account on a retirement platform is 94700.\nAdvisor: Any private investments—private markets—held on a retirement platform in your name, William?\nClient 1: Yes, that one is 21950.\nAdvisor: And then the home—what are you using as the current value of your primary residence?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00074",
+      "record_type": "assets",
+      "record_id": "HH002044_A4",
+      "field_path": "assets[asset_id=HH002044_A4].asset_type",
+      "source_value": "alternatives",
+      "status": "present",
+      "evidence_text": "Client 1: More “when the numbers work,” honestly. I’m 55, so I’m not trying to drag it out forever, but I want it to be math-driven.\nAdvisor: That makes sense. Before we go deeper on timing, I want to clean up one last asset we listed earlier—William, you mentioned you’ve got a private markets piece on the retirement platform.\nAdvisor: In plain English, what do you call that—like an alternatives sleeve, private equity, something along those lines?\nClient 1: Yeah—alternatives. It’s basically my private markets allocation.\nAdvisor: Got it. And just to be explicit on ownership, that one is yours—so that’s Client 1, not joint—right?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00075",
+      "record_type": "assets",
+      "record_id": "HH002044_A4",
+      "field_path": "assets[asset_id=HH002044_A4].provider_type",
+      "source_value": "retirement_platform",
+      "status": "present",
+      "evidence_text": "Advisor: Great. Any retirement accounts in Elizabeth’s name—like a 401(k) or IRA—held at a bank?\nClient 2: Yes, mine is 222700.\nAdvisor: And do you have any other joint retirement-type account—something held on a retirement platform—separate from the brokerage?\nClient 1: We do. Joint account on a retirement platform is 94700.\nAdvisor: Any private investments—private markets—held on a retirement platform in your name, William?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00076",
+      "record_type": "liabilities",
+      "record_id": "HH002044_L2",
+      "field_path": "liabilities[liability_id=HH002044_L2].outstanding",
+      "source_value": 3100,
+      "status": "present",
+      "evidence_text": "Client 1: Yep—let’s quantify it.\nAdvisor: Great. Starting with household income—ballpark is fine, but what do you have as your total gross income per year for the two of you combined?\nClient 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00077",
+      "record_type": "liabilities",
+      "record_id": "HH002044_L2",
+      "field_path": "liabilities[liability_id=HH002044_L2].monthly_cost",
+      "source_value": 350,
+      "status": "present",
+      "evidence_text": "Client 1: Combined gross is 173100 a year.\nAdvisor: Got it. And just so I’m not mixing sources—William, what makes up your side versus Elizabeth’s? Salary, bonus, business income, rental—whatever applies.\nClient 1: Mine’s a mix. There’s business income that runs weekly—annualized it’s 74800. Then I’ve got a monthly bonus that totals 37350 for the year, and an annual bonus of 52600.\nClient 2: And I’m employed too—my gross is 59200 annually. Plus we have rental income coming in monthly—annual total is 8400.\nAdvisor: Perfect. And I heard you say there’s also an ad hoc bonus line and a salary line that are currently zero—am I hearing that right?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00078",
+      "record_type": "liabilities",
+      "record_id": "HH002044_L2",
+      "field_path": "liabilities[liability_id=HH002044_L2].interest_rate",
+      "source_value": 15.19,
+      "status": "present",
+      "evidence_text": "Client 2: It’s 350 a month.\nAdvisor: And do you know the interest rate and when it’s scheduled to be fully paid off?\nClient 2: The rate is 15.19%, and the final payment date is 2030-01-19.\nAdvisor: Got it—thank you. So total monthly debt payments, just that one, is 350. Now let’s talk assets—what you’ve accumulated and where it sits.\nAdvisor: When you think about investable assets—so not the house—what’s the total you’re tracking across accounts?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00079",
+      "record_type": "liabilities",
+      "record_id": "HH002044_L2",
+      "field_path": "liabilities[liability_id=HH002044_L2].final_payment_date",
+      "source_value": "2030-01-19",
+      "status": "present",
+      "evidence_text": "Client 2: It’s 350 a month.\nAdvisor: And do you know the interest rate and when it’s scheduled to be fully paid off?\nClient 2: The rate is 15.19%, and the final payment date is 2030-01-19.\nAdvisor: Got it—thank you. So total monthly debt payments, just that one, is 350. Now let’s talk assets—what you’ve accumulated and where it sits.\nAdvisor: When you think about investable assets—so not the house—what’s the total you’re tracking across accounts?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00080",
+      "record_type": "liabilities",
+      "record_id": "HH002044_L2",
+      "field_path": "liabilities[liability_id=HH002044_L2].type",
+      "source_value": "loan",
+      "status": "present",
+      "evidence_text": "Advisor: Okay. Switching to spending—what are you seeing as your total monthly expenses, all-in? Mortgage or rent, utilities, groceries, insurance, travel—everything.\nClient 2: Roughly eight-ish. The number we use is 7850 per month.\nAdvisor: Thanks. Now debt—do you have any loans or cards with a regular payment we should bake in?\nClient 1: Just one loan. Balance is 3100.\nAdvisor: Okay—what’s the monthly payment on that loan?",
+      "notes": "rule-based: last_snippet_variants"
+    }
+  ]
+}

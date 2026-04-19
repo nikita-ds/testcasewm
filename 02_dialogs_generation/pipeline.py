@@ -230,7 +230,9 @@ def _load_existing_dialog_households(out_dir: Path) -> set[str]:
 
     out: set[str] = set()
     try:
-        for p in out_dir.glob("DIALOG_*.json"):
+        # Use rglob so we also consider dialogs that were moved into subdirectories
+        # (e.g., deepseek_pass_subdir/realism_passed).
+        for p in out_dir.rglob("DIALOG_*.json"):
             name = p.name
             if name.endswith("_metrics.json") or name.endswith("_evidence.json") or name.endswith("_deepseek_judge.json"):
                 continue
@@ -242,6 +244,36 @@ def _load_existing_dialog_households(out_dir: Path) -> set[str]:
     except Exception:
         return set()
     return out
+
+
+def _move_dialog_artifacts_to_pass_dir(*, output_dir: Path, dialog_id: str, pass_dir: Path) -> None:
+    """Move all top-level artifacts for dialog_id into pass_dir.
+
+    This prevents duplicated artifacts when we also keep a curated subset under
+    deepseek_pass_subdir (e.g., realism_passed/).
+
+    We move any file in output_dir whose filename starts with dialog_id.
+    """
+
+    try:
+        pass_dir.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        # If we cannot create the pass dir, do not delete/move anything.
+        return
+
+    try:
+        for p in output_dir.iterdir():
+            if (not p.is_file()) or (not p.name.startswith(dialog_id)):
+                continue
+            dest = pass_dir / p.name
+            try:
+                # Atomic within filesystem; overwrites if destination exists.
+                p.replace(dest)
+            except Exception:
+                # Best effort: never risk losing the only copy.
+                continue
+    except Exception:
+        return
 
 
 def _append_registry_row(
@@ -3643,10 +3675,7 @@ class DialogGenerationPipeline:
                 save_text(cfg.output_dir / f"{dialog_id}.txt", final_transcript)
             if bool((deepseek_realism or {}).get("passed_threshold")):
                 pass_dir = cfg.output_dir / str(getattr(cfg, "deepseek_pass_subdir", "realism_passed"))
-                save_json(pass_dir / f"{dialog_id}.json", out_obj)
-                if cfg.save_txt:
-                    save_text(pass_dir / f"{dialog_id}.txt", final_transcript)
-                save_json(pass_dir / f"{dialog_id}_deepseek_judge.json", deepseek_realism)
+                _move_dialog_artifacts_to_pass_dir(output_dir=cfg.output_dir, dialog_id=dialog_id, pass_dir=pass_dir)
 
             logger.info(
                 "%s | wrote=%s | turns=%s | total_dt=%.2fs",
@@ -4218,10 +4247,7 @@ class DialogGenerationPipeline:
             save_json(cfg.output_dir / f"{dialog_id}_deepseek_judge.json", deepseek_realism)
         if bool((deepseek_realism or {}).get("passed_threshold")):
             pass_dir = cfg.output_dir / str(getattr(cfg, "deepseek_pass_subdir", "realism_passed"))
-            save_json(pass_dir / f"{dialog_id}.json", out_obj)
-            if cfg.save_txt:
-                save_text(pass_dir / f"{dialog_id}.txt", transcript_text)
-            save_json(pass_dir / f"{dialog_id}_deepseek_judge.json", deepseek_realism)
+            _move_dialog_artifacts_to_pass_dir(output_dir=cfg.output_dir, dialog_id=dialog_id, pass_dir=pass_dir)
 
         logger.info(
             "%s | wrote=%s | turns=%s | total_dt=%.2fs",
