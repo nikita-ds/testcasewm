@@ -64,9 +64,6 @@ def _infer_people_fields(rec: Dict[str, Any]) -> Dict[str, Any]:
         elif out.get("client_no") == 2:
             out["role"] = "spouse_partner"
 
-    if not occupation_group and employment_status in {"retired", "inactive"}:
-        out["occupation_group"] = employment_status
-
     if not employment_status and occupation_group in {"retired", "inactive"}:
         out["employment_status"] = occupation_group
 

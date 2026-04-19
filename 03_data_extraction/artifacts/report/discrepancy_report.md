@@ -3,14 +3,14 @@
 ## Overall
 
 - Households analyzed: **316**
-- Scored cells: **21532**
+- Scored cells: **21391**
 - Match rate (cells): **0.989**
 
 ### Error breakdown (scored cells)
 
 - Missing extracted: **54**
 - Extra extracted: **0**
-- Value mismatch: **183**
+- Value mismatch: **176**
 
 ## Record pairing by entity
 
@@ -27,7 +27,7 @@
 
 | entity | field | field_type | n_total | match_rate | n_missing_extracted | n_extra_extracted | n_value_mismatch |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| people | occupation_group | categorical | 469 | 0.925373 | 8 | 0 | 27 |
+| people | occupation_group | categorical | 328 | 0.914634 | 8 | 0 | 20 |
 | assets | provider_type | categorical | 1030 | 0.95534 | 21 | 0 | 25 |
 | assets | asset_type | categorical | 1557 | 0.978163 | 0 | 0 | 34 |
 | assets | is_joint | boolean | 1557 | 0.979448 | 0 | 0 | 32 |
@@ -61,7 +61,7 @@ Missing extracted happens for two different reasons: (a) **record pairing failed
 
 | entity | field | field_type | n_total | n_missing_extracted_gt_only | n_missing_extracted |
 | --- | --- | --- | --- | --- | --- |
-| people | occupation_group | categorical | 469 | 4 | 8 |
+| people | occupation_group | categorical | 328 | 4 | 8 |
 | people | gross_annual_income | continuous | 564 | 4 | 8 |
 | people | employment_status | categorical | 564 | 4 | 4 |
 | people | client_no | integer | 564 | 4 | 4 |
@@ -87,7 +87,7 @@ Missing extracted happens for two different reasons: (a) **record pairing failed
 | entity | field | field_type | n_total | n_missing_extracted_within_paired | n_missing_extracted |
 | --- | --- | --- | --- | --- | --- |
 | assets | provider_type | categorical | 1030 | 21 | 21 |
-| people | occupation_group | categorical | 469 | 4 | 8 |
+| people | occupation_group | categorical | 328 | 4 | 8 |
 | people | gross_annual_income | continuous | 564 | 4 | 8 |
 | assets | subtype | categorical | 1557 | 3 | 3 |
 | households | non_mortgage_outstanding_total | continuous | 316 | 1 | 1 |
@@ -114,41 +114,41 @@ Missing extracted happens for two different reasons: (a) **record pairing failed
 | assets | is_joint | False | True | 21 |
 | assets | owner | joint | client_1 | 13 |
 | assets | owner | client_1 | joint | 12 |
-| assets | asset_type | cash | retirement | 11 |
 | assets | is_joint | True | False | 11 |
-| assets | subtype | bank_account | 401k_ira | 10 |
-| assets | asset_type | brokerage | cash | 10 |
+| assets | asset_type | cash | retirement | 11 |
 | assets | subtype | taxable_brokerage | bank_account | 10 |
+| assets | asset_type | brokerage | cash | 10 |
+| assets | subtype | bank_account | 401k_ira | 10 |
 | assets | provider_type | advisor_platform | bank | 6 |
 | assets | provider_type | retirement_platform | bank | 4 |
 | people | employment_status | employed | employed_full_time | 3 |
-| assets | provider_type | retirement_platform | advisor_platform | 3 |
+| assets | asset_type | cash | brokerage | 3 |
 | assets | owner | client_2 | client_1 | 3 |
 | assets | owner | client_2 | joint | 3 |
-| assets | asset_type | cash | brokerage | 3 |
 | assets | asset_type | cash | alternatives | 3 |
-| assets | provider_type | bank | brokerage | 3 |
 | assets | subtype | bank_account | taxable_brokerage | 3 |
+| assets | provider_type | bank | brokerage | 3 |
 | people | occupation_group | operations | business_owner | 3 |
-| people | occupation_group | inactive | business_owner | 2 |
-| assets | subtype | bank_account | private_markets | 2 |
-| assets | asset_type | brokerage | alternatives | 2 |
+| assets | provider_type | retirement_platform | advisor_platform | 3 |
 | assets | subtype | taxable_brokerage | 401k_ira | 2 |
 | assets | provider_type | insurance_company | bank | 2 |
+| assets | subtype | bank_account | private_markets | 2 |
+| assets | asset_type | brokerage | alternatives | 2 |
+| assets | provider_type | brokerage | advisor_platform | 2 |
 | assets | asset_type | brokerage | retirement | 2 |
 | assets | provider_type | brokerage | bank | 2 |
-| assets | provider_type | brokerage | advisor_platform | 2 |
-| people | occupation_group | healthcare | operations | 1 |
-| assets | asset_type | property | retirement | 1 |
-| people | occupation_group | inactive | exec | 1 |
-| people | occupation_group | inactive | finance | 1 |
-| people | occupation_group | inactive | operations | 1 |
-| people | occupation_group | inactive | professional | 1 |
+| assets | provider_type | insurance_company | advisor_platform | 1 |
+| people | occupation_group | exec | business_owner | 1 |
+| people | occupation_group | sales | healthcare | 1 |
+| people | occupation_group | professional | sales | 1 |
+| people | occupation_group | professional | operations | 1 |
+| people | occupation_group | professional | education | 1 |
 | people | occupation_group | professional | business_owner | 1 |
 | people | occupation_group | operations | sales | 1 |
+| people | occupation_group | healthcare | operations | 1 |
+| people | occupation_group | healthcare | finance | 1 |
 | people | occupation_group | finance | professional | 1 |
-| people | occupation_group | professional | education | 1 |
-| people | occupation_group | professional | operations | 1 |
-| people | occupation_group | professional | sales | 1 |
-| people | occupation_group | retired | operations | 1 |
+| people | occupation_group | finance | inactive | 1 |
+| people | occupation_group | exec | education | 1 |
+| people | occupation_group | business_owner | professional | 1 |
 

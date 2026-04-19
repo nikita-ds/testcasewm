@@ -89,6 +89,26 @@ def _should_keep_evidence_item(
     text = str(evidence_text or "").lower()
     value_s = str(source_value or "").strip().lower()
     selector_s = str(selector_value or "").strip().upper()
+    ownership_cues = (
+        "in my name",
+        "my name",
+        "his name",
+        "her name",
+        "their names",
+        "both names",
+        "joint",
+        "jointly",
+        "shared",
+        "both of us",
+        "owned by",
+        "belongs to",
+        "it's mine",
+        "it is mine",
+        "it's his",
+        "it's hers",
+        "it is his",
+        "it is hers",
+    )
 
     if entity == "people" and field_name == "occupation_group":
         if value_s in {"retired", "inactive"}:
@@ -103,11 +123,17 @@ def _should_keep_evidence_item(
         strong_holder_words = ("held at", "at the bank", "at the brokerage", "at the insurer", "through the bank", "with the bank")
         if any(w in text for w in weak_platform_words) and not any(w in text for w in strong_holder_words):
             return False
+        if value_s in {"advisor_platform", "retirement_platform"} and any(
+            w in text for w in ("bank account", "at the bank", "held at a bank", "held at the bank", "brokerage account", "at a brokerage")
+        ):
+            return False
 
     if entity == "assets" and field_name == "owner":
-        if value_s == "joint" and not any(w in text for w in ("joint", "both of us", "both names", "shared", "together")):
+        if not any(w in text for w in ownership_cues):
             return False
-        if value_s in {"client_1", "client_2"} and not any(w in text for w in ("client 1", "client 2", "in my name", "my name", "his name", "her name")):
+        if value_s == "joint" and not any(w in text for w in ("joint", "jointly", "both of us", "both names", "shared", "together")):
+            return False
+        if value_s in {"client_1", "client_2"} and not any(w in text for w in ("in my name", "my name", "his name", "her name", "owned by", "belongs to")):
             return False
 
     return True

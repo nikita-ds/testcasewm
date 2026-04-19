@@ -2,9 +2,18 @@
 Extraction quality metrics computation module for pipeline results.
 """
 import json
+import csv
 from pathlib import Path
 from collections import defaultdict
-from tabulate import tabulate
+
+try:
+    from tabulate import tabulate
+except Exception:  # pragma: no cover - fallback for local envs
+    def tabulate(rows, headers, tablefmt="github"):
+        lines = [" | ".join(headers)]
+        for row in rows:
+            lines.append(" | ".join(str(x) for x in row))
+        return "\n".join(lines)
 
 # Input artifact paths
 ARTIFACTS = Path(__file__).parent / "artifacts"
@@ -25,17 +34,41 @@ def load_json(path):
 
 def load_csv(path):
     """Load CSV file as list of dicts."""
-    with open(path, encoding="utf-8") as f:
-        lines = [l.strip().split(",") for l in f if l.strip()]
-    header = lines[0]
-    return [dict(zip(header, row)) for row in lines[1:]]
+    with open(path, encoding="utf-8", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def _load_dialog_fractions() -> list[float]:
+    if not (MERGED / "merged_ground_truth_extracted.jsonl").exists():
+        return []
+
+    vals: list[float] = []
+    with open(MERGED / "merged_ground_truth_extracted.jsonl", encoding="utf-8") as f:
+        for line in f:
+            s = line.strip()
+            if not s:
+                continue
+            row = json.loads(s)
+            frac = row.get("fraction")
+            if not isinstance(frac, (int, float)):
+                acc = row.get("accuracy")
+                if isinstance(acc, dict):
+                    frac = acc.get("fraction")
+            if isinstance(frac, (int, float)):
+                vals.append(float(frac))
+    return vals
 
 def main():
     # 1. Overall dialog-level metrics
     acc = load_json(ACCURACY_REPORT)
     dialog_stats = acc.get("dialog_stats", [])
+    dialog_fractions = []
+    if isinstance(dialog_stats, list) and dialog_stats:
+        dialog_fractions = [float(d.get("fraction", 0)) for d in dialog_stats if isinstance(d, dict)]
+    else:
+        dialog_fractions = _load_dialog_fractions()
 
-    n = len(dialog_stats)
+    n = len(dialog_fractions)
     if n == 0:
         print("No dialogs found in accuracy_report.json. Metrics not computed.")
         table_txt = tabulate([], headers=["Entity", "Missed", "Errors", "Invented", "Total cells"], tablefmt="github")
@@ -45,9 +78,9 @@ def main():
             f.write("\n")
         return
 
-    n_100 = sum(1 for d in dialog_stats if d.get("fraction", 0) >= 1.0)
-    n_95 = sum(1 for d in dialog_stats if d.get("fraction", 0) >= 0.95)
-    n_90 = sum(1 for d in dialog_stats if d.get("fraction", 0) >= 0.90)
+    n_100 = sum(1 for v in dialog_fractions if v >= 1.0)
+    n_95 = sum(1 for v in dialog_fractions if v >= 0.95)
+    n_90 = sum(1 for v in dialog_fractions if v >= 0.90)
     print(f"Share of dialogs with 100% correct: {n_100}/{n} = {n_100/n:.3f}")
     print(f"Share of dialogs with ≥95% correct: {n_95}/{n} = {n_95/n:.3f}")
     print(f"Share of dialogs with ≥90% correct: {n_90}/{n} = {n_90/n:.3f}")
@@ -59,10 +92,10 @@ def main():
         entity = row["entity"]
         if entity not in ENTITY_FIELDS:
             continue
-        entity_metrics[entity]["missing"] += int(row["missing_extracted"])
-        entity_metrics[entity]["error"] += int(row["value_mismatch"])
-        entity_metrics[entity]["extra"] += int(row["extra_extracted"])
-        entity_metrics[entity]["total"] += int(row["total_cells"])
+        entity_metrics[entity]["missing"] += int(row.get("n_missing_extracted") or row.get("missing_extracted") or 0)
+        entity_metrics[entity]["error"] += int(row.get("n_value_mismatch") or row.get("value_mismatch") or 0)
+        entity_metrics[entity]["extra"] += int(row.get("n_extra_extracted") or row.get("extra_extracted") or 0)
+        entity_metrics[entity]["total"] += int(row.get("n_total") or row.get("total_cells") or 0)
 
     # Build table for output
     table = []
