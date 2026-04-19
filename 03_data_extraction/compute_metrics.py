@@ -10,9 +10,19 @@ try:
     from tabulate import tabulate
 except Exception:  # pragma: no cover - fallback for local envs
     def tabulate(rows, headers, tablefmt="github"):
-        lines = [" | ".join(headers)]
-        for row in rows:
-            lines.append(" | ".join(str(x) for x in row))
+        str_rows = [[str(x) for x in row] for row in rows]
+        str_headers = [str(x) for x in headers]
+        widths = [
+            max(len(str_headers[i]), *(len(row[i]) for row in str_rows)) if str_rows else len(str_headers[i])
+            for i in range(len(str_headers))
+        ]
+
+        def fmt_row(row):
+            return "| " + " | ".join(str(row[i]).ljust(widths[i]) for i in range(len(widths))) + " |"
+
+        sep = "|-" + "-|-".join("-" * width for width in widths) + "-|"
+        lines = [fmt_row(str_headers), sep]
+        lines.extend(fmt_row(row) for row in str_rows)
         return "\n".join(lines)
 
 # Input artifact paths
@@ -141,6 +151,7 @@ def main():
         f.write("Per-entity metrics\n")
         f.write(table_txt)
         f.write("\n")
+    print(f"\nSaved metrics table: {out_path}")
 
 if __name__ == "__main__":
     main()

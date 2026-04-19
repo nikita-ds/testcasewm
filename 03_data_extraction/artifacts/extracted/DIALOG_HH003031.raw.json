@@ -2,6 +2,7 @@
   "households": [
     {
       "household_id": "HH003031",
+      "scenario": "family_with_mortgage_and_children",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "married_or_civil_partner",
@@ -10,6 +11,7 @@
       "num_dependants": 3,
       "annual_household_gross_income": 129150,
       "monthly_expenses_total": 10250,
+      "expense_to_income_ratio": 0.9523809523809523,
       "has_mortgage_or_loan": true,
       "loan_outstanding_total": 192950,
       "mortgage_outstanding_total": 192950,
@@ -17,6 +19,7 @@
       "monthly_debt_cost_total": 3600,
       "monthly_mortgage_payment_total": 3600,
       "monthly_non_mortgage_payment_total": 0,
+      "mortgage_payment_to_income_ratio": 0.3343653250773994,
       "property_value_total": 304650,
       "investable_assets_total": 390700,
       "tax_bracket_band": "32",
@@ -27,6 +30,7 @@
     {
       "person_id": "HH003031_P1",
       "household_id": "HH003031",
+      "client_no": 1,
       "role": "primary",
       "first_name": "Elizabeth",
       "employment_status": "employed",
@@ -35,6 +39,7 @@
     {
       "person_id": "HH003031_P2",
       "household_id": "HH003031",
+      "client_no": 2,
       "role": "spouse_partner",
       "first_name": "Thomas",
       "employment_status": "employed",
@@ -47,13 +52,31 @@
       "income_line_id": "HH003031_INC1",
       "household_id": "HH003031",
       "owner": "client_1",
+      "source_type": "salary",
+      "frequency": "annual",
+      "net_or_gross": "gross",
+      "amount_annualized": 79050
+    },
+    {
+      "income_line_id": "HH003031_INC2",
+      "household_id": "HH003031",
+      "owner": "client_2",
+      "source_type": "salary",
+      "frequency": "annual",
+      "net_or_gross": "gross",
+      "amount_annualized": 50100
+    },
+    {
+      "income_line_id": "HH003031_INC3",
+      "household_id": "HH003031",
+      "owner": "client_1",
       "source_type": "rental_income",
       "frequency": "quarterly",
       "net_or_gross": "gross",
       "amount_annualized": 40300
     },
     {
-      "income_line_id": "HH003031_INC2",
+      "income_line_id": "HH003031_INC4",
       "household_id": "HH003031",
       "owner": "client_1",
       "source_type": "rental_income",
@@ -62,31 +85,13 @@
       "amount_annualized": 42650
     },
     {
-      "income_line_id": "HH003031_INC3",
+      "income_line_id": "HH003031_INC5",
       "household_id": "HH003031",
       "owner": "client_1",
       "source_type": "interest_dividends",
       "frequency": "monthly",
       "net_or_gross": "gross",
       "amount_annualized": 46200
-    },
-    {
-      "income_line_id": "HH003031_INC4",
-      "household_id": "HH003031",
-      "owner": "client_1",
-      "source_type": "salary",
-      "frequency": "annual",
-      "net_or_gross": "gross",
-      "amount_annualized": 79050
-    },
-    {
-      "income_line_id": "HH003031_INC5",
-      "household_id": "HH003031",
-      "owner": "client_2",
-      "source_type": "salary",
-      "frequency": "annual",
-      "net_or_gross": "gross",
-      "amount_annualized": 50100
     }
   ],
   "assets": [

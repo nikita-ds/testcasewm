@@ -2,7 +2,6 @@
   "households": [
     {
       "household_id": "HH003774",
-      "scenario": "divorced",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "divorced",
@@ -11,18 +10,22 @@
       "num_dependants": 0,
       "annual_household_gross_income": 144800.0,
       "monthly_expenses_total": 5050.0,
+      "expense_to_income_ratio": 0.418646408839779,
       "has_mortgage_or_loan": true,
       "loan_outstanding_total": 650.0,
       "mortgage_outstanding_total": 0.0,
       "non_mortgage_outstanding_total": 650.0,
       "monthly_debt_cost_total": 100.0,
+      "monthly_mortgage_payment_total": 0.0,
       "monthly_non_mortgage_payment_total": 100.0,
       "property_value_total": 90200.0,
       "investable_assets_total": 315700.0,
+      "retirement_assets_total": 231450.0,
+      "cash_and_cashlike_total": 40350.0,
+      "alternatives_total": 43850.0,
+      "net_worth_proxy": 405250.0,
       "risk_tolerance": "moderate",
       "tax_bracket_band": "35",
-      "monthly_mortgage_payment_total": 0.0,
-      "expense_to_income_ratio": 0.4185082872928177,
       "mortgage_payment_to_income_ratio": 0.0
     }
   ],
@@ -30,12 +33,12 @@
     {
       "person_id": "HH003774_P1",
       "household_id": "HH003774",
+      "client_no": 1,
       "role": "primary",
       "first_name": "Emily",
       "employment_status": "employed",
       "occupation_group": "exec",
-      "gross_annual_income": 144800.0,
-      "client_no": 1
+      "gross_annual_income": 144800.0
     }
   ],
   "income_lines": [
@@ -68,16 +71,6 @@
     }
   ],
   "assets": [
-    {
-      "asset_id": "HH003774_A1",
-      "household_id": "HH003774",
-      "owner": "client_1",
-      "asset_type": "retirement",
-      "subtype": "401k_ira",
-      "provider_type": "retirement_platform",
-      "value": 140500.0,
-      "is_joint": false
-    },
     {
       "asset_id": "HH003774_A2",
       "household_id": "HH003774",
@@ -117,6 +110,16 @@
       "provider_type": "advisor_platform",
       "value": 90200.0,
       "is_joint": false
+    },
+    {
+      "asset_id": "HH003774_A1",
+      "household_id": "HH003774",
+      "owner": "joint",
+      "asset_type": "cash",
+      "subtype": "bank_account",
+      "provider_type": "retirement_platform",
+      "value": 140500.0,
+      "is_joint": true
     }
   ],
   "liabilities": [
@@ -132,7 +135,7 @@
   ],
   "protection_policies": [
     {
-      "policy_id": "HH003774_PLC1",
+      "policy_id": "HH003774_Pol1",
       "household_id": "HH003774",
       "owner": "client_1",
       "policy_type": "disability",

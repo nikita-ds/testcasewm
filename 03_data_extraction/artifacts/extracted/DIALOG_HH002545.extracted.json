@@ -2,7 +2,6 @@
   "households": [
     {
       "household_id": "HH002545",
-      "scenario": "one_high_earner_one_low_earner",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "married_or_civil_partner",
@@ -11,6 +10,7 @@
       "num_dependants": 0,
       "annual_household_gross_income": 149800.0,
       "monthly_expenses_total": 9050.0,
+      "expense_to_income_ratio": 0.7251001335113489,
       "has_mortgage_or_loan": true,
       "loan_outstanding_total": 59100.0,
       "mortgage_outstanding_total": 48750.0,
@@ -18,26 +18,29 @@
       "monthly_debt_cost_total": 2850.0,
       "monthly_mortgage_payment_total": 2250.0,
       "monthly_non_mortgage_payment_total": 600.0,
+      "mortgage_payment_to_income_ratio": 0.1802403204272363,
       "property_value_total": 66000.0,
       "investable_assets_total": 202350.0,
       "retirement_assets_total": 43250.0,
       "cash_and_cashlike_total": 12300.0,
+      "net_worth_proxy": 209250.0,
       "risk_tolerance": "moderate",
-      "tax_bracket_band": "35",
-      "expense_to_income_ratio": 0.7249666221628839,
-      "mortgage_payment_to_income_ratio": 0.1802403204272363
+      "investment_objectives": [
+        "tax_optimization"
+      ],
+      "tax_bracket_band": "35"
     }
   ],
   "people": [
     {
       "person_id": "HH002545_P1",
       "household_id": "HH002545",
-      "client_no": 1,
       "role": "primary",
       "first_name": "James",
       "employment_status": "self_employed",
       "occupation_group": "finance",
-      "gross_annual_income": 111250.0
+      "gross_annual_income": 111250.0,
+      "client_no": 1
     },
     {
       "person_id": "HH002545_P2",
@@ -97,7 +100,7 @@
       "owner": "joint",
       "asset_type": "cash",
       "subtype": "bank_account",
-      "provider_type": "bank",
+      "provider_type": "advisor_platform",
       "value": 12300.0,
       "is_joint": true
     },

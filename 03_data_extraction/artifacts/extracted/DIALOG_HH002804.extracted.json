@@ -14,12 +14,12 @@
       "loan_outstanding_total": 194050.0,
       "mortgage_outstanding_total": 194050.0,
       "non_mortgage_outstanding_total": 0.0,
+      "monthly_debt_cost_total": 4100.0,
       "monthly_mortgage_payment_total": 4100.0,
       "property_value_total": 264450.0,
       "investable_assets_total": 325450.0,
       "risk_tolerance": "conservative",
       "tax_bracket_band": "35",
-      "monthly_debt_cost_total": 4100.0,
       "expense_to_income_ratio": 0.9309245483528161,
       "mortgage_payment_to_income_ratio": 0.3485653560042508
     }
@@ -50,6 +50,15 @@
     {
       "income_line_id": "HH002804_I1",
       "household_id": "HH002804",
+      "owner": "client_2",
+      "source_type": "salary",
+      "frequency": "annual",
+      "net_or_gross": "gross",
+      "amount_annualized": 63900.0
+    },
+    {
+      "income_line_id": "HH002804_I2",
+      "household_id": "HH002804",
       "owner": "client_1",
       "source_type": "rental_income",
       "frequency": "weekly",
@@ -57,35 +66,16 @@
       "amount_annualized": 59050.0
     },
     {
-      "income_line_id": "HH002804_I2",
+      "income_line_id": "HH002804_I3",
       "household_id": "HH002804",
       "owner": "client_1",
       "source_type": "rental_income",
       "frequency": "annual",
       "net_or_gross": "gross",
       "amount_annualized": 82100.0
-    },
-    {
-      "income_line_id": "HH002804_I3",
-      "household_id": "HH002804",
-      "owner": "client_2",
-      "source_type": "salary",
-      "frequency": "annual",
-      "net_or_gross": "gross",
-      "amount_annualized": 63900.0
     }
   ],
   "assets": [
-    {
-      "asset_id": "HH002804_A1",
-      "household_id": "HH002804",
-      "owner": "client_1",
-      "asset_type": "brokerage",
-      "subtype": "taxable_brokerage",
-      "provider_type": "retirement_platform",
-      "value": 175900.0,
-      "is_joint": false
-    },
     {
       "asset_id": "HH002804_A2",
       "household_id": "HH002804",
@@ -125,6 +115,16 @@
       "provider_type": "brokerage",
       "value": 264450.0,
       "is_joint": false
+    },
+    {
+      "asset_id": "HH002804_A1",
+      "household_id": "HH002804",
+      "owner": "client_1",
+      "asset_type": "brokerage",
+      "subtype": "taxable_brokerage",
+      "provider_type": "retirement_platform",
+      "value": 175900.0,
+      "is_joint": false
     }
   ],
   "liabilities": [
@@ -140,7 +140,7 @@
   ],
   "protection_policies": [
     {
-      "policy_id": "HH002804_PP1",
+      "policy_id": "HH002804_PLC1",
       "household_id": "HH002804",
       "owner": "client_1",
       "policy_type": "life",

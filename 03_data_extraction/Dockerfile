@@ -4,4 +4,4 @@ WORKDIR /repo/03_data_extraction
 COPY requirements.txt /tmp/requirements.txt
 RUN python -m pip install --upgrade pip \
   && pip install -r /tmp/requirements.txt
-CMD ["python", "run.py"]
+CMD ["python", "run_pipeline.py"]

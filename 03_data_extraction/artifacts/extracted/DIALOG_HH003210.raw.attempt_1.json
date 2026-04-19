@@ -2,14 +2,18 @@
   "households": [
     {
       "household_id": "HH003210",
+      "scenario": "family_with_mortgage_and_children",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "married_or_civil_partner",
       "residence_state": "CA",
+      "primary_age": 0,
+      "secondary_age": 0,
       "num_adults": 2,
       "num_dependants": 3,
       "annual_household_gross_income": 259200,
       "monthly_expenses_total": 16950,
+      "expense_to_income_ratio": 0.7850694444444445,
       "has_mortgage_or_loan": true,
       "loan_outstanding_total": 503850,
       "mortgage_outstanding_total": 503850,
@@ -17,33 +21,39 @@
       "monthly_debt_cost_total": 4750,
       "monthly_mortgage_payment_total": 4750,
       "monthly_non_mortgage_payment_total": 0,
+      "mortgage_payment_to_income_ratio": 0.2199074074074074,
       "property_value_total": 843100,
       "investable_assets_total": 1063050,
+      "retirement_assets_total": 237150,
+      "cash_and_cashlike_total": 70300,
+      "alternatives_total": 77800,
+      "net_worth_proxy": 1402300,
       "risk_tolerance": "moderate",
       "investment_objectives": [
         "capital_preservation",
         "education",
-        "retirement"
+        "retirement",
+        "wealth_growth"
       ],
       "tax_bracket_band": "24"
     }
   ],
   "people": [
     {
-      "person_id": "P_HH003210_1",
+      "person_id": "HH003210_P1",
       "household_id": "HH003210",
-      "client_no": 1,
       "role": "primary",
       "first_name": "Mar",
+      "client_no": 1,
       "employment_status": "unemployed",
       "gross_annual_income": 225800
     },
     {
-      "person_id": "P_HH003210_2",
+      "person_id": "HH003210_P2",
       "household_id": "HH003210",
-      "client_no": 2,
       "role": "spouse_partner",
       "first_name": "Joseph",
+      "client_no": 2,
       "employment_status": "employed",
       "occupation_group": "finance",
       "gross_annual_income": 33450
@@ -51,36 +61,18 @@
   ],
   "income_lines": [
     {
-      "income_line_id": "INC_HH003210_1",
+      "income_line_id": "HH003210_INC1",
       "household_id": "HH003210",
       "owner": "client_1",
       "source_type": "interest_dividends",
       "frequency": "monthly",
       "net_or_gross": "gross",
       "amount_annualized": 259200
-    },
-    {
-      "income_line_id": "INC_HH003210_2",
-      "household_id": "HH003210",
-      "owner": "client_2",
-      "source_type": "salary",
-      "frequency": "annual",
-      "net_or_gross": "gross",
-      "amount_annualized": 33450
-    },
-    {
-      "income_line_id": "INC_HH003210_3",
-      "household_id": "HH003210",
-      "owner": "client_1",
-      "source_type": "salary",
-      "frequency": "annual",
-      "net_or_gross": "gross",
-      "amount_annualized": 225800
     }
   ],
   "assets": [
     {
-      "asset_id": "AST_HH003210_1",
+      "asset_id": "HH003210_A1",
       "household_id": "HH003210",
       "owner": "joint",
       "asset_type": "brokerage",
@@ -90,7 +82,7 @@
       "is_joint": true
     },
     {
-      "asset_id": "AST_HH003210_2",
+      "asset_id": "HH003210_A2",
       "household_id": "HH003210",
       "owner": "client_1",
       "asset_type": "retirement",
@@ -100,7 +92,7 @@
       "is_joint": false
     },
     {
-      "asset_id": "AST_HH003210_3",
+      "asset_id": "HH003210_A3",
       "household_id": "HH003210",
       "owner": "joint",
       "asset_type": "cash",
@@ -110,7 +102,7 @@
       "is_joint": true
     },
     {
-      "asset_id": "AST_HH003210_4",
+      "asset_id": "HH003210_A4",
       "household_id": "HH003210",
       "owner": "client_2",
       "asset_type": "alternatives",
@@ -120,7 +112,7 @@
       "is_joint": false
     },
     {
-      "asset_id": "AST_HH003210_5",
+      "asset_id": "HH003210_A5",
       "household_id": "HH003210",
       "owner": "joint",
       "asset_type": "property",
@@ -132,7 +124,7 @@
   ],
   "liabilities": [
     {
-      "liability_id": "LIA_HH003210_1",
+      "liability_id": "HH003210_L1",
       "household_id": "HH003210",
       "type": "mortgage",
       "monthly_cost": 4750,
@@ -143,7 +135,7 @@
   ],
   "protection_policies": [
     {
-      "policy_id": "POL_HH003210_1",
+      "policy_id": "HH003210_PLC1",
       "household_id": "HH003210",
       "owner": "client_1",
       "policy_type": "life",
