@@ -1,0 +1,64 @@
+{
+  "passed": false,
+  "strict": false,
+  "format_ok": true,
+  "bad_transcript_lines": [],
+  "pii_terms_detected": [],
+  "total_targets": 84,
+  "counts": {
+    "present": 83,
+    "approximate": 0,
+    "missing": 1,
+    "contradiction": 0,
+    "unknown": 0
+  },
+  "coverage_lenient": 0.9880952380952381,
+  "coverage_strict": 0.9880952380952381,
+  "strict_unmatched_target_ids": [
+    "t00083"
+  ],
+  "strict_unmatched_fields": [
+    {
+      "target_id": "t00083",
+      "field_path": "protection_policies[policy_id=HH000996_PP1].assured_until",
+      "record_type": "protection_policies",
+      "record_id": "HH000996_PP1",
+      "source_value": "2054-03-14",
+      "status": "missing"
+    }
+  ],
+  "lenient_failed_fields": [
+    {
+      "target_id": "t00083",
+      "field_path": "protection_policies[policy_id=HH000996_PP1].assured_until",
+      "record_type": "protection_policies",
+      "record_id": "HH000996_PP1",
+      "source_value": "2054-03-14",
+      "status": "missing"
+    }
+  ],
+  "consistency_issues": [
+    {
+      "record_type": "people",
+      "record_id": "HH000996_P2",
+      "field_paths": [
+        "people[person_id=HH000996_P2].employment_status",
+        "income_lines[*].source_type",
+        "income_lines[*].amount_annualized",
+        "income_lines[*].owner"
+      ],
+      "values": {
+        "employment_status": "inactive",
+        "income_lines": [
+          {
+            "income_line_id": "HH000996_I1",
+            "owner": "client_2",
+            "source_type": "salary",
+            "amount_annualized": 30300
+          }
+        ]
+      },
+      "reason": "employment_status=inactive conflicts with active income source_type in ['bonus', 'business_income', 'salary']"
+    }
+  ]
+}

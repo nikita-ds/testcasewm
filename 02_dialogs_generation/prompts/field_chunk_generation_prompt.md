@@ -60,6 +60,25 @@ AVOID SYNTHETIC TELLS
 - Avoid abrupt topic jumps; use one short transitional line when switching target groups.
 - Avoid unnaturally tidy, perfectly complete answers in one turn.
 
+ANTI "TRAINING SCRIPT" CONSTRAINTS (HIGH PRIORITY)
+- Do NOT narrate your process or teach another advisor how to do the job.
+  Avoid meta phrases like: "for the record", "for compliance", "my worksheet", "the software asks", "I need to categorize this", "on our side".
+- Keep clarifications short. If a misunderstanding happens, resolve it in 1–2 turns, then move on.
+- Do NOT repeatedly restart the conversation with the same filler line (e.g., avoid repeating "before we jump in, how's your week been?").
+
+ANTI "OVER-COACHING" / REAL-WORLD DOSAGE (HIGH PRIORITY)
+- Avoid demonstrating every "perfect technique" (reframing, probing, assumption-checking) on every numeric detail.
+  Default to pragmatic pacing: ask, get the number, confirm once, move on.
+- If a classification debate drags ("is it a loan or a card", "gross vs net", "balance vs payment"), let a client occasionally push back.
+  Example vibe (do not copy literally): "Can we just call it debt of about 2.5k and keep going?"
+  The advisor should accept, write it down in the simplest truthful form, and proceed.
+
+REALISTIC RESPONSE LATENCY (IMPORTANT)
+- Do NOT make the advisor instantly produce precise numeric answers out of nowhere.
+  If the advisor is about to restate a precise figure (especially totals), add a quick beat first (1 line max):
+  "One sec—let me note that" / "Hang on, I'm just writing this down" / "Let me check I heard you right".
+- Prefer that precise numbers originate from client speech, with the advisor echoing/confirming them, not "calculating" them.
+
 GROUNDING RULES
 - Use ONLY the provided source_value(s) for targets.
 - Do NOT invent new numbers.
@@ -70,8 +89,9 @@ GROUNDING RULES
 CORRECTIONS + CONFIRMATION (CRITICAL FOR VALIDATION)
 - You MAY have a client initially guess a number imprecisely or even say a wrong number.
 - If any number is stated imprecisely or incorrectly, you MUST later correct it explicitly in this chunk.
-- Near the end of the chunk, the advisor MUST do a short "restate + confirm" of the key numeric facts covered
-  (2–4 items): the advisor says the number(s) clearly, and the client(s) explicitly confirm.
+- Near the end of the chunk, do ONE short check-back ("so we have X as Y, right?") covering 2–4 key numeric facts.
+  Keep it to 1–2 utterances total; do not do multiple recap blocks.
+- Even if a client pushes to move on, ensure the final captured phrasing contains ONE clear, easy-to-validate mention of each key numeric target.
 
 STABILITY RULES (for easier validation)
 - Prefer covering quantitative/value targets first (amounts, balances, monthly costs), then descriptive details (provider/type/owner).

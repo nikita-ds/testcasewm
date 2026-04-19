@@ -2,15 +2,15 @@
 
 ## Counts
 - households: 5000
-- people: 9206
+- people: 9214
 - rule violations: 0
 
 ## Medians
-- annual household gross income: 133,201.46
-- investable assets total: 500,221.90
-- net worth proxy: 739,689.06
-- monthly mortgage payment total (positive only): 2,867.06
-- monthly non-mortgage payment total (positive only): 376.17
+- annual household gross income: 136,125.59
+- investable assets total: 501,539.75
+- net worth proxy: 744,372.39
+- monthly mortgage payment total (positive only): 2,978.40
+- monthly non-mortgage payment total (positive only): 373.90
 
 ## Figures
 

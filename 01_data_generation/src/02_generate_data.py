@@ -136,26 +136,51 @@ def age_assets_multiplier(age: int | float, retirement_age: int | float, retired
     return float(lerp(0.72, 1.35, progress))
 
 
-def choose_gender(rng) -> tuple[str, str, str]:
-    gender = str(rng.choice(["male", "female", "non_binary"], p=[0.485, 0.485, 0.03]))
+def _gender_tuple(gender: str) -> tuple[str, str, str]:
+    gender = str(gender)
     if gender == "male":
         return gender, "male", "he_him"
     if gender == "female":
         return gender, "female", "she_her"
-    return gender, "non_binary", "they_them"
+    if gender == "non_binary":
+        return gender, "non_binary", "they_them"
+    raise ValueError(f"Unsupported gender: {gender!r}")
 
 
-def sample_personal_details(rng, *, first_name: str | None = None, last_name: str | None = None, email_local_taken: set[str] | None = None) -> dict:
-    gender, legal_sex, pronouns = choose_gender(rng)
+def choose_gender(rng, *, forced: str | None = None) -> tuple[str, str, str]:
+    if forced is not None:
+        return _gender_tuple(forced)
+    gender = str(rng.choice(["male", "female", "non_binary"], p=[0.485, 0.485, 0.03]))
+    return _gender_tuple(gender)
+
+
+def sample_personal_details(
+    rng,
+    *,
+    first_name: str | None = None,
+    last_name: str | None = None,
+    email_local_taken: set[str] | None = None,
+    forced_gender: str | None = None,
+    avoid_first_names: set[str] | None = None,
+) -> dict:
+    gender, legal_sex, pronouns = choose_gender(rng, forced=forced_gender)
+
+    avoid = {str(x) for x in (avoid_first_names or set()) if str(x).strip()}
     if gender == "male":
-        first = str(first_name or rng.choice(MALE_FIRST_NAMES))
+        pool = MALE_FIRST_NAMES
         title = str(rng.choice(["Mr", "Mr", "Dr"]))
     elif gender == "female":
-        first = str(first_name or rng.choice(FEMALE_FIRST_NAMES))
+        pool = FEMALE_FIRST_NAMES
         title = str(rng.choice(["Ms", "Mrs", "Dr"]))
     else:
-        first = str(first_name or rng.choice(NEUTRAL_FIRST_NAMES))
+        pool = NEUTRAL_FIRST_NAMES
         title = "Mx"
+
+    if first_name is not None:
+        first = str(first_name)
+    else:
+        candidates = [n for n in pool if str(n) not in avoid]
+        first = str(rng.choice(candidates or pool))
     last = str(last_name or rng.choice(LAST_NAMES))
     middle = str(rng.choice(MIDDLE_NAMES)) if float(rng.random()) < 0.62 else None
     known_as = first if float(rng.random()) < 0.78 else first[: max(2, len(first) - 1)]
@@ -867,12 +892,41 @@ def gen_one(hidx, ctx: Ctx):
     hh_id = f"HH{hidx:06d}"
     household_email_locals: set[str] = set()
     household_last_name = str(rng.choice(LAST_NAMES))
-    p1_personal = sample_personal_details(rng, last_name=household_last_name, email_local_taken=household_email_locals)
+
+    couple_gender_model = (gp.get("couple_gender_model") or {}) if isinstance(gp.get("couple_gender_model"), dict) else {}
+    opp_prob = float(couple_gender_model.get("opposite_sex_probability", 0.97))
+    primary_male_prob = float(couple_gender_model.get("primary_male_probability_when_opposite_sex", 0.55))
+
+    if has_second and float(rng.random()) < opp_prob:
+        g1 = "male" if float(rng.random()) < primary_male_prob else "female"
+        g2 = "female" if g1 == "male" else "male"
+    else:
+        g1, _, _ = choose_gender(rng)
+        g2, _, _ = choose_gender(rng)
+
+    p1_personal = sample_personal_details(
+        rng,
+        last_name=household_last_name,
+        email_local_taken=household_email_locals,
+        forced_gender=g1 if has_second else None,
+    )
+
     if has_second and float(rng.random()) < 0.82:
         spouse_last_name = household_last_name
     else:
         spouse_last_name = str(rng.choice(LAST_NAMES))
-    p2_personal = sample_personal_details(rng, last_name=spouse_last_name, email_local_taken=household_email_locals) if has_second else None
+
+    p2_personal = (
+        sample_personal_details(
+            rng,
+            last_name=spouse_last_name,
+            email_local_taken=household_email_locals,
+            forced_gender=g2,
+            avoid_first_names={p1_personal["first_name"]},
+        )
+        if has_second
+        else None
+    )
 
     years_to_ret1 = max(-15, ret_age1 - age1)
     years_to_ret2 = max(-15, ret_age2 - age2) if has_second and age2 is not None and ret_age2 is not None else None

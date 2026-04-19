@@ -36,11 +36,28 @@ REALISM + PACING RULES (STRICT)
 - Include at least one moment where someone answers indirectly first, then gets more specific after a follow-up.
 - Never include timestamps (e.g., "[00:01:23]" or "0:01:23").
 
+ANTI "TRAINING SCRIPT" CONSTRAINTS (HIGH PRIORITY)
+- Do NOT sound like you're teaching another advisor. Avoid meta/process talk: "worksheet", "for the record", "compliance", "the software", "I need to categorize".
+- Keep "definition lectures" minimal. If you explain a term (gross vs net, balance vs payment), do it in one short line.
+- Avoid checklist cadence: do not do repeated multi-item recaps after every topic.
+
+ANTI "OVER-COACHING" / REAL-WORLD DOSAGE (HIGH PRIORITY)
+- Do NOT demonstrate every counseling technique on every detail.
+  Keep most numeric discovery to: ask → answer → one clarifying follow-up (optional) → move on.
+- If you notice you're stuck in a loop (e.g., debating whether something is a credit card vs loan), allow a client to push back.
+  The advisor should accept a simple truthful label ("debt" / "card" / "loan" as appropriate to the digest), capture the approximate amount, and keep going.
+
+REALISTIC RESPONSE LATENCY (IMPORTANT)
+- Avoid "instant" perfect restatements of precise numbers by the advisor.
+  When the advisor restates a precise figure, add a quick admin beat first (1 line max):
+  "One sec—I'm writing that down" / "Hang on" / "Let me make sure I got that right".
+- Prefer that precise numbers are said by clients; the advisor mostly echoes/organizes them.
+
 CORRECTIONS + CONFIRMATION (CRITICAL FOR VALIDATION)
 - You MAY have a client initially guess a number imprecisely or even say a wrong number.
 - If any number is stated imprecisely or incorrectly, you MUST later correct it explicitly in the SAME phase.
-- The advisor should periodically "restate + confirm" key numeric facts in short, natural check-backs.
-  Make the FINAL restate/confirm near the end of the phase.
+- Do at most ONE short mid-phase check-back if needed.
+- Make ONE FINAL restate/confirm near the end of the phase (brief, 2–4 items).
 
 STYLE TARGET (DERIVED FROM synthetic_transcript1/2)
 - The vibe is a real meeting/call: lots of short acknowledgements ("yeah", "right", "okay"), occasional overlaps, and incomplete sentences.

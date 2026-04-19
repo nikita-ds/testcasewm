@@ -27,6 +27,8 @@ FACT PRESERVATION RULES (STRICT)
 - Do not change the meaning of existing numbers.
 - If the skeleton gives a total expense number, you may unpack how the client remembers it into separate categories only if the categories are explicitly framed as a recall process and still consistent with the known totals.
 - Do not remove required factual lines; you may rewrite them into more natural speech while preserving meaning.
+- When you compress repetitive loops, do NOT delete the only explicit mention of a grounded number.
+  Ensure each key numeric fact from the skeleton still appears at least once in clear, easy-to-validate wording.
 
 CORRECTIONS + CONFIRMATION (CRITICAL FOR VALIDATION)
 - You MAY add imperfect recall moments ("I think", "roughly", "maybe") and brief misstatements.
@@ -62,6 +64,25 @@ AVOID SYNTHETIC TELLS (HIGH PRIORITY)
 - Avoid abrupt topic jumps; add light connective tissue between sections.
 - Avoid overly tidy, exhaustive lists; prefer recall-in-pieces + occasional "oh, also…".
 - Avoid over-confident precision when humans would be unsure (but never change any grounded numbers).
+
+ANTI "OVER-COACHING" / REAL-WORLD DOSAGE (HIGH PRIORITY)
+- Reduce "perfect technique" density.
+  If the transcript currently has long loops of reframing/probing/assumption-checking around a single numeric item, compress it.
+  Keep most numeric topics to: ask → answer → quick clarification (optional) → move on.
+- Allow occasional pragmatic client pushback when the conversation gets stuck.
+  Example vibe (do not copy literally): "Can we just put it down as about 2.5k and keep going?"
+  The advisor should accept and proceed.
+
+REALISTIC RESPONSE LATENCY (IMPORTANT)
+- If the advisor is about to restate a precise number (especially a total), add a tiny beat first (1 line max):
+  "One sec—I'm writing that down" / "Hang on" / "Let me make sure I heard you right".
+  This should not add new facts; it's just pacing.
+
+ANTI "TRAINING SCRIPT" CONSTRAINTS (HIGH PRIORITY)
+- Do NOT add repeated "quick recap / restate-and-confirm" blocks after every section.
+  Keep recaps rare and short (ideally one near the end).
+- Do NOT add process narration like "for the record", "my worksheet", "the software asks", "on our side".
+- Avoid repeating the same small-talk bridge line multiple times (e.g. don't keep re-opening with "before we jump in...").
 
 STYLE
 - Natural spoken English.

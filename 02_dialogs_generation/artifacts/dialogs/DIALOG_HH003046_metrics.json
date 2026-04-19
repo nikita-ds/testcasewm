@@ -1,0 +1,70 @@
+{
+  "passed": false,
+  "strict": false,
+  "format_ok": true,
+  "bad_transcript_lines": [],
+  "pii_terms_detected": [],
+  "total_targets": 64,
+  "counts": {
+    "present": 63,
+    "approximate": 0,
+    "missing": 1,
+    "contradiction": 0,
+    "unknown": 0
+  },
+  "coverage_lenient": 0.984375,
+  "coverage_strict": 0.984375,
+  "strict_unmatched_target_ids": [
+    "t00030"
+  ],
+  "strict_unmatched_fields": [
+    {
+      "target_id": "t00030",
+      "field_path": "income_lines[income_line_id=HH003046_I2].source_type",
+      "record_type": "income_lines",
+      "record_id": "HH003046_I2",
+      "source_value": "interest_dividends",
+      "status": "missing"
+    }
+  ],
+  "lenient_failed_fields": [
+    {
+      "target_id": "t00030",
+      "field_path": "income_lines[income_line_id=HH003046_I2].source_type",
+      "record_type": "income_lines",
+      "record_id": "HH003046_I2",
+      "source_value": "interest_dividends",
+      "status": "missing"
+    }
+  ],
+  "consistency_issues": [
+    {
+      "record_type": "people",
+      "record_id": "HH003046_P1",
+      "field_paths": [
+        "people[person_id=HH003046_P1].employment_status",
+        "income_lines[*].source_type",
+        "income_lines[*].amount_annualized",
+        "income_lines[*].owner"
+      ],
+      "values": {
+        "employment_status": "retired",
+        "income_lines": [
+          {
+            "income_line_id": "HH003046_I1",
+            "owner": "client_1",
+            "source_type": "bonus",
+            "amount_annualized": 24100
+          },
+          {
+            "income_line_id": "HH003046_I3",
+            "owner": "client_1",
+            "source_type": "salary",
+            "amount_annualized": 49450
+          }
+        ]
+      },
+      "reason": "employment_status=retired conflicts with active income source_type in ['bonus', 'business_income', 'salary']"
+    }
+  ]
+}

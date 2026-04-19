@@ -27,6 +27,21 @@ STYLE
 - Emotional texture is normal: clients may SOMETIMES sound tired, impatient, or mildly irritated (no rudeness).
   - The advisor should acknowledge briefly and keep things moving.
 
+ANTI "OVER-COACHING" / REAL-WORLD DOSAGE
+- Do NOT add long loops of reframing/probing/assumption-checking.
+  If you add clarification, keep it to 1 short question + 1 short answer, then move on.
+- Allow occasional pragmatic client pushback if a topic is dragging, and let the advisor accept it and proceed.
+
+REALISTIC RESPONSE LATENCY
+- If you restate a precise number that already exists in the transcript tail, consider adding a tiny pacing beat first (1 line max):
+  "One sec—I'm jotting that down" / "Hang on" / "Let me make sure I got that right".
+  Do not add any new numbers.
+
+ANTI "TRAINING SCRIPT" CONSTRAINTS
+- Do NOT add meta/process narration ("for the record", "worksheet", "the software").
+- Do NOT add repeated recap blocks; if you add a check-back, keep it to one short line.
+- Avoid reusing the same bridge line multiple times (e.g., don't repeatedly say "before we jump in...").
+
 NAME USAGE
 - Use client names inside the utterance text when it feels natural:
   - {{client1_name}} and {{client2_name}}

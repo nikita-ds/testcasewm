@@ -45,6 +45,10 @@ COUPLE DYNAMICS (if household_type == couple)
 - One may dominate; the other may defer or interrupt.
 - Risk attitudes can differ; if they do, explain how it shows up in behavior.
 - Ensure plausible alignment with financial profile (e.g., a higher-income split often implies more dominance, but not always).
+- Prefer a complementary dynamic:
+  - one is a "numbers person" who tends to remember specific figures and correct small inaccuracies
+  - the other thinks in round numbers and occasionally mixes up terms (gross/net, premium/benefit, balance/payment)
+  Keep misunderstandings believable and not constant; avoid caricature.
 
 REALISM NOTES
 - In "communication_style", explicitly encode how the client speaks in real meetings:

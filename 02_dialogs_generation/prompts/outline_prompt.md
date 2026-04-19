@@ -62,7 +62,18 @@ REALISM REQUIREMENTS (ADD AS HOOKS)
 - Plan at least 2 moments of imperfect recall where a client says they don't remember exactly and answers with a range ("between X and Y", "around", "I'd have to check").
 - Plan expense discovery so it unfolds over multiple back-and-forth turns; avoid a single "here are all our expenses" dump.
   - Include at least one moment where an expense category is initially missed (e.g., childcare, insurance, subscriptions, irregular repairs) and is remembered later after a prompt.
-- Plan at least 2 brief tangents / small-talk "water" moments that feel human and then return to the agenda.
+- Plan 0–2 brief tangents / small-talk "water" moments TOTAL across the whole conversation.
+  Keep them organic (traffic/parking/weather) and avoid making them feel like checklist items.
+
+ADDITIONAL PROMPT INSTRUCTIONS (STYLE / REALISM)
+- Avoid repetitive phrasing and template loops.
+  Do NOT plan repeated bridge lines like "How's your week been?" multiple times.
+- Do NOT plan frequent recap/check-back blocks after every section.
+  Plan at most 1–2 short recap moments across the whole conversation, at natural breaks.
+- If you plan a "labels in the system" confirmation (Client 1/Client 2), plan it ONCE early, resolve within 2–3 exchanges, and never revisit.
+- In couples, plan complementary personalities:
+  - one more detail-oriented "numbers person" who corrects
+  - one who speaks in round numbers and occasionally mixes up terms (not constantly)
 
 COVERAGE REQUIREMENT (STRICT)
 - The final conversation must explicitly discuss EVERY record listed in valid_record_ids_json across the phases.
