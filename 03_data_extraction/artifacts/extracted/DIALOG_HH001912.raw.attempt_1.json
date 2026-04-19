@@ -2,6 +2,7 @@
   "households": [
     {
       "household_id": "HH001912",
+      "scenario": "retired_couple_high_assets_low_income",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "married_or_civil_partner",
@@ -10,6 +11,8 @@
       "num_dependants": 0,
       "annual_household_gross_income": 78300,
       "monthly_expenses_total": 3550,
+      "tax_bracket_band": "24",
+      "risk_tolerance": "moderate",
       "has_mortgage_or_loan": true,
       "loan_outstanding_total": 33100,
       "mortgage_outstanding_total": 33100,
@@ -18,9 +21,7 @@
       "monthly_mortgage_payment_total": 550,
       "monthly_non_mortgage_payment_total": 0,
       "property_value_total": 78800,
-      "investable_assets_total": 297700,
-      "risk_tolerance": "moderate",
-      "tax_bracket_band": "24"
+      "investable_assets_total": 297700
     }
   ],
   "people": [
@@ -118,10 +119,12 @@
     {
       "asset_id": "HH001912_A5",
       "household_id": "HH001912",
+      "owner": "joint",
       "asset_type": "property",
       "subtype": "primary_residence",
       "provider_type": "retirement_platform",
-      "value": 78800
+      "value": 78800,
+      "is_joint": true
     }
   ],
   "liabilities": [
@@ -137,7 +140,7 @@
   ],
   "protection_policies": [
     {
-      "policy_id": "HH001912_POL1",
+      "policy_id": "HH001912_PLC1",
       "household_id": "HH001912",
       "owner": "client_1",
       "policy_type": "life",

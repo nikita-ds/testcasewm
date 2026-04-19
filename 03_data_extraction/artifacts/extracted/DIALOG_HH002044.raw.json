@@ -2,6 +2,7 @@
   "households": [
     {
       "household_id": "HH002044",
+      "scenario": "affluent_couple_brokerage_and_pensions",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "married_or_civil_partner",
@@ -11,7 +12,6 @@
       "num_dependants": 0,
       "annual_household_gross_income": 173100,
       "monthly_expenses_total": 7850,
-      "tax_bracket_band": "32",
       "has_mortgage_or_loan": true,
       "loan_outstanding_total": 3100,
       "mortgage_outstanding_total": 0,
@@ -20,7 +20,8 @@
       "monthly_non_mortgage_payment_total": 350,
       "property_value_total": 446250,
       "investable_assets_total": 662950,
-      "risk_tolerance": "aggressive"
+      "risk_tolerance": "aggressive",
+      "tax_bracket_band": "32"
     }
   ],
   "people": [
@@ -76,6 +77,24 @@
     {
       "income_line_id": "HH002044_INC4",
       "household_id": "HH002044",
+      "owner": "client_2",
+      "source_type": "salary",
+      "frequency": "annual",
+      "net_or_gross": "gross",
+      "amount_annualized": 59200
+    },
+    {
+      "income_line_id": "HH002044_INC5",
+      "household_id": "HH002044",
+      "owner": "client_2",
+      "source_type": "rental_income",
+      "frequency": "monthly",
+      "net_or_gross": "gross",
+      "amount_annualized": 8400
+    },
+    {
+      "income_line_id": "HH002044_INC6",
+      "household_id": "HH002044",
       "owner": "client_1",
       "source_type": "bonus",
       "frequency": "ad_hoc",
@@ -83,27 +102,18 @@
       "amount_annualized": 0
     },
     {
-      "income_line_id": "HH002044_INC5",
+      "income_line_id": "HH002044_INC7",
       "household_id": "HH002044",
       "owner": "client_1",
       "source_type": "salary",
       "frequency": "annual",
       "net_or_gross": "gross",
       "amount_annualized": 0
-    },
-    {
-      "income_line_id": "HH002044_INC6",
-      "household_id": "HH002044",
-      "owner": "client_2",
-      "source_type": "rental_income",
-      "frequency": "monthly",
-      "net_or_gross": "gross",
-      "amount_annualized": 8400
     }
   ],
   "assets": [
     {
-      "asset_id": "HH002044_A1",
+      "asset_id": "HH002044_AST1",
       "household_id": "HH002044",
       "owner": "joint",
       "asset_type": "brokerage",
@@ -113,7 +123,7 @@
       "is_joint": true
     },
     {
-      "asset_id": "HH002044_A2",
+      "asset_id": "HH002044_AST2",
       "household_id": "HH002044",
       "owner": "client_2",
       "asset_type": "retirement",
@@ -123,7 +133,7 @@
       "is_joint": false
     },
     {
-      "asset_id": "HH002044_A3",
+      "asset_id": "HH002044_AST3",
       "household_id": "HH002044",
       "owner": "joint",
       "asset_type": "retirement",
@@ -133,7 +143,7 @@
       "is_joint": true
     },
     {
-      "asset_id": "HH002044_A4",
+      "asset_id": "HH002044_AST4",
       "household_id": "HH002044",
       "owner": "client_1",
       "asset_type": "alternatives",
@@ -143,13 +153,21 @@
       "is_joint": false
     },
     {
-      "asset_id": "HH002044_A5",
+      "asset_id": "HH002044_AST5",
       "household_id": "HH002044",
       "owner": "joint",
       "asset_type": "property",
       "subtype": "primary_residence",
       "provider_type": "bank",
       "value": 446250,
+      "is_joint": true
+    },
+    {
+      "asset_id": "HH002044_AST6",
+      "household_id": "HH002044",
+      "owner": "joint",
+      "asset_type": "cash",
+      "subtype": "bank_account",
       "is_joint": true
     }
   ],

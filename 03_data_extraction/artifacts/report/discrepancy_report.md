@@ -3,14 +3,14 @@
 ## Overall
 
 - Households analyzed: **316**
-- Scored cells: **18815**
+- Scored cells: **21229**
 - Match rate (cells): **0.991**
 
 ### Error breakdown (scored cells)
 
-- Missing extracted: **31**
+- Missing extracted: **29**
 - Extra extracted: **0**
-- Value mismatch: **129**
+- Value mismatch: **159**
 
 ## Record pairing by entity
 
@@ -27,11 +27,11 @@
 
 | entity | field | field_type | n_total | match_rate | n_missing_extracted | n_extra_extracted | n_value_mismatch |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| people | occupation_group | categorical | 328 | 0.926829 | 4 | 0 | 20 |
 | assets | provider_type | categorical | 850 | 0.958824 | 18 | 0 | 17 |
-| assets | owner | categorical | 359 | 0.963788 | 0 | 0 | 13 |
-| assets | is_joint | boolean | 359 | 0.969359 | 0 | 0 | 11 |
+| people | occupation_group | categorical | 346 | 0.962428 | 2 | 0 | 11 |
 | assets | asset_type | categorical | 1557 | 0.978163 | 0 | 0 | 34 |
+| assets | is_joint | boolean | 1557 | 0.979448 | 0 | 0 | 32 |
+| assets | owner | categorical | 1557 | 0.98009 | 0 | 0 | 31 |
 | assets | subtype | categorical | 1557 | 0.98009 | 3 | 0 | 28 |
 | people | gross_annual_income | continuous | 564 | 0.992908 | 4 | 0 | 0 |
 | people | employment_status | categorical | 564 | 0.994681 | 0 | 0 | 3 |
@@ -62,14 +62,14 @@ Missing extracted happens for two different reasons: (a) **record pairing failed
 | entity | field | field_type | n_total | n_missing_extracted_gt_only | n_missing_extracted |
 | --- | --- | --- | --- | --- | --- |
 | assets | provider_type | categorical | 850 | 0 | 18 |
-| people | occupation_group | categorical | 328 | 0 | 4 |
 | people | gross_annual_income | continuous | 564 | 0 | 4 |
 | assets | subtype | categorical | 1557 | 0 | 3 |
+| people | occupation_group | categorical | 346 | 0 | 2 |
 | households | non_mortgage_outstanding_total | continuous | 316 | 0 | 1 |
 | households | tax_bracket_band | categorical | 316 | 0 | 1 |
-| assets | owner | categorical | 359 | 0 | 0 |
-| assets | is_joint | boolean | 359 | 0 | 0 |
 | assets | asset_type | categorical | 1557 | 0 | 0 |
+| assets | is_joint | boolean | 1557 | 0 | 0 |
+| assets | owner | categorical | 1557 | 0 | 0 |
 | people | employment_status | categorical | 564 | 0 | 0 |
 | households | risk_tolerance | categorical | 316 | 0 | 0 |
 | income_lines | amount_annualized | continuous | 662 | 0 | 0 |
@@ -87,14 +87,14 @@ Missing extracted happens for two different reasons: (a) **record pairing failed
 | entity | field | field_type | n_total | n_missing_extracted_within_paired | n_missing_extracted |
 | --- | --- | --- | --- | --- | --- |
 | assets | provider_type | categorical | 850 | 18 | 18 |
-| people | occupation_group | categorical | 328 | 4 | 4 |
 | people | gross_annual_income | continuous | 564 | 4 | 4 |
 | assets | subtype | categorical | 1557 | 3 | 3 |
+| people | occupation_group | categorical | 346 | 2 | 2 |
 | households | non_mortgage_outstanding_total | continuous | 316 | 1 | 1 |
 | households | tax_bracket_band | categorical | 316 | 1 | 1 |
-| assets | owner | categorical | 359 | 0 | 0 |
-| assets | is_joint | boolean | 359 | 0 | 0 |
 | assets | asset_type | categorical | 1557 | 0 | 0 |
+| assets | is_joint | boolean | 1557 | 0 | 0 |
+| assets | owner | categorical | 1557 | 0 | 0 |
 | people | employment_status | categorical | 564 | 0 | 0 |
 | households | risk_tolerance | categorical | 316 | 0 | 0 |
 | income_lines | amount_annualized | continuous | 662 | 0 | 0 |
@@ -111,44 +111,44 @@ Missing extracted happens for two different reasons: (a) **record pairing failed
 
 | entity | field | ground_truth | extracted | count |
 | --- | --- | --- | --- | --- |
+| assets | is_joint | False | True | 21 |
 | assets | owner | joint | client_1 | 13 |
-| assets | asset_type | cash | retirement | 11 |
+| assets | owner | client_1 | joint | 12 |
 | assets | is_joint | True | False | 11 |
-| assets | asset_type | brokerage | cash | 10 |
+| assets | asset_type | cash | retirement | 11 |
 | assets | subtype | bank_account | 401k_ira | 10 |
+| assets | asset_type | brokerage | cash | 10 |
 | assets | subtype | taxable_brokerage | bank_account | 10 |
-| people | occupation_group | operations | business_owner | 3 |
-| assets | asset_type | cash | alternatives | 3 |
+| assets | subtype | bank_account | taxable_brokerage | 3 |
 | assets | asset_type | cash | brokerage | 3 |
+| assets | owner | client_2 | client_1 | 3 |
+| assets | owner | client_2 | joint | 3 |
+| assets | asset_type | cash | alternatives | 3 |
+| assets | provider_type | bank | brokerage | 3 |
 | people | employment_status | employed | employed_full_time | 3 |
 | assets | provider_type | retirement_platform | bank | 3 |
-| assets | subtype | bank_account | taxable_brokerage | 3 |
-| assets | provider_type | bank | brokerage | 3 |
-| assets | asset_type | brokerage | alternatives | 2 |
-| assets | subtype | bank_account | private_markets | 2 |
-| assets | provider_type | insurance_company | bank | 2 |
-| assets | provider_type | retirement_platform | advisor_platform | 2 |
 | assets | subtype | taxable_brokerage | 401k_ira | 2 |
-| assets | provider_type | brokerage | advisor_platform | 2 |
+| assets | provider_type | insurance_company | bank | 2 |
+| assets | subtype | bank_account | private_markets | 2 |
+| assets | asset_type | brokerage | alternatives | 2 |
+| assets | provider_type | retirement_platform | advisor_platform | 2 |
 | assets | asset_type | brokerage | retirement | 2 |
+| assets | provider_type | brokerage | advisor_platform | 2 |
 | assets | provider_type | brokerage | bank | 2 |
-| assets | provider_type | insurance_company | advisor_platform | 1 |
-| people | occupation_group | exec | business_owner | 1 |
-| people | occupation_group | sales | healthcare | 1 |
-| people | occupation_group | professional | sales | 1 |
-| people | occupation_group | professional | operations | 1 |
+| people | occupation_group | business_owner | education | 1 |
 | people | occupation_group | professional | education | 1 |
 | people | occupation_group | professional | business_owner | 1 |
-| people | occupation_group | operations | sales | 1 |
+| people | occupation_group | operations | business_owner | 1 |
 | people | occupation_group | healthcare | operations | 1 |
 | people | occupation_group | healthcare | finance | 1 |
 | people | occupation_group | finance | professional | 1 |
 | people | occupation_group | finance | inactive | 1 |
-| people | occupation_group | exec | education | 1 |
-| people | occupation_group | business_owner | professional | 1 |
+| people | occupation_group | exec | business_owner | 1 |
 | people | occupation_group | business_owner | operations | 1 |
-| people | occupation_group | business_owner | healthcare | 1 |
-| people | occupation_group | business_owner | education | 1 |
-| assets | asset_type | property | retirement | 1 |
+| assets | provider_type | insurance_company | advisor_platform | 1 |
 | income_lines | frequency | annual | monthly | 1 |
+| income_lines | amount_annualized | 154650 | 55350 | 1 |
+| households | risk_tolerance | aggressive | conservative | 1 |
+| assets | asset_type | property | retirement | 1 |
+| assets | asset_type | retirement | alternatives | 1 |
 

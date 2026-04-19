@@ -71,9 +71,14 @@ def main():
     n = len(dialog_fractions)
     if n == 0:
         print("No dialogs found in accuracy_report.json. Metrics not computed.")
+        overall_txt = tabulate([], headers=["Metric", "Value"], tablefmt="github")
         table_txt = tabulate([], headers=["Entity", "Missed", "Errors", "Invented", "Total cells"], tablefmt="github")
         out_path = ARTIFACTS / "metrics_table.txt"
         with open(out_path, "w", encoding="utf-8") as f:
+            f.write("Overall metrics\n")
+            f.write(overall_txt)
+            f.write("\n\n")
+            f.write("Per-entity metrics\n")
             f.write(table_txt)
             f.write("\n")
         return
@@ -84,6 +89,16 @@ def main():
     print(f"Share of dialogs with 100% correct: {n_100}/{n} = {n_100/n:.3f}")
     print(f"Share of dialogs with ≥95% correct: {n_95}/{n} = {n_95/n:.3f}")
     print(f"Share of dialogs with ≥90% correct: {n_90}/{n} = {n_90/n:.3f}")
+    overall_table = [
+        ["Dialogs with 100% correct fields", f"{n_100}/{n} = {n_100/n:.3f}"],
+        ["Dialogs with >=95% correct fields", f"{n_95}/{n} = {n_95/n:.3f}"],
+        ["Dialogs with >=90% correct fields", f"{n_90}/{n} = {n_90/n:.3f}"],
+    ]
+    overall_txt = tabulate(
+        overall_table,
+        headers=["Metric", "Value"],
+        tablefmt="github",
+    )
 
     # 2. Per-entity metrics
     field_stats = load_csv(FIELD_STATS)
@@ -120,6 +135,10 @@ def main():
     # Save table to file
     out_path = ARTIFACTS / "metrics_table.txt"
     with open(out_path, "w", encoding="utf-8") as f:
+        f.write("Overall metrics\n")
+        f.write(overall_txt)
+        f.write("\n\n")
+        f.write("Per-entity metrics\n")
         f.write(table_txt)
         f.write("\n")
 

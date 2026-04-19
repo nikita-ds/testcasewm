@@ -2,16 +2,16 @@
   "households": [
     {
       "household_id": "HH000906",
-      "scenario": "family_with_mortgage_and_children",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "married_or_civil_partner",
       "residence_state": "CA",
+      "primary_years_to_retirement": 0,
+      "secondary_years_to_retirement": 0,
       "num_adults": 2,
       "num_dependants": 1,
       "annual_household_gross_income": 248750.0,
       "monthly_expenses_total": 16750.0,
-      "expense_to_income_ratio": 0.808040201005025,
       "has_mortgage_or_loan": true,
       "loan_outstanding_total": 213300.0,
       "mortgage_outstanding_total": 213300.0,
@@ -19,15 +19,12 @@
       "monthly_debt_cost_total": 5000.0,
       "monthly_mortgage_payment_total": 5000.0,
       "monthly_non_mortgage_payment_total": 0.0,
-      "mortgage_payment_to_income_ratio": 0.2412060301507538,
       "property_value_total": 495350.0,
       "investable_assets_total": 875750.0,
-      "retirement_assets_total": 230550.0,
-      "cash_and_cashlike_total": 45050.0,
-      "alternatives_total": 150400.0,
-      "net_worth_proxy": 1157800.0,
       "risk_tolerance": "conservative",
-      "tax_bracket_band": "24"
+      "tax_bracket_band": "24",
+      "expense_to_income_ratio": 0.8080402010050252,
+      "mortgage_payment_to_income_ratio": 0.24120603015075376
     }
   ],
   "people": [
@@ -84,16 +81,6 @@
       "is_joint": false
     },
     {
-      "asset_id": "HH000906_A3",
-      "household_id": "HH000906",
-      "owner": "joint",
-      "asset_type": "cash",
-      "subtype": "bank_account",
-      "provider_type": "retirement_platform",
-      "value": 45050.0,
-      "is_joint": true
-    },
-    {
       "asset_id": "HH000906_A4",
       "household_id": "HH000906",
       "owner": "client_1",
@@ -112,6 +99,16 @@
       "provider_type": "retirement_platform",
       "value": 495350.0,
       "is_joint": false
+    },
+    {
+      "asset_id": "HH000906_A3",
+      "household_id": "HH000906",
+      "owner": "joint",
+      "asset_type": "cash",
+      "subtype": "bank_account",
+      "provider_type": "retirement_platform",
+      "value": 45050.0,
+      "is_joint": true
     }
   ],
   "liabilities": [
@@ -127,7 +124,7 @@
   ],
   "protection_policies": [
     {
-      "policy_id": "HH000906_PP1",
+      "policy_id": "HH000906_PLC1",
       "household_id": "HH000906",
       "owner": "client_1",
       "policy_type": "ltc",

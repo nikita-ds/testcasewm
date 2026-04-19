@@ -2,6 +2,7 @@
   "households": [
     {
       "household_id": "HH000188",
+      "scenario": "secondly_wedded_paying_alimony",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "secondly_wedded",
@@ -17,29 +18,27 @@
       "monthly_debt_cost_total": 100,
       "property_value_total": 319800,
       "investable_assets_total": 794550,
-      "cash_and_cashlike_total": 113450,
-      "alternatives_total": 80250,
       "risk_tolerance": "moderate",
       "tax_bracket_band": "35"
     }
   ],
   "people": [
     {
-      "person_id": "client_1",
+      "person_id": "HH000188_P1",
       "household_id": "HH000188",
-      "client_no": 1,
       "role": "primary",
       "first_name": "Linda",
+      "client_no": 1,
       "employment_status": "employed",
       "occupation_group": "exec",
       "gross_annual_income": 106850
     },
     {
-      "person_id": "client_2",
+      "person_id": "HH000188_P2",
       "household_id": "HH000188",
-      "client_no": 2,
       "role": "spouse_partner",
       "first_name": "Willia",
+      "client_no": 2,
       "employment_status": "self_employed",
       "occupation_group": "business_owner",
       "gross_annual_income": 43050
@@ -47,25 +46,7 @@
   ],
   "income_lines": [
     {
-      "income_line_id": "inc_1",
-      "household_id": "HH000188",
-      "owner": "client_1",
-      "source_type": "salary",
-      "frequency": "monthly",
-      "net_or_gross": "gross",
-      "amount_annualized": 76450
-    },
-    {
-      "income_line_id": "inc_2",
-      "household_id": "HH000188",
-      "owner": "client_1",
-      "source_type": "business_income",
-      "frequency": "monthly",
-      "net_or_gross": "gross",
-      "amount_annualized": 33750
-    },
-    {
-      "income_line_id": "inc_3",
+      "income_line_id": "HH000188_INC1",
       "household_id": "HH000188",
       "owner": "client_1",
       "source_type": "social_security",
@@ -74,17 +55,36 @@
       "amount_annualized": 39750
     },
     {
-      "income_line_id": "inc_4",
+      "income_line_id": "HH000188_INC2",
+      "household_id": "HH000188",
+      "owner": "client_1",
+      "source_type": "business_income",
+      "frequency": "monthly",
+      "net_or_gross": "gross",
+      "amount_annualized": 33750
+    },
+    {
+      "income_line_id": "HH000188_INC3",
+      "household_id": "HH000188",
+      "owner": "client_1",
+      "source_type": "salary",
+      "frequency": "monthly",
+      "net_or_gross": "gross",
+      "amount_annualized": 76450
+    },
+    {
+      "income_line_id": "HH000188_INC4",
       "household_id": "HH000188",
       "owner": "client_2",
       "source_type": "business_income",
+      "frequency": "ad_hoc",
       "net_or_gross": "gross",
       "amount_annualized": 43050
     }
   ],
   "assets": [
     {
-      "asset_id": "asset_1",
+      "asset_id": "HH000188_A1",
       "household_id": "HH000188",
       "owner": "client_1",
       "asset_type": "brokerage",
@@ -94,7 +94,7 @@
       "is_joint": false
     },
     {
-      "asset_id": "asset_2",
+      "asset_id": "HH000188_A2",
       "household_id": "HH000188",
       "owner": "client_1",
       "asset_type": "cash",
@@ -104,7 +104,7 @@
       "is_joint": false
     },
     {
-      "asset_id": "asset_3",
+      "asset_id": "HH000188_A3",
       "household_id": "HH000188",
       "owner": "client_2",
       "asset_type": "retirement",
@@ -114,7 +114,7 @@
       "is_joint": false
     },
     {
-      "asset_id": "asset_4",
+      "asset_id": "HH000188_A4",
       "household_id": "HH000188",
       "owner": "client_2",
       "asset_type": "alternatives",
@@ -124,7 +124,7 @@
       "is_joint": false
     },
     {
-      "asset_id": "asset_5",
+      "asset_id": "HH000188_A5",
       "household_id": "HH000188",
       "owner": "client_2",
       "asset_type": "property",
@@ -136,7 +136,7 @@
   ],
   "liabilities": [
     {
-      "liability_id": "liab_1",
+      "liability_id": "HH000188_L1",
       "household_id": "HH000188",
       "type": "loan",
       "monthly_cost": 100,
@@ -147,7 +147,7 @@
   ],
   "protection_policies": [
     {
-      "policy_id": "pol_1",
+      "policy_id": "HH000188_PLC1",
       "household_id": "HH000188",
       "owner": "client_1",
       "policy_type": "ltc",

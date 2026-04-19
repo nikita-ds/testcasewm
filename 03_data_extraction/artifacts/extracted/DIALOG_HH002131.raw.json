@@ -2,6 +2,7 @@
   "households": [
     {
       "household_id": "HH002131",
+      "scenario": "affluent_couple_brokerage_and_pensions",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "married_or_civil_partner",
@@ -10,6 +11,7 @@
       "num_dependants": 0,
       "annual_household_gross_income": 315900,
       "monthly_expenses_total": 20450,
+      "expense_to_income_ratio": 0.6473,
       "has_mortgage_or_loan": true,
       "loan_outstanding_total": 173500,
       "mortgage_outstanding_total": 173500,
@@ -17,9 +19,16 @@
       "monthly_debt_cost_total": 5400,
       "monthly_mortgage_payment_total": 5400,
       "monthly_non_mortgage_payment_total": 0,
+      "mortgage_payment_to_income_ratio": 0.2052,
       "property_value_total": 254000,
       "investable_assets_total": 730300,
+      "retirement_assets_total": 151850,
+      "cash_and_cashlike_total": 51650,
+      "net_worth_proxy": 810800,
       "risk_tolerance": "moderate",
+      "investment_objectives": [
+        "tax_optimization"
+      ],
       "tax_bracket_band": "35"
     }
   ],
@@ -60,16 +69,6 @@
     {
       "asset_id": "HH002131_A1",
       "household_id": "HH002131",
-      "owner": "client_1",
-      "asset_type": "cash",
-      "subtype": "bank_account",
-      "provider_type": "advisor_platform",
-      "value": 51650,
-      "is_joint": false
-    },
-    {
-      "asset_id": "HH002131_A2",
-      "household_id": "HH002131",
       "owner": "joint",
       "asset_type": "brokerage",
       "subtype": "taxable_brokerage",
@@ -78,13 +77,23 @@
       "is_joint": true
     },
     {
-      "asset_id": "HH002131_A3",
+      "asset_id": "HH002131_A2",
       "household_id": "HH002131",
       "owner": "client_1",
       "asset_type": "retirement",
       "subtype": "401k_ira",
       "provider_type": "bank",
       "value": 151850,
+      "is_joint": false
+    },
+    {
+      "asset_id": "HH002131_A3",
+      "household_id": "HH002131",
+      "owner": "client_1",
+      "asset_type": "cash",
+      "subtype": "bank_account",
+      "provider_type": "advisor_platform",
+      "value": 51650,
       "is_joint": false
     },
     {

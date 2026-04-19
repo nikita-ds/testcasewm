@@ -2,6 +2,7 @@
   "households": [
     {
       "household_id": "HH001925",
+      "scenario": "retired_couple_high_assets_low_income",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "married_or_civil_partner",
@@ -10,18 +11,17 @@
       "num_dependants": 0,
       "annual_household_gross_income": 61750.0,
       "monthly_expenses_total": 2650.0,
-      "expense_to_income_ratio": 0.5145631067961165,
       "has_mortgage_or_loan": false,
       "loan_outstanding_total": 0.0,
       "mortgage_outstanding_total": 0.0,
       "non_mortgage_outstanding_total": 0.0,
       "monthly_debt_cost_total": 0.0,
-      "monthly_mortgage_payment_total": 0.0,
-      "monthly_non_mortgage_payment_total": 0.0,
       "property_value_total": 276000.0,
       "investable_assets_total": 516650.0,
-      "risk_tolerance": "moderate",
       "tax_bracket_band": "37",
+      "risk_tolerance": "moderate",
+      "monthly_mortgage_payment_total": 0.0,
+      "expense_to_income_ratio": 0.5149797570850202,
       "mortgage_payment_to_income_ratio": 0.0
     }
   ],
@@ -54,6 +54,7 @@
       "owner": "client_2",
       "source_type": "rental_income",
       "frequency": "weekly",
+      "net_or_gross": "gross",
       "amount_annualized": 16450.0
     },
     {
@@ -62,6 +63,7 @@
       "owner": "client_2",
       "source_type": "social_security",
       "frequency": "annual",
+      "net_or_gross": "gross",
       "amount_annualized": 18700.0
     },
     {
@@ -70,6 +72,7 @@
       "owner": "client_2",
       "source_type": "pension_income",
       "frequency": "monthly",
+      "net_or_gross": "gross",
       "amount_annualized": 26600.0
     }
   ],
@@ -100,7 +103,7 @@
       "owner": "joint",
       "asset_type": "cash",
       "subtype": "bank_account",
-      "provider_type": "bank",
+      "provider_type": "retirement_platform",
       "value": 74600.0,
       "is_joint": true
     },
@@ -125,15 +128,7 @@
       "is_joint": true
     }
   ],
-  "liabilities": [
-    {
-      "liability_id": "HH001925_L1",
-      "household_id": "HH001925",
-      "type": "mortgage",
-      "monthly_cost": 0.0,
-      "outstanding": 0.0
-    }
-  ],
+  "liabilities": [],
   "protection_policies": [
     {
       "policy_id": "HH001925_PP1",

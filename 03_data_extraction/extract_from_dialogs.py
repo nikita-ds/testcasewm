@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 from dataclasses import asdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -27,6 +28,11 @@ ENTITY_KEYS: Tuple[str, ...] = (
 TARGETED_RESCUE_ENTITY_KEYS: Tuple[str, ...] = (
     "liabilities",
     "protection_policies",
+)
+
+_BANK_TYPE_RETIREMENT_VALUE_RE = re.compile(
+    r"(?:joint\s+)?(?:bank[-\s]?type|bank)\s+(?:retirement\s+account|account).*?retirement platform.*?value\s+is\s+([0-9][0-9,]*(?:\.[0-9]+)?)",
+    re.IGNORECASE | re.DOTALL,
 )
 
 
@@ -398,6 +404,103 @@ def _as_records(v: Any) -> List[Dict[str, Any]]:
     if isinstance(v, dict):
         return [v]
     return []
+
+
+def _parse_numeric(v: Any) -> Optional[float]:
+    if v is None:
+        return None
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip().replace(",", "").replace("$", "")
+    if not s:
+        return None
+    try:
+        return float(s)
+    except Exception:
+        return None
+
+
+def _asset_value_key(rec: Dict[str, Any]) -> Optional[float]:
+    val = _parse_numeric(rec.get("value"))
+    if val is None:
+        return None
+    return round(val, 2)
+
+
+def _looks_like_bank_type_retirement_asset(rec: Dict[str, Any]) -> bool:
+    provider = str(rec.get("provider_type") or "").strip().lower()
+    asset_type = str(rec.get("asset_type") or "").strip().lower()
+    subtype = str(rec.get("subtype") or "").strip().lower()
+    if provider != "retirement_platform":
+        return False
+    return (asset_type, subtype) in {
+        ("retirement", "401k_ira"),
+        ("cash", "bank_account"),
+    }
+
+
+def _asset_information_score(rec: Dict[str, Any]) -> Tuple[int, int]:
+    owner = str(rec.get("owner") or "").strip().lower()
+    subtype = str(rec.get("subtype") or "").strip().lower()
+    score = sum(1 for v in rec.values() if v is not None)
+    if owner == "joint":
+        score += 3
+    if subtype == "bank_account":
+        score += 2
+    if rec.get("is_joint") is True:
+        score += 1
+    return score, len(str(rec.get("asset_id") or ""))
+
+
+def _repair_assets_from_dialog(
+    extracted: Dict[str, Any],
+    dialog_text: str,
+) -> Dict[str, Any]:
+    out = dict(extracted)
+    assets = [dict(a) for a in _as_records(out.get("assets"))]
+    if not assets:
+        return out
+
+    bank_type_values = {
+        round(float(m.group(1).replace(",", "")), 2)
+        for m in _BANK_TYPE_RETIREMENT_VALUE_RE.finditer(dialog_text)
+    }
+    if not bank_type_values:
+        out["assets"] = assets
+        return out
+
+    for rec in assets:
+        value_key = _asset_value_key(rec)
+        if value_key not in bank_type_values:
+            continue
+        if not _looks_like_bank_type_retirement_asset(rec):
+            continue
+        rec["asset_type"] = "cash"
+        rec["subtype"] = "bank_account"
+        rec["owner"] = "joint"
+        rec["is_joint"] = True
+
+    deduped: List[Dict[str, Any]] = []
+    seen_groups: Dict[Tuple[float, str], List[Dict[str, Any]]] = {}
+    for rec in assets:
+        value_key = _asset_value_key(rec)
+        provider = str(rec.get("provider_type") or "").strip().lower()
+        if value_key in bank_type_values and provider == "retirement_platform":
+            seen_groups.setdefault((value_key, provider), []).append(rec)
+        else:
+            deduped.append(rec)
+
+    for _, group in seen_groups.items():
+        if len(group) == 1:
+            deduped.append(group[0])
+            continue
+        best = max(group, key=_asset_information_score)
+        deduped.append(best)
+
+    out["assets"] = deduped
+    return out
 
 
 def _valid_existing_extract(path: Path) -> bool:
@@ -877,6 +980,10 @@ def _process_one_dialog(
             summary = _basic_coverage_summary(extracted)
         except Exception:
             pass
+
+    extracted = _repair_assets_from_dialog(extracted, dialog_text)
+    extracted = normalize_profile_values(schema=schema, household_id=household_id, profile=extracted)
+    summary = _basic_coverage_summary(extracted)
 
     _write_json(raw_path, raw)
 
