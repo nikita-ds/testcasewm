@@ -2,7 +2,6 @@
   "households": [
     {
       "household_id": "HH002874",
-      "scenario": "self_employed_business_owner",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "single",
@@ -16,6 +15,8 @@
       "mortgage_outstanding_total": 168400,
       "non_mortgage_outstanding_total": 800,
       "monthly_debt_cost_total": 3000,
+      "monthly_mortgage_payment_total": 2800,
+      "monthly_non_mortgage_payment_total": 200,
       "property_value_total": 285100,
       "investable_assets_total": 561200,
       "retirement_assets_total": 97650,
@@ -23,8 +24,7 @@
       "alternatives_total": 9950,
       "risk_tolerance": "moderate",
       "investment_objectives": [
-        "tax_optimization",
-        "wealth_growth"
+        "tax_optimization"
       ],
       "tax_bracket_band": "35"
     }
@@ -33,10 +33,10 @@
     {
       "person_id": "HH002874_P1",
       "household_id": "HH002874",
-      "client_no": 1,
       "role": "primary",
       "first_name": "Emily",
-      "employment_status": "self employed",
+      "client_no": 1,
+      "employment_status": "self_employed",
       "occupation_group": "business_owner",
       "gross_annual_income": 165600
     }
@@ -46,7 +46,7 @@
       "income_line_id": "HH002874_INC1",
       "household_id": "HH002874",
       "owner": "client_1",
-      "source_type": "business_income",
+      "source_type": "salary",
       "frequency": "annual",
       "net_or_gross": "gross",
       "amount_annualized": 165600

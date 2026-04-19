@@ -2,7 +2,6 @@
   "households": [
     {
       "household_id": "HH001435",
-      "scenario": "self_employed_business_owner",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "single",
@@ -20,9 +19,7 @@
       "monthly_non_mortgage_payment_total": 150,
       "property_value_total": 250200,
       "investable_assets_total": 639650,
-      "cash_and_cashlike_total": 99800,
       "alternatives_total": 20500,
-      "net_worth_proxy": 747850,
       "risk_tolerance": "moderate",
       "tax_bracket_band": "35"
     }
@@ -31,12 +28,12 @@
     {
       "person_id": "HH001435_P1",
       "household_id": "HH001435",
+      "client_no": 1,
       "role": "primary",
       "first_name": "Michael",
       "employment_status": "self employed",
       "occupation_group": "operations",
-      "gross_annual_income": 194550,
-      "client_no": 1
+      "gross_annual_income": 194550
     }
   ],
   "income_lines": [
@@ -64,6 +61,16 @@
       "asset_id": "HH001435_A1",
       "household_id": "HH001435",
       "owner": "client_1",
+      "asset_type": "cash",
+      "subtype": "bank_account",
+      "provider_type": "bank",
+      "value": 99800,
+      "is_joint": false
+    },
+    {
+      "asset_id": "HH001435_A2",
+      "household_id": "HH001435",
+      "owner": "client_1",
       "asset_type": "brokerage",
       "subtype": "taxable_brokerage",
       "provider_type": "brokerage",
@@ -71,7 +78,7 @@
       "is_joint": false
     },
     {
-      "asset_id": "HH001435_A2",
+      "asset_id": "HH001435_A3",
       "household_id": "HH001435",
       "owner": "client_1",
       "asset_type": "retirement",
@@ -81,17 +88,17 @@
       "is_joint": false
     },
     {
-      "asset_id": "HH001435_A3",
+      "asset_id": "HH001435_A4",
       "household_id": "HH001435",
       "owner": "client_1",
-      "asset_type": "cash",
-      "subtype": "bank_account",
-      "provider_type": "bank",
+      "asset_type": "retirement",
+      "subtype": "401k_ira",
+      "provider_type": "retirement_platform",
       "value": 99800,
       "is_joint": false
     },
     {
-      "asset_id": "HH001435_A4",
+      "asset_id": "HH001435_A5",
       "household_id": "HH001435",
       "owner": "client_1",
       "asset_type": "alternatives",
@@ -101,7 +108,7 @@
       "is_joint": false
     },
     {
-      "asset_id": "HH001435_A5",
+      "asset_id": "HH001435_A6",
       "household_id": "HH001435",
       "owner": "client_1",
       "asset_type": "property",

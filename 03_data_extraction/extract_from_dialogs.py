@@ -84,6 +84,31 @@ def _build_targeted_rescue_prompt(schema_compact: Dict[str, Any]) -> str:
     )
 
 
+def _build_asset_owner_rescue_prompt(schema_compact: Dict[str, Any]) -> str:
+    schema_json = json.dumps(schema_compact, ensure_ascii=False)
+    return (
+        "You are repairing missing people/assets field extraction from a client-advisor dialog.\n"
+        "You MUST output ONLY valid JSON. No markdown. No explanations.\n\n"
+        "Task:\n"
+        "- Extract ONLY the people and assets arrays.\n"
+        "- Keep record counts minimal, but if the dialog clearly mentions a person or asset, include it.\n"
+        "- Focus especially on people.occupation_group and assets.owner / assets.is_joint / assets.provider_type.\n"
+        "- For occupation_group: use the strongest explicit work-bucket cue; do not use retired/inactive as occupation_group.\n"
+        "- For ownership: use owner=joint only when the dialog explicitly says joint/shared/in both names/both of us.\n"
+        "- If the dialog explicitly says Client 1 / Client 2 / primary / spouse / in my name, use that specific owner.\n"
+        "- For primary residence / home / property, do not omit owner when the dialog explicitly clarifies whether it is joint or in one person's name.\n"
+        "- For provider_type: prefer the underlying institution where the asset is actually held. If the dialog says the asset is merely shown/viewed/grouped on a platform, do not let that override an explicit underlying bank/brokerage/insurance holder.\n"
+        "- If a field is unknown, omit it rather than guessing.\n"
+        "- Use only information stated in the dialog.\n"
+        "- For categorical fields, choose the closest allowed value from the schema.\n\n"
+        "Output format requirements:\n"
+        '- Return one JSON object with exactly these keys: people, assets\n'
+        "- Each key must map to an array, possibly empty.\n\n"
+        "Target schema (compact JSON):\n"
+        f"{schema_json}"
+    )
+
+
 def _try_load_json(path: Path) -> Optional[Dict[str, Any]]:
     try:
         if not path.exists():
@@ -286,11 +311,14 @@ def _coerce_and_filter(
             issues.extend(rec_issues)
             coerced_records.append(coerced)
 
-        if entity.name == "households" and coerced_records:
-            coerced_records[0] = compute_derived_household_fields(coerced_records[0])
-
         # Always include the entity key, even if empty.
         out[entity.name] = coerced_records
+
+    households = out.get("households")
+    if isinstance(households, list) and households:
+        liabilities = out.get("liabilities")
+        liab_records = liabilities if isinstance(liabilities, list) else []
+        households[0] = compute_derived_household_fields(households[0], liab_records)
 
     return out, issues
 
@@ -413,6 +441,18 @@ def _targeted_retry_user_prompt(base_prompt: str, attempt_no: int) -> str:
     return base_prompt + retry_note
 
 
+def _asset_owner_retry_user_prompt(base_prompt: str, attempt_no: int) -> str:
+    if attempt_no <= 1:
+        return base_prompt
+    retry_note = (
+        "\n\nIMPORTANT OUTPUT REQUIREMENT:\n"
+        'Return exactly {"people": [...], "assets": [...]}.\n'
+        "Do not return households, income_lines, liabilities, or protection_policies.\n"
+        "If the dialog clearly clarifies occupation_group, owner, or provider_type, include that field instead of omitting it."
+    )
+    return base_prompt + retry_note
+
+
 def _slice_schema_compact(schema_compact: Dict[str, Any], entity_names: Tuple[str, ...]) -> Dict[str, Any]:
     entities = schema_compact.get("entities")
     if not isinstance(entities, dict):
@@ -480,6 +520,47 @@ def _needs_targeted_rescue(extracted: Dict[str, Any], dialog_text: str) -> bool:
     return need_liabilities or need_policies
 
 
+def _needs_asset_owner_rescue(extracted: Dict[str, Any], dialog_text: str) -> bool:
+    assets = _as_records(extracted.get("assets"))
+    people = _as_records(extracted.get("people"))
+    missing_asset_fields = [a for a in assets if (not a.get("owner")) or (not a.get("provider_type"))]
+    missing_occ = [p for p in people if not p.get("occupation_group")]
+    if not missing_asset_fields and not missing_occ:
+        return False
+
+    t = dialog_text.lower()
+    hints = (
+        "owner",
+        "joint",
+        "both names",
+        "both of us",
+        "in my name",
+        "client 1",
+        "client 2",
+        "held at",
+        "shown on",
+        "view through",
+        "advisor platform",
+        "retirement platform",
+        "brokerage",
+        "bank",
+        "insurance",
+        "primary residence",
+        "house",
+        "home",
+        "occupation",
+        "line of work",
+        "business owner",
+        "sales",
+        "operations",
+        "healthcare",
+        "education",
+        "finance",
+        "exec",
+    )
+    return any(h in t for h in hints)
+
+
 def _merge_targeted_entities(base: Dict[str, Any], rescue: Dict[str, Any]) -> Dict[str, Any]:
     out = dict(base)
     for key in TARGETED_RESCUE_ENTITY_KEYS:
@@ -487,6 +568,103 @@ def _merge_targeted_entities(base: Dict[str, Any], rescue: Dict[str, Any]) -> Di
         rescued = _as_records(rescue.get(key))
         if not existing and rescued:
             out[key] = rescued
+    return out
+
+
+def _asset_rescue_pair_score(*, base: Dict[str, Any], rescue: Dict[str, Any]) -> float:
+    score = 0.0
+
+    def _eq(a: Any, b: Any) -> bool:
+        return str(a or "").strip().lower() == str(b or "").strip().lower()
+
+    if _eq(base.get("asset_type"), rescue.get("asset_type")):
+        score += 4.0
+    if _eq(base.get("subtype"), rescue.get("subtype")):
+        score += 3.0
+    if _eq(base.get("provider_type"), rescue.get("provider_type")):
+        score += 2.0
+
+    b = base.get("value")
+    r = rescue.get("value")
+    if isinstance(b, (int, float)) and isinstance(r, (int, float)):
+        if abs(float(b) - float(r)) <= max(abs(float(b)) * 1e-4, 1e-9):
+            score += 4.0
+
+    return score
+
+
+def _merge_asset_owner_rescue(base: Dict[str, Any], rescue: Dict[str, Any]) -> Dict[str, Any]:
+    out = dict(base)
+    base_people = [dict(p) for p in _as_records(out.get("people"))]
+    rescue_people = _as_records(rescue.get("people"))
+    base_assets = [dict(a) for a in _as_records(out.get("assets"))]
+    rescue_assets = _as_records(rescue.get("assets"))
+
+    if base_people and rescue_people:
+        rescue_people_by_id = {
+            str(p.get("person_id") or "").strip(): p
+            for p in rescue_people
+            if str(p.get("person_id") or "").strip()
+        }
+        for idx, base_rec in enumerate(base_people):
+            person_id = str(base_rec.get("person_id") or "").strip()
+            rescue_rec = rescue_people_by_id.get(person_id)
+            if not rescue_rec:
+                continue
+            if not base_rec.get("occupation_group") and rescue_rec.get("occupation_group"):
+                base_rec["occupation_group"] = rescue_rec["occupation_group"]
+            base_people[idx] = base_rec
+        out["people"] = base_people
+
+    if not base_assets or not rescue_assets:
+        return out
+
+    rescue_by_id: Dict[str, Dict[str, Any]] = {}
+    for rec in rescue_assets:
+        asset_id = str(rec.get("asset_id") or "").strip()
+        if asset_id:
+            rescue_by_id[asset_id] = rec
+
+    used_rescue_ids: set[str] = set()
+    matched_rescue_idx: set[int] = set()
+
+    for idx, base_rec in enumerate(base_assets):
+        asset_id = str(base_rec.get("asset_id") or "").strip()
+        rescue_rec = rescue_by_id.get(asset_id)
+        if rescue_rec:
+            used_rescue_ids.add(asset_id)
+        else:
+            best_idx = -1
+            best_score = -1.0
+            for j, cand in enumerate(rescue_assets):
+                cand_id = str(cand.get("asset_id") or "").strip()
+                if cand_id and cand_id in used_rescue_ids:
+                    continue
+                if j in matched_rescue_idx:
+                    continue
+                score = _asset_rescue_pair_score(base=base_rec, rescue=cand)
+                if score > best_score:
+                    best_score = score
+                    best_idx = j
+            rescue_rec = rescue_assets[best_idx] if best_idx >= 0 and best_score >= 7.0 else None
+            if rescue_rec is not None:
+                matched_rescue_idx.add(best_idx)
+                cand_id = str(rescue_rec.get("asset_id") or "").strip()
+                if cand_id:
+                    used_rescue_ids.add(cand_id)
+
+        if not rescue_rec:
+            continue
+
+        if not base_rec.get("owner") and rescue_rec.get("owner"):
+            base_rec["owner"] = rescue_rec["owner"]
+        if base_rec.get("is_joint") is None and rescue_rec.get("is_joint") is not None:
+            base_rec["is_joint"] = rescue_rec["is_joint"]
+        if not base_rec.get("provider_type") and rescue_rec.get("provider_type"):
+            base_rec["provider_type"] = rescue_rec["provider_type"]
+        base_assets[idx] = base_rec
+
+    out["assets"] = base_assets
     return out
 
 
@@ -531,6 +709,55 @@ def _extract_targeted_rescue(
         last_raw = raw
 
     raise RuntimeError(f"Targeted rescue failed for {dialog_id}; last_raw_type={type(last_raw).__name__}")
+
+
+def _extract_asset_owner_rescue(
+    *,
+    client: OpenAIResponsesClient,
+    schema: DataSchema,
+    schema_compact: Dict[str, Any],
+    household_id: str,
+    dialog_id: str,
+    dialog_text: str,
+    out_dir: Path,
+    max_output_tokens: int,
+) -> Tuple[Dict[str, Any], List[CoerceIssue]]:
+    system_prompt = _build_asset_owner_rescue_prompt(
+        _slice_schema_compact(schema_compact, ("people", "assets"))
+    )
+    user_prompt = f"household_id: {household_id}\n\n{dialog_text}"
+    retry_limit = max(1, int(os.environ.get("EXTRACTION_ASSET_OWNER_RETRY_LIMIT", "2")))
+    last_raw: Any = {}
+
+    for attempt_no in range(1, retry_limit + 1):
+        raw = _extract_json(
+            client=client,
+            system_prompt=system_prompt,
+            user_prompt=_asset_owner_retry_user_prompt(user_prompt, attempt_no),
+            max_output_tokens=min(max_output_tokens, 2500),
+        )
+        _write_json(out_dir.joinpath(f"{dialog_id}.asset_owner_raw.attempt_{attempt_no}.json"), raw)
+
+        raw_unwrapped = _unwrap_model_output(raw)
+        if not isinstance(raw_unwrapped, dict):
+            last_raw = raw
+            continue
+
+        targeted_raw = {
+            "people": raw_unwrapped.get("people", []),
+            "assets": raw_unwrapped.get("assets", []),
+        }
+        targeted_schema = DataSchema(
+            snapshot_date=schema.snapshot_date,
+            entities={"people": schema.entities["people"], "assets": schema.entities["assets"]},
+        )
+        extracted, issues = _coerce_and_filter(raw=targeted_raw, schema=targeted_schema)
+        extracted = normalize_profile_values(schema=schema, household_id=household_id, profile=extracted)
+        if any(_as_records(extracted.get("people"))) or any(_as_records(extracted.get("assets"))):
+            return extracted, issues
+        last_raw = raw
+
+    raise RuntimeError(f"Asset owner rescue failed for {dialog_id}; last_raw_type={type(last_raw).__name__}")
 
 
 def _extract_validated_profile(
@@ -627,6 +854,25 @@ def _process_one_dialog(
                 max_output_tokens=max_output_tokens,
             )
             extracted = _merge_targeted_entities(extracted, rescued)
+            issues.extend(rescue_issues)
+            summary = _basic_coverage_summary(extracted)
+        except Exception:
+            pass
+
+    if _needs_asset_owner_rescue(extracted, dialog_text):
+        try:
+            rescued_assets, rescue_issues = _extract_asset_owner_rescue(
+                client=client,
+                schema=schema,
+                schema_compact=schema_compact,
+                household_id=household_id,
+                dialog_id=dialog_id,
+                dialog_text=dialog_text,
+                out_dir=out_dir,
+                max_output_tokens=max_output_tokens,
+            )
+            extracted = _merge_asset_owner_rescue(extracted, rescued_assets)
+            extracted = normalize_profile_values(schema=schema, household_id=household_id, profile=extracted)
             issues.extend(rescue_issues)
             summary = _basic_coverage_summary(extracted)
         except Exception:

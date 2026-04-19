@@ -2,7 +2,6 @@
   "households": [
     {
       "household_id": "HH000257",
-      "scenario": "family_with_mortgage_and_children",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "married_or_civil_partner",
@@ -11,24 +10,28 @@
       "num_dependants": 4,
       "annual_household_gross_income": 180700.0,
       "monthly_expenses_total": 14300.0,
+      "expense_to_income_ratio": 0.9499490879911467,
       "has_mortgage_or_loan": true,
       "loan_outstanding_total": 98800.0,
       "mortgage_outstanding_total": 98800.0,
       "non_mortgage_outstanding_total": 0.0,
       "monthly_debt_cost_total": 6600.0,
+      "monthly_mortgage_payment_total": 6600.0,
+      "monthly_non_mortgage_payment_total": 0.0,
+      "mortgage_payment_to_income_ratio": 0.4384264769189716,
       "property_value_total": 145150.0,
       "investable_assets_total": 579450.0,
       "retirement_assets_total": 194300.0,
       "cash_and_cashlike_total": 85200.0,
       "alternatives_total": 4200.0,
+      "net_worth_proxy": 626800.0,
       "risk_tolerance": "aggressive",
       "investment_objectives": [
         "capital_preservation",
         "retirement",
         "education"
       ],
-      "tax_bracket_band": "35",
-      "expense_to_income_ratio": 0.9496402877697842
+      "tax_bracket_band": "35"
     }
   ],
   "people": [
@@ -39,8 +42,8 @@
       "role": "primary",
       "first_name": "Thomas",
       "employment_status": "employed",
-      "desired_retirement_age": 60,
       "occupation_group": "healthcare",
+      "desired_retirement_age": 60,
       "gross_annual_income": 98350.0
     },
     {
@@ -50,70 +53,64 @@
       "role": "spouse_partner",
       "first_name": "Jennife",
       "employment_status": "employed",
-      "desired_retirement_age": 60,
       "occupation_group": "sales",
+      "desired_retirement_age": 60,
       "gross_annual_income": 82350.0
     }
   ],
   "income_lines": [
     {
-      "income_line_id": "HH000257_INC_1",
+      "income_line_id": "HH000257_I1",
       "household_id": "HH000257",
       "owner": "client_1",
       "source_type": "interest_dividends",
       "frequency": "monthly",
-      "net_or_gross": "gross",
       "amount_annualized": 27800.0
     },
     {
-      "income_line_id": "HH000257_INC_2",
-      "household_id": "HH000257",
-      "owner": "client_1",
-      "source_type": "salary",
-      "frequency": "monthly",
-      "net_or_gross": "gross",
-      "amount_annualized": 16150.0
-    },
-    {
-      "income_line_id": "HH000257_INC_3",
-      "household_id": "HH000257",
-      "owner": "client_1",
-      "source_type": "rental_income",
-      "frequency": "monthly",
-      "net_or_gross": "gross",
-      "amount_annualized": 24200.0
-    },
-    {
-      "income_line_id": "HH000257_INC_4",
-      "household_id": "HH000257",
-      "owner": "client_1",
-      "source_type": "rental_income",
-      "frequency": "annual",
-      "net_or_gross": "gross",
-      "amount_annualized": 27700.0
-    },
-    {
-      "income_line_id": "HH000257_INC_5",
+      "income_line_id": "HH000257_I2",
       "household_id": "HH000257",
       "owner": "client_2",
       "source_type": "interest_dividends",
       "frequency": "monthly",
-      "net_or_gross": "gross",
       "amount_annualized": 18850.0
     },
     {
-      "income_line_id": "HH000257_INC_6",
+      "income_line_id": "HH000257_I3",
+      "household_id": "HH000257",
+      "owner": "client_1",
+      "source_type": "rental_income",
+      "frequency": "monthly",
+      "amount_annualized": 24200.0
+    },
+    {
+      "income_line_id": "HH000257_I4",
+      "household_id": "HH000257",
+      "owner": "client_1",
+      "source_type": "rental_income",
+      "frequency": "annual",
+      "amount_annualized": 27700.0
+    },
+    {
+      "income_line_id": "HH000257_I5",
+      "household_id": "HH000257",
+      "owner": "client_1",
+      "source_type": "salary",
+      "frequency": "monthly",
+      "amount_annualized": 16150.0
+    },
+    {
+      "income_line_id": "HH000257_I6",
       "household_id": "HH000257",
       "owner": "joint",
       "source_type": "salary",
       "frequency": "monthly",
-      "net_or_gross": "gross",
       "amount_annualized": 66000.0
     }
   ],
   "assets": [
     {
-      "asset_id": "HH000257_AST_1",
+      "asset_id": "HH000257_A1",
       "household_id": "HH000257",
       "owner": "joint",
       "asset_type": "brokerage",
@@ -123,7 +120,7 @@
       "is_joint": true
     },
     {
-      "asset_id": "HH000257_AST_2",
+      "asset_id": "HH000257_A2",
       "household_id": "HH000257",
       "owner": "client_1",
       "asset_type": "retirement",
@@ -133,7 +130,7 @@
       "is_joint": false
     },
     {
-      "asset_id": "HH000257_AST_3",
+      "asset_id": "HH000257_A3",
       "household_id": "HH000257",
       "owner": "client_2",
       "asset_type": "cash",
@@ -143,7 +140,7 @@
       "is_joint": false
     },
     {
-      "asset_id": "HH000257_AST_4",
+      "asset_id": "HH000257_A4",
       "household_id": "HH000257",
       "owner": "client_2",
       "asset_type": "alternatives",
@@ -153,7 +150,7 @@
       "is_joint": false
     },
     {
-      "asset_id": "HH000257_AST_5",
+      "asset_id": "HH000257_A5",
       "household_id": "HH000257",
       "owner": "joint",
       "asset_type": "property",
@@ -165,7 +162,7 @@
   ],
   "liabilities": [
     {
-      "liability_id": "HH000257_LIAB_1",
+      "liability_id": "HH000257_L1",
       "household_id": "HH000257",
       "type": "mortgage",
       "monthly_cost": 6600.0,

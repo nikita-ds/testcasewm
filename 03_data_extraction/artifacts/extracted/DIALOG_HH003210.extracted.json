@@ -2,7 +2,6 @@
   "households": [
     {
       "household_id": "HH003210",
-      "scenario": "family_with_mortgage_and_children",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "married_or_civil_partner",
@@ -24,8 +23,7 @@
       "investment_objectives": [
         "capital_preservation",
         "education",
-        "retirement",
-        "wealth_growth"
+        "retirement"
       ],
       "tax_bracket_band": "24",
       "expense_to_income_ratio": 0.7847222222222222,
@@ -36,22 +34,22 @@
     {
       "person_id": "HH003210_P1",
       "household_id": "HH003210",
+      "client_no": 1,
       "role": "primary",
       "first_name": "Mar",
       "employment_status": "unemployed",
-      "occupation_group": "professional",
       "gross_annual_income": 225800.0,
-      "client_no": 1
+      "occupation_group": "inactive"
     },
     {
       "person_id": "HH003210_P2",
       "household_id": "HH003210",
+      "client_no": 2,
       "role": "spouse_partner",
       "first_name": "Joseph",
       "employment_status": "employed",
       "occupation_group": "finance",
-      "gross_annual_income": 33450.0,
-      "client_no": 2
+      "gross_annual_income": 33450.0
     }
   ],
   "income_lines": [
@@ -67,20 +65,20 @@
     {
       "income_line_id": "HH003210_I2",
       "household_id": "HH003210",
-      "owner": "client_1",
-      "source_type": "salary",
-      "frequency": "annual",
-      "net_or_gross": "gross",
-      "amount_annualized": 225800.0
-    },
-    {
-      "income_line_id": "HH003210_I3",
-      "household_id": "HH003210",
       "owner": "client_2",
       "source_type": "salary",
       "frequency": "annual",
       "net_or_gross": "gross",
       "amount_annualized": 33450.0
+    },
+    {
+      "income_line_id": "HH003210_I3",
+      "household_id": "HH003210",
+      "owner": "client_1",
+      "source_type": "salary",
+      "frequency": "annual",
+      "net_or_gross": "gross",
+      "amount_annualized": 225800.0
     }
   ],
   "assets": [
@@ -137,7 +135,7 @@
   ],
   "liabilities": [
     {
-      "liability_id": "HH003210_L1",
+      "liability_id": "LIA_HH003210_1",
       "household_id": "HH003210",
       "type": "mortgage",
       "monthly_cost": 4750.0,
@@ -148,7 +146,7 @@
   ],
   "protection_policies": [
     {
-      "policy_id": "HH003210_PLC1",
+      "policy_id": "POL_HH003210_1",
       "household_id": "HH003210",
       "owner": "client_1",
       "policy_type": "life",

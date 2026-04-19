@@ -178,7 +178,10 @@ def coerce_record(
     return out, issues
 
 
-def compute_derived_household_fields(hh: Dict[str, Any]) -> Dict[str, Any]:
+def compute_derived_household_fields(
+    hh: Dict[str, Any],
+    liabilities: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
     """Compute a small set of derived fields if inputs are present.
 
     This is grounded in extracted values (not ground truth).
@@ -188,6 +191,7 @@ def compute_derived_household_fields(hh: Dict[str, Any]) -> Dict[str, Any]:
     inc = out.get("annual_household_gross_income")
     exp_m = out.get("monthly_expenses_total")
     mort_pay_m = out.get("monthly_mortgage_payment_total")
+    debt_total_m = out.get("monthly_debt_cost_total")
     has_loan = out.get("has_mortgage_or_loan")
 
     try:
@@ -202,6 +206,41 @@ def compute_derived_household_fields(hh: Dict[str, Any]) -> Dict[str, Any]:
         mort_f = float(mort_pay_m) if mort_pay_m is not None else None
     except Exception:
         mort_f = None
+    try:
+        debt_total_f = float(debt_total_m) if debt_total_m is not None else None
+    except Exception:
+        debt_total_f = None
+
+    liabilities = [r for r in (liabilities or []) if isinstance(r, dict)]
+    derived_debt_total = 0.0
+    derived_mortgage_total = 0.0
+    saw_any_liability = bool(liabilities)
+    saw_liability_cost = False
+    saw_mortgage = False
+
+    for liab in liabilities:
+        monthly_cost = _parse_float(liab.get("monthly_cost"))
+        liab_type = str(liab.get("type") or "").strip().lower()
+        is_mortgage = liab_type == "mortgage"
+
+        if monthly_cost is not None:
+            saw_liability_cost = True
+            derived_debt_total += float(monthly_cost)
+            if is_mortgage:
+                derived_mortgage_total += float(monthly_cost)
+
+        if is_mortgage:
+            saw_mortgage = True
+
+    if debt_total_f is None and (saw_liability_cost or saw_any_liability or has_loan is False):
+        out["monthly_debt_cost_total"] = float(derived_debt_total)
+
+    if mort_f is None and (saw_mortgage or saw_any_liability or has_loan is False):
+        out["monthly_mortgage_payment_total"] = float(derived_mortgage_total)
+        mort_f = float(derived_mortgage_total)
+
+    if has_loan is None and saw_any_liability:
+        out["has_mortgage_or_loan"] = saw_liability_cost or saw_mortgage
 
     if inc_f and exp_f is not None:
         out.setdefault("expense_to_income_ratio", float((exp_f * 12.0) / inc_f))

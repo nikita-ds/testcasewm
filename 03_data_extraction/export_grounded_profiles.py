@@ -78,6 +78,41 @@ def _pk_key_for_entity(entity: str) -> str:
     return "id"
 
 
+def _should_keep_evidence_item(
+    *,
+    entity: str,
+    field_name: str,
+    selector_value: Optional[str],
+    source_value: Any,
+    evidence_text: str,
+) -> bool:
+    text = str(evidence_text or "").lower()
+    value_s = str(source_value or "").strip().lower()
+    selector_s = str(selector_value or "").strip().upper()
+
+    if entity == "people" and field_name == "occupation_group":
+        if value_s in {"retired", "inactive"}:
+            return False
+        if selector_s.endswith("_P1") and "client 1:" not in text:
+            return False
+        if selector_s.endswith("_P2") and "client 2:" not in text:
+            return False
+
+    if entity == "assets" and field_name == "provider_type":
+        weak_platform_words = ("shown on", "view through", "grouped", "visible on", "advisor platform", "retirement platform")
+        strong_holder_words = ("held at", "at the bank", "at the brokerage", "at the insurer", "through the bank", "with the bank")
+        if any(w in text for w in weak_platform_words) and not any(w in text for w in strong_holder_words):
+            return False
+
+    if entity == "assets" and field_name == "owner":
+        if value_s == "joint" and not any(w in text for w in ("joint", "both of us", "both names", "shared", "together")):
+            return False
+        if value_s in {"client_1", "client_2"} and not any(w in text for w in ("client 1", "client 2", "in my name", "my name", "his name", "her name")):
+            return False
+
+    return True
+
+
 @dataclass
 class GroundedBuildStats:
     dialogs_seen: int = 0
@@ -130,6 +165,16 @@ def build_grounded_profile_from_evidence(
         entity, _selector_key, selector_value, field_name = parsed
 
         source_value = it.get("source_value")
+        evidence_text = str(it.get("evidence_text") or "")
+
+        if not _should_keep_evidence_item(
+            entity=entity,
+            field_name=field_name,
+            selector_value=selector_value,
+            source_value=source_value,
+            evidence_text=evidence_text,
+        ):
+            continue
 
         if entity == "households":
             households[field_name] = source_value

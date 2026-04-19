@@ -2,7 +2,6 @@
   "households": [
     {
       "household_id": "HH003894",
-      "scenario": "family_with_mortgage_and_children",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "married_or_civil_partner",
@@ -11,7 +10,7 @@
       "num_dependants": 0,
       "annual_household_gross_income": 90950.0,
       "monthly_expenses_total": 4350.0,
-      "tax_bracket_band": "37",
+      "expense_to_income_ratio": 0.574261682068938,
       "has_mortgage_or_loan": true,
       "loan_outstanding_total": 56500.0,
       "mortgage_outstanding_total": 56500.0,
@@ -19,33 +18,36 @@
       "monthly_debt_cost_total": 1800.0,
       "monthly_mortgage_payment_total": 1800.0,
       "monthly_non_mortgage_payment_total": 0.0,
+      "mortgage_payment_to_income_ratio": 0.237526113655076,
       "property_value_total": 210100.0,
       "investable_assets_total": 195000.0,
+      "retirement_assets_total": 54600.0,
+      "cash_and_cashlike_total": 28650.0,
+      "net_worth_proxy": 348600.0,
       "risk_tolerance": "growth",
-      "expense_to_income_ratio": 0.5739417262231996,
-      "mortgage_payment_to_income_ratio": 0.23749312809235845
+      "tax_bracket_band": "37"
     }
   ],
   "people": [
     {
       "person_id": "HH003894_P1",
       "household_id": "HH003894",
-      "client_no": 1,
       "role": "primary",
       "first_name": "Robert",
       "employment_status": "employed",
       "occupation_group": "sales",
-      "gross_annual_income": 50050.0
+      "gross_annual_income": 50050.0,
+      "client_no": 1
     },
     {
       "person_id": "HH003894_P2",
       "household_id": "HH003894",
-      "client_no": 2,
       "role": "spouse_partner",
       "first_name": "Margaret",
       "employment_status": "self_employed",
       "occupation_group": "education",
-      "gross_annual_income": 40900.0
+      "gross_annual_income": 40900.0,
+      "client_no": 2
     }
   ],
   "income_lines": [
@@ -57,6 +59,24 @@
       "frequency": "monthly",
       "net_or_gross": "gross",
       "amount_annualized": 90950.0
+    },
+    {
+      "income_line_id": "HH003894_I2",
+      "household_id": "HH003894",
+      "owner": "client_1",
+      "source_type": "salary",
+      "frequency": "annual",
+      "net_or_gross": "gross",
+      "amount_annualized": 50050.0
+    },
+    {
+      "income_line_id": "HH003894_I3",
+      "household_id": "HH003894",
+      "owner": "client_2",
+      "source_type": "business_income",
+      "frequency": "annual",
+      "net_or_gross": "gross",
+      "amount_annualized": 40900.0
     }
   ],
   "assets": [
@@ -76,7 +96,7 @@
       "owner": "client_1",
       "asset_type": "cash",
       "subtype": "bank_account",
-      "provider_type": "retirement_platform",
+      "provider_type": "bank",
       "value": 28650.0,
       "is_joint": false
     },
@@ -96,7 +116,7 @@
       "owner": "joint",
       "asset_type": "property",
       "subtype": "primary_residence",
-      "provider_type": "retirement_platform",
+      "provider_type": "advisor_platform",
       "value": 210100.0,
       "is_joint": true
     }

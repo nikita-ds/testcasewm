@@ -209,13 +209,13 @@ def _asset_pair_score(
         return _norm_str(a).lower() == _norm_str(b).lower()
 
     if _eq(gt.get("owner"), ex.get("owner")):
-        score += 3.0
-    if _eq(gt.get("asset_type"), ex.get("asset_type")):
-        score += 4.0
-    if _eq(gt.get("subtype"), ex.get("subtype")):
-        score += 3.0
-    if _eq(gt.get("provider_type"), ex.get("provider_type")):
         score += 2.0
+    if _eq(gt.get("asset_type"), ex.get("asset_type")):
+        score += 3.0
+    if _eq(gt.get("subtype"), ex.get("subtype")):
+        score += 2.0
+    if _eq(gt.get("provider_type"), ex.get("provider_type")):
+        score += 1.0
 
     g = gt.get("value")
     e = ex.get("value")
@@ -224,12 +224,140 @@ def _asset_pair_score(
         exf = float(e)
         tol = max(abs(gtf) * float(numeric_rel_tol), 1e-9)
         if abs(exf - gtf) <= tol:
-            score += 4.0
+            score += 8.0
         else:
             denom = max(abs(gtf), 1.0)
-            score += max(0.0, 0.5 - abs(exf - gtf) / denom)
+            score += max(0.0, 1.0 - abs(exf - gtf) / denom)
 
     return score
+
+
+def _liability_pair_score(
+    *,
+    gt: Dict[str, Any],
+    ex: Dict[str, Any],
+    numeric_rel_tol: float,
+) -> float:
+    score = 0.0
+
+    def _eq(a: Any, b: Any) -> bool:
+        return _norm_str(a).lower() == _norm_str(b).lower()
+
+    if _eq(gt.get("type"), ex.get("type")):
+        score += 4.0
+    if _eq(gt.get("final_payment_date"), ex.get("final_payment_date")):
+        score += 2.0
+
+    for field_name, weight in (
+        ("monthly_cost", 3.0),
+        ("outstanding", 4.0),
+        ("interest_rate", 2.0),
+    ):
+        g = gt.get(field_name)
+        e = ex.get(field_name)
+        if _is_number(g) and _is_number(e):
+            gtf = float(g)
+            exf = float(e)
+            tol = max(abs(gtf) * float(numeric_rel_tol), 1e-9)
+            if abs(exf - gtf) <= tol:
+                score += weight
+            else:
+                denom = max(abs(gtf), 1.0)
+                score += max(0.0, 0.5 - abs(exf - gtf) / denom)
+
+    return score
+
+
+def _protection_policy_pair_score(
+    *,
+    gt: Dict[str, Any],
+    ex: Dict[str, Any],
+    numeric_rel_tol: float,
+) -> float:
+    score = 0.0
+
+    def _eq(a: Any, b: Any) -> bool:
+        return _norm_str(a).lower() == _norm_str(b).lower()
+
+    if _eq(gt.get("owner"), ex.get("owner")):
+        score += 3.0
+    if _eq(gt.get("policy_type"), ex.get("policy_type")):
+        score += 4.0
+    if _eq(gt.get("assured_until"), ex.get("assured_until")):
+        score += 2.0
+
+    for field_name, weight in (
+        ("monthly_cost", 2.0),
+        ("amount_assured", 4.0),
+    ):
+        g = gt.get(field_name)
+        e = ex.get(field_name)
+        if _is_number(g) and _is_number(e):
+            gtf = float(g)
+            exf = float(e)
+            tol = max(abs(gtf) * float(numeric_rel_tol), 1e-9)
+            if abs(exf - gtf) <= tol:
+                score += weight
+            else:
+                denom = max(abs(gtf), 1.0)
+                score += max(0.0, 0.5 - abs(exf - gtf) / denom)
+
+    return score
+
+
+def _pair_records_by_content_generic(
+    *,
+    gt_records: List[Dict[str, Any]],
+    ex_records: List[Dict[str, Any]],
+    pk: str,
+    numeric_rel_tol: float,
+    score_fn,
+    min_score: float,
+) -> List[Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], str]]:
+    if not gt_records and not ex_records:
+        return []
+
+    candidates: List[Tuple[float, int, int]] = []
+    for i, g in enumerate(gt_records):
+        if not isinstance(g, dict):
+            continue
+        for j, e in enumerate(ex_records):
+            if not isinstance(e, dict):
+                continue
+            candidates.append((score_fn(gt=g, ex=e, numeric_rel_tol=numeric_rel_tol), i, j))
+
+    candidates.sort(key=lambda t: (-t[0], t[1], t[2]))
+
+    used_gt: set[int] = set()
+    used_ex: set[int] = set()
+    pairs: List[Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], str]] = []
+
+    for score, i, j in candidates:
+        if score < min_score:
+            break
+        if i in used_gt or j in used_ex:
+            continue
+        used_gt.add(i)
+        used_ex.add(j)
+        gt = gt_records[i]
+        ex = ex_records[j]
+        key = _norm_str((gt or {}).get(pk)) or _norm_str((ex or {}).get(pk)) or str(i)
+        pairs.append((gt, ex, key))
+
+    for i, gt in enumerate(gt_records):
+        if i in used_gt:
+            continue
+        key = _norm_str((gt or {}).get(pk)) or str(i)
+        pairs.append((gt, None, key))
+
+    for j, ex in enumerate(ex_records):
+        if j in used_ex:
+            continue
+        key = _norm_str((ex or {}).get(pk)) or str(j)
+        pairs.append((None, ex, key))
+
+    pairs.sort(key=lambda t: _norm_str(t[2]))
+    return pairs
 
 
 def _pair_records_by_content_assets(
@@ -239,53 +367,14 @@ def _pair_records_by_content_assets(
     pk: str,
     numeric_rel_tol: float,
 ) -> List[Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], str]]:
-    if not gt_records and not ex_records:
-        return []
-
-    candidates: List[Tuple[float, int, int]] = []
-    for i, g in enumerate(gt_records):
-        if not isinstance(g, dict):
-            continue
-        for j, e in enumerate(ex_records):
-            if not isinstance(e, dict):
-                continue
-            candidates.append((_asset_pair_score(gt=g, ex=e, numeric_rel_tol=numeric_rel_tol), i, j))
-
-    candidates.sort(key=lambda t: (-t[0], t[1], t[2]))
-
-    used_gt: set[int] = set()
-    used_ex: set[int] = set()
-    pairs: List[Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], str]] = []
-
-    # Assets are typically few per household; require decent match.
-    min_score = 5.0
-
-    for score, i, j in candidates:
-        if score < min_score:
-            break
-        if i in used_gt or j in used_ex:
-            continue
-        used_gt.add(i)
-        used_ex.add(j)
-        gt = gt_records[i]
-        ex = ex_records[j]
-        key = _norm_str((gt or {}).get(pk)) or _norm_str((ex or {}).get(pk)) or str(i)
-        pairs.append((gt, ex, key))
-
-    for i, gt in enumerate(gt_records):
-        if i in used_gt:
-            continue
-        key = _norm_str((gt or {}).get(pk)) or str(i)
-        pairs.append((gt, None, key))
-
-    for j, ex in enumerate(ex_records):
-        if j in used_ex:
-            continue
-        key = _norm_str((ex or {}).get(pk)) or str(j)
-        pairs.append((None, ex, key))
-
-    pairs.sort(key=lambda t: _norm_str(t[2]))
-    return pairs
+    return _pair_records_by_content_generic(
+        gt_records=gt_records,
+        ex_records=ex_records,
+        pk=pk,
+        numeric_rel_tol=numeric_rel_tol,
+        score_fn=_asset_pair_score,
+        min_score=5.0,
+    )
 
 
 def _pair_records_by_content_income_lines(
@@ -295,58 +384,14 @@ def _pair_records_by_content_income_lines(
     pk: str,
     numeric_rel_tol: float,
 ) -> List[Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], str]]:
-    if not gt_records and not ex_records:
-        return []
-
-    # Greedy max-score matching. income_lines are typically few per household.
-    candidates: List[Tuple[float, int, int]] = []
-    for i, g in enumerate(gt_records):
-        if not isinstance(g, dict):
-            continue
-        for j, e in enumerate(ex_records):
-            if not isinstance(e, dict):
-                continue
-            candidates.append((_income_line_pair_score(gt=g, ex=e, numeric_rel_tol=numeric_rel_tol), i, j))
-
-    candidates.sort(key=lambda t: (-t[0], t[1], t[2]))
-
-    used_gt: set[int] = set()
-    used_ex: set[int] = set()
-    pairs: List[Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], str]] = []
-
-    # Minimal score needed to consider records paired. This prevents
-    # nonsense pairing when extracted hallucinated extra lines.
-    min_score = 4.0
-
-    for score, i, j in candidates:
-        if score < min_score:
-            break
-        if i in used_gt or j in used_ex:
-            continue
-        used_gt.add(i)
-        used_ex.add(j)
-        gt = gt_records[i]
-        ex = ex_records[j]
-        key = _norm_str((gt or {}).get(pk)) or _norm_str((ex or {}).get(pk)) or str(i)
-        pairs.append((gt, ex, key))
-
-    # Unmatched GT-only records
-    for i, gt in enumerate(gt_records):
-        if i in used_gt:
-            continue
-        key = _norm_str((gt or {}).get(pk)) or str(i)
-        pairs.append((gt, None, key))
-
-    # Unmatched extracted-only records
-    for j, ex in enumerate(ex_records):
-        if j in used_ex:
-            continue
-        key = _norm_str((ex or {}).get(pk)) or str(j)
-        pairs.append((None, ex, key))
-
-    # Keep deterministic ordering in output.
-    pairs.sort(key=lambda t: _norm_str(t[2]))
-    return pairs
+    return _pair_records_by_content_generic(
+        gt_records=gt_records,
+        ex_records=ex_records,
+        pk=pk,
+        numeric_rel_tol=numeric_rel_tol,
+        score_fn=_income_line_pair_score,
+        min_score=4.0,
+    )
 
 
 def _pair_records(
@@ -358,6 +403,7 @@ def _pair_records(
     numeric_rel_tol: float = 0.01,
 ) -> List[Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], str]]:
     """Return list of (gt, ex, key) pairs."""
+
 
     if entity == "income_lines" and _truthy_env("PAIR_INCOME_LINES_BY_CONTENT", default=True):
         return _pair_records_by_content_income_lines(
@@ -373,6 +419,29 @@ def _pair_records(
             ex_records=ex_records,
             pk=pk,
             numeric_rel_tol=numeric_rel_tol,
+        )
+
+    if entity == "liabilities" and _truthy_env("PAIR_LIABILITIES_BY_CONTENT", default=True):
+        return _pair_records_by_content_generic(
+            gt_records=gt_records,
+            ex_records=ex_records,
+            pk=pk,
+            numeric_rel_tol=numeric_rel_tol,
+            score_fn=_liability_pair_score,
+            min_score=4.0,
+        )
+
+    if entity == "protection_policies" and (
+        _truthy_env("PAIR_PROTECTION_POLICIES_BY_CONTENT", default=False)
+        or _truthy_env("PAIR_POLICIES_BY_CONTENT", default=True)
+    ):
+        return _pair_records_by_content_generic(
+            gt_records=gt_records,
+            ex_records=ex_records,
+            pk=pk,
+            numeric_rel_tol=numeric_rel_tol,
+            score_fn=_protection_policy_pair_score,
+            min_score=4.0,
         )
 
     gt_by_pk = _index_records_by_pk(gt_records, pk)

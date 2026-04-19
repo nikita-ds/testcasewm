@@ -208,6 +208,10 @@ def main() -> int:
     print(json.dumps({"step": "analyze_discrepancies", "cmd": disc_cmd}, ensure_ascii=False))
     _run(disc_cmd)
 
+    # Compute and print/save extraction metrics
+    metrics_cmd = [sys.executable, str(base / "compute_metrics.py")]
+    print(json.dumps({"step": "compute_metrics", "cmd": metrics_cmd}, ensure_ascii=False))
+    _run(metrics_cmd)
     return 0
 
 

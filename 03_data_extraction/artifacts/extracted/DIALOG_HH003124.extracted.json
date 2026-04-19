@@ -2,6 +2,7 @@
   "households": [
     {
       "household_id": "HH003124",
+      "scenario": "family_with_mortgage_and_children",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "married_or_civil_partner",
@@ -16,11 +17,12 @@
       "non_mortgage_outstanding_total": 0.0,
       "monthly_debt_cost_total": 550.0,
       "monthly_mortgage_payment_total": 550.0,
+      "monthly_non_mortgage_payment_total": 0.0,
       "property_value_total": 357250.0,
       "investable_assets_total": 379200.0,
-      "retirement_assets_total": 121850.0,
       "cash_and_cashlike_total": 53200.0,
-      "alternatives_total": 22250.0,
+      "alternatives_total": 204200.0,
+      "retirement_assets_total": 121850.0,
       "net_worth_proxy": 569900.0,
       "risk_tolerance": "aggressive",
       "investment_objectives": [
@@ -39,7 +41,6 @@
       "client_no": 1,
       "role": "primary",
       "first_name": "Emil",
-      "pronouns": "she_her",
       "employment_status": "employed",
       "occupation_group": "finance",
       "gross_annual_income": 46250.0
@@ -89,7 +90,7 @@
       "asset_id": "HH003124_A1",
       "household_id": "HH003124",
       "owner": "client_1",
-      "asset_type": "brokerage",
+      "asset_type": "alternatives",
       "subtype": "taxable_brokerage",
       "value": 181950.0,
       "is_joint": false
@@ -130,12 +131,14 @@
       "asset_type": "property",
       "subtype": "primary_residence",
       "provider_type": "advisor_platform",
-      "value": 357250.0
+      "value": 357250.0,
+      "owner": "client_1",
+      "is_joint": false
     }
   ],
   "liabilities": [
     {
-      "liability_id": "HH003124_L1",
+      "liability_id": "LIA_HH003124_1",
       "household_id": "HH003124",
       "type": "mortgage",
       "monthly_cost": 550.0,
@@ -146,7 +149,7 @@
   ],
   "protection_policies": [
     {
-      "policy_id": "HH003124_PP1",
+      "policy_id": "POL_HH003124_1",
       "household_id": "HH003124",
       "owner": "client_1",
       "policy_type": "disability",

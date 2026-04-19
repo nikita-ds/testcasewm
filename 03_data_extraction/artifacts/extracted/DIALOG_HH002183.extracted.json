@@ -2,7 +2,6 @@
   "households": [
     {
       "household_id": "HH002183",
-      "scenario": "pre_retirement_wealthy",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "married_or_civil_partner",
@@ -16,18 +15,21 @@
       "mortgage_outstanding_total": 0.0,
       "non_mortgage_outstanding_total": 0.0,
       "monthly_debt_cost_total": 0.0,
-      "property_value_total": 294950.0,
       "investable_assets_total": 228700.0,
+      "property_value_total": 294950.0,
       "cash_and_cashlike_total": 15100.0,
       "alternatives_total": 21550.0,
+      "retirement_assets_total": 60950.0,
       "risk_tolerance": "moderate",
       "tax_bracket_band": "37",
-      "expense_to_income_ratio": 0.4
+      "monthly_mortgage_payment_total": 0.0,
+      "expense_to_income_ratio": 0.4,
+      "mortgage_payment_to_income_ratio": 0.0
     }
   ],
   "people": [
     {
-      "person_id": "client_1",
+      "person_id": "HH002183_P1",
       "household_id": "HH002183",
       "client_no": 1,
       "role": "primary",
@@ -37,7 +39,7 @@
       "gross_annual_income": 40250.0
     },
     {
-      "person_id": "client_2",
+      "person_id": "HH002183_P2",
       "household_id": "HH002183",
       "client_no": 2,
       "role": "spouse_partner",
@@ -49,7 +51,7 @@
   ],
   "income_lines": [
     {
-      "income_line_id": "inc_1",
+      "income_line_id": "HH002183_I1",
       "household_id": "HH002183",
       "owner": "client_1",
       "source_type": "rental_income",
@@ -58,7 +60,7 @@
       "amount_annualized": 58500.0
     },
     {
-      "income_line_id": "inc_2",
+      "income_line_id": "HH002183_I2",
       "household_id": "HH002183",
       "owner": "client_1",
       "source_type": "salary",
@@ -67,7 +69,7 @@
       "amount_annualized": 40250.0
     },
     {
-      "income_line_id": "inc_3",
+      "income_line_id": "HH002183_I3",
       "household_id": "HH002183",
       "owner": "client_2",
       "source_type": "salary",
@@ -78,7 +80,7 @@
   ],
   "assets": [
     {
-      "asset_id": "asset_1",
+      "asset_id": "HH002183_A1",
       "household_id": "HH002183",
       "owner": "joint",
       "asset_type": "brokerage",
@@ -88,7 +90,7 @@
       "is_joint": true
     },
     {
-      "asset_id": "asset_2",
+      "asset_id": "HH002183_A2",
       "household_id": "HH002183",
       "owner": "client_1",
       "asset_type": "retirement",
@@ -98,7 +100,7 @@
       "is_joint": false
     },
     {
-      "asset_id": "asset_3",
+      "asset_id": "HH002183_A3",
       "household_id": "HH002183",
       "owner": "joint",
       "asset_type": "cash",
@@ -108,7 +110,7 @@
       "is_joint": true
     },
     {
-      "asset_id": "asset_4",
+      "asset_id": "HH002183_A4",
       "household_id": "HH002183",
       "owner": "client_1",
       "asset_type": "alternatives",
@@ -118,20 +120,20 @@
       "is_joint": false
     },
     {
-      "asset_id": "asset_5",
+      "asset_id": "HH002183_A5",
       "household_id": "HH002183",
-      "owner": "client_1",
+      "owner": "joint",
       "asset_type": "property",
       "subtype": "primary_residence",
       "provider_type": "insurance_company",
       "value": 294950.0,
-      "is_joint": false
+      "is_joint": true
     }
   ],
   "liabilities": [],
   "protection_policies": [
     {
-      "policy_id": "pol_1",
+      "policy_id": "HH002183_PP1",
       "household_id": "HH002183",
       "owner": "client_1",
       "policy_type": "ltc",
