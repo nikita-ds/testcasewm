@@ -18,6 +18,10 @@ CRITICAL REQUIREMENTS
 - When stating dollar amounts, round to the nearest $50 and never mention cents.
 - Do NOT ask for or mention any PII: Social Security numbers, full addresses, account numbers, passwords, emails, phone numbers.
 
+NAME USAGE (IMPORTANT)
+- Use the provided client name(s) inside the utterance text for natural addressing.
+- Do NOT change the speaker prefixes.
+
 FACT PRESERVATION RULES (STRICT)
 - Do not invent new accounts, policies, debts, dates, family members, employers, or numeric facts.
 - Do not change the meaning of existing numbers.
@@ -64,8 +68,16 @@ OUTPUT LENGTH
 
 INPUTS
 - household_type: {{household_type}}
+- client1_name: {{client1_name}}
+- client2_name: {{client2_name}}
 - skeleton_transcript (verbatim):
 {{skeleton_transcript}}
+
+OPENING / CLOSING (REQUIRED)
+- Ensure the finished transcript begins with a natural greeting + quick advisor intro + invitation to speak ("tell me about you") using the client name(s) in-text.
+- Ensure the finished transcript ends with a brief wrap-up and mutual goodbyes:
+  - Advisor says thanks/next steps and goodbye
+  - Each client says thanks/bye
 
 OUTPUT
 - Return only the finalized transcript.

@@ -85,7 +85,7 @@ def main() -> None:
     assets_bins = _env_int("DIALOG_ASSETS_BINS", 3)
     skip_existing = bool(int(os.getenv("DIALOG_SKIP_EXISTING", "1")))
     registry_path = Path(_env_str("DIALOG_REGISTRY_PATH", str(out_dir / "dialog_registry.csv")))
-    registry_skip_statuses = _env_str("DIALOG_REGISTRY_SKIP_STATUSES", "success")
+    registry_skip_statuses = _env_str("DIALOG_REGISTRY_SKIP_STATUSES", "success,validation_failed")
     continue_on_error = bool(int(os.getenv("DIALOG_CONTINUE_ON_ERROR", "1")))
 
     # Step 1: Build the big JSON dataset from the generated tables.

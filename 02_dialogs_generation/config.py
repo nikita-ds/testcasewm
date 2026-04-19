@@ -106,7 +106,7 @@ class GenerationConfig:
     skip_existing: bool = True
     registry_path: Optional[Path] = None
     # Comma-separated statuses to skip when selecting profiles (e.g. "success" or "success,validation_failed").
-    registry_skip_statuses: str = "success"
+    registry_skip_statuses: str = "success,validation_failed"
 
     # When generating in parallel, keep going if some dialogs fail, then raise at the end if required.
     continue_on_error: bool = True

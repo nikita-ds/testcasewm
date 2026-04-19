@@ -39,8 +39,8 @@ def main() -> None:
     p.add_argument(
         "--registry-skip-statuses",
         type=str,
-        default="success",
-        help="Comma-separated statuses to skip when selecting profiles (default: success)",
+        default="success,validation_failed",
+        help="Comma-separated statuses to skip when selecting profiles (default: success,validation_failed)",
     )
     p.add_argument("--no-skip-existing", action="store_true", help="Do not skip already-generated households")
     p.add_argument(

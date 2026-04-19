@@ -8,6 +8,11 @@ CRITICAL FORMAT REQUIREMENTS
   - "Advisor:"
   - "{{client1_label}}"
   - "{{client2_label}}" (only if household_type == couple)
+
+NAME USAGE (IMPORTANT)
+- Use the client names inside the utterance text for natural addressing.
+  - For example: "So tell me about you, {{client1_name}}." or "Thanks, {{client2_name}}."
+- Do NOT address someone as "Client 1" / "Client 2" in normal conversation.
 - Natural spoken English, imperfect: hesitations ("uh"), self-corrections, interruptions, clarifications.
 - Do not be overly polished.
 
@@ -66,6 +71,13 @@ INPUTS
 {{transcript_summary_so_far}}
 - transcript_so_far (may be empty; recent window only):
 {{transcript_so_far}}
+
+- client1_name: {{client1_name}}
+- client2_name: {{client2_name}}
+
+OPENING (if transcript_so_far is empty)
+- Start with a natural greeting + quick intro and invite the client(s) to talk.
+- Use the client name(s) in-text.
 - financial_profile_digest (compact, includes record IDs for coverage tracking):
 {{financial_profile_digest}}
 

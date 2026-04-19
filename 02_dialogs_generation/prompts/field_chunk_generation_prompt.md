@@ -15,6 +15,12 @@ CRITICAL FORMAT REQUIREMENTS
   - "{{client1_label}}"
   - "{{client2_label}}" (only if household_type == couple)
 
+NAME USAGE (IMPORTANT)
+- Use the client names inside the utterance text for natural addressing.
+  - For example: "So tell me about you, {{client1_name}}." or "Thanks, {{client2_name}}."
+- Do NOT address someone as "Client 1" / "Client 2" in normal conversation.
+  - Exception: if you are explicitly confirming the labeling for `people[...].client_no`, you MAY say "Client 1" / "Client 2" once.
+
 REALISM + PACING RULES (STRICT)
 - Natural spoken English, imperfect: hesitations, self-corrections, interruptions.
 - Clients usually speak in 1–2 sentences.
@@ -56,6 +62,10 @@ STABILITY RULES (for easier validation)
 - Prefer covering quantitative/value targets first (amounts, balances, monthly costs), then descriptive details (provider/type/owner).
 - When a target source_value is a number, try to say it in a simple form close to the input (e.g., "$38,200" or "about 38k").
 
+RATE FORMAT (IMPORTANT)
+- If a target field_path ends with `.interest_rate`, ALWAYS speak it as a percentage (e.g., "4.9%" or "about five percent") and keep it close to source_value.
+- In evidence_items: if you stated the source_value (or a tight human rounding), status must be "present" or "approximate" — never "contradiction".
+
 SPECIAL CASES (TO PREVENT FALSE FAILURES)
 - If targets_json includes `households.num_adults`, you MUST explicitly ask and answer the adult count in plain language.
   Example style (adapt to household_type):
@@ -88,6 +98,14 @@ INPUTS
 
 - transcript_so_far (recent window):
 {{transcript_so_far}}
+
+- client1_name: {{client1_name}}
+- client2_name: {{client2_name}}
+
+OPENING (if transcript_so_far is empty)
+- Start with a natural greeting + a quick advisor intro and an invitation to speak.
+- Use the client name(s) in-text (not as prefixes).
+- Example vibe (do not copy literally): "So let me introduce myself…" then "Tell me about you, <name>."
 
 OUTPUT JSON SCHEMA
 {

@@ -21,6 +21,11 @@ STYLE
 - Keep turns short and conversational (fragments, backchannels, small repairs).
 - Avoid template-y repetition and long monologues.
 
+NAME USAGE
+- Use client names inside the utterance text when it feels natural:
+  - {{client1_name}} and {{client2_name}}
+- Do NOT change the speaker prefixes.
+
 TARGET
 - Add approximately {{target_new_turns}} new turns.
 - The final transcript should aim for at least {{target_total_turns}} total turns, but never exceed {{max_total_turns}}.

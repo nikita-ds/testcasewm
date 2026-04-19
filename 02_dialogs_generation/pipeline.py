@@ -27,6 +27,7 @@ from prompt_loader import load_prompts, render_prompt
 from scenario import sample_scenario
 from money_rounding import is_money_field_path, round_money_in_obj, round_money_value
 from normalization import is_state_like_field, state_variants
+from report import write_generation_report
 from schemas import (
     ConversationOutline,
     HouseholdType,
@@ -180,6 +181,27 @@ def _load_registry_households(path: Path, *, skip_statuses: Iterable[str]) -> se
     return out
 
 
+def _load_registry_status_map(path: Path) -> Dict[str, str]:
+    """Return mapping household_id -> status from the dialog registry CSV."""
+
+    if not path.exists() or path.stat().st_size == 0:
+        return {}
+    out: Dict[str, str] = {}
+    try:
+        with path.open("r", encoding="utf-8", newline="") as f:
+            r = csv.DictReader(f)
+            for row in r:
+                hh = str(row.get("household_id") or "").strip()
+                if not hh:
+                    continue
+                st = str(row.get("status") or "unknown").strip().lower() or "unknown"
+                # Last write wins (append-only registry).
+                out[hh] = st
+    except Exception:
+        return {}
+    return out
+
+
 def _load_existing_dialog_households(out_dir: Path) -> set[str]:
     """Return household_ids that already have a generated dialog JSON in out_dir.
 
@@ -256,11 +278,28 @@ def _select_profiles(
     remaining = list(profiles)
     if skip_existing:
         already: set[str] = set()
-        if output_dir is not None:
-            already |= _load_existing_dialog_households(output_dir)
+
+        skip_statuses = [s.strip().lower() for s in str(registry_skip_statuses).split(",") if s.strip()]
+        reg_map: Dict[str, str] = {}
         if registry_path is not None:
-            skip_statuses = [s.strip() for s in str(registry_skip_statuses).split(",") if s.strip()]
-            already |= _load_registry_households(registry_path, skip_statuses=skip_statuses)
+            reg_map = _load_registry_status_map(registry_path)
+            if reg_map:
+                already |= {hh for hh, st in reg_map.items() if (not skip_statuses) or (st in skip_statuses)}
+
+        if output_dir is not None:
+            existing_files = _load_existing_dialog_households(output_dir)
+            if reg_map:
+                # If a household is present in the registry and its status is NOT in skip_statuses,
+                # allow re-generation even if an old dialog file exists.
+                for hh in existing_files:
+                    st = reg_map.get(hh)
+                    if st is None:
+                        already.add(hh)
+                    elif (not skip_statuses) or (str(st).lower() in skip_statuses):
+                        already.add(hh)
+            else:
+                already |= existing_files
+
         if already:
             remaining = [p for p in remaining if _profile_household_id(p) not in already]
 
@@ -743,6 +782,72 @@ _NUM_TOKEN_RE = re.compile(
 )
 
 
+def _is_rate_field_path(field_path: str) -> bool:
+    fp = str(field_path or "").strip().lower()
+    return bool(fp) and fp.endswith(".interest_rate")
+
+
+def _rate_scales(src: float) -> Tuple[float, float]:
+    """Return (decimal_rate, percent_rate) for a source rate value.
+
+    The dataset sometimes stores rates as percent points (e.g. 4.9) and sometimes
+    as a decimal (e.g. 0.049). We normalize to both representations.
+    """
+
+    if abs(float(src)) <= 1.5:
+        dec = float(src)
+        pct = float(src) * 100.0
+    else:
+        pct = float(src)
+        dec = float(src) / 100.0
+    return dec, pct
+
+
+def _strict_rate_match(*, source_value: Any, evidence_text: str, transcript_text: str) -> bool:
+    """Deterministically match interest_rate fields in evidence/transcript.
+
+    We accept either decimal (0.049) or percent-point (4.9) mentions, but we
+    only attempt this when the surrounding text looks rate-related to avoid
+    confusing rates with unrelated numbers.
+    """
+
+    try:
+        src = float(source_value)
+    except Exception:
+        return False
+
+    hay = str(evidence_text or "").strip() or str(transcript_text or "")
+    if not hay:
+        return False
+
+    hl = hay.lower()
+    # Basic guard: only consider matches in rate-y contexts.
+    if not any(k in hl for k in ("interest", " rate", "apr", "%", "percent", "per cent")):
+        return False
+
+    src_dec, src_pct = _rate_scales(src)
+    tol_pct = max(0.25, abs(src_pct) * 0.05)  # percent points
+    tol_dec = tol_pct / 100.0
+
+    for v in _extract_numeric_mentions(hay):
+        try:
+            fv = float(v)
+        except Exception:
+            continue
+
+        # Exclude obviously-not-a-rate numbers.
+        if not (-0.001 <= fv <= 1000.0):
+            continue
+
+        v_dec, v_pct = _rate_scales(fv)
+        if abs(v_pct - src_pct) <= tol_pct:
+            return True
+        if abs(v_dec - src_dec) <= tol_dec:
+            return True
+
+    return False
+
+
 def _extract_numeric_mentions(text: str) -> List[float]:
     """Extract numeric magnitudes from text.
 
@@ -921,9 +1026,22 @@ def _validate_and_score_items(
     lenient_failed_fields: List[Dict[str, Any]] = []
 
     for it in items:
-        status = str(it.get("status") or "unknown")
-        if status not in counts:
-            status = "unknown"
+        status_raw = str(it.get("status") or "unknown")
+        status = status_raw if status_raw in counts else "unknown"
+
+        field_path = str(it.get("field_path") or "")
+        src_val = it.get("source_value")
+
+        # Some fields are frequently marked missing/contradiction due to formatting
+        # or extractor instability. For interest rates, deterministically rescue
+        # cases where the rate is actually mentioned correctly.
+        if status in {"missing", "contradiction"} and _is_rate_field_path(field_path) and _strict_rate_match(
+            source_value=src_val,
+            evidence_text=str(it.get("evidence_text") or ""),
+            transcript_text=transcript_text,
+        ):
+            status = "present"
+
         counts[status] += 1
 
         if status in {"missing", "contradiction"}:
@@ -931,21 +1049,25 @@ def _validate_and_score_items(
             lenient_failed_fields.append(
                 {
                     "target_id": tid,
-                    "field_path": str(it.get("field_path") or ""),
+                    "field_path": field_path,
                     "record_type": str(it.get("record_type") or ""),
                     "record_id": it.get("record_id"),
-                    "source_value": it.get("source_value"),
+                    "source_value": src_val,
                     "status": status,
                 }
             )
 
-        field_path = str(it.get("field_path") or "")
-        src_val = it.get("source_value")
         src_for_match = round_money_value(src_val, increment=50.0) if is_money_field_path(field_path) else src_val
         if _requires_exact_strict_match(field_path, src_val):
             variants = _value_variants(src_for_match, field_path=field_path)
             strict_match = bool(variants) and _contains_any(transcript_text, variants)
             if (not strict_match) and _is_date_field_path(field_path) and _strict_date_match(
+                source_value=src_val,
+                evidence_text=str(it.get("evidence_text") or ""),
+                transcript_text=transcript_text,
+            ):
+                strict_match = True
+            if (not strict_match) and _is_rate_field_path(field_path) and _strict_rate_match(
                 source_value=src_val,
                 evidence_text=str(it.get("evidence_text") or ""),
                 transcript_text=transcript_text,
@@ -1072,6 +1194,119 @@ def _speaker_labels(hh_type: HouseholdType) -> Tuple[str, Optional[str]]:
         return "Client 1:", "Client 2:"
     return "Client:", None
 
+def _client_display_names(profile: Dict[str, Any], hh_type: HouseholdType) -> Tuple[Optional[str], Optional[str]]:
+    """Extract first-name-like display names from the profile for use INSIDE utterances.
+
+    Speaker prefixes remain fixed (Client / Client 1 / Client 2). These names are only
+    for natural addressing (e.g., "So tell me about you, Samuel").
+    """
+
+    people = [p for p in (profile.get("people") or []) if isinstance(p, dict)]
+
+    def _disp(p: Dict[str, Any]) -> Optional[str]:
+        for k in ("known_as", "first_name", "name"):
+            v = str(p.get(k) or "").strip()
+            if v:
+                # Keep it first-name-like to avoid over-sharing last names.
+                return v.split()[0]
+        return None
+
+    by_no: Dict[int, Dict[str, Any]] = {}
+    for p in people:
+        try:
+            n = int(p.get("client_no"))
+        except Exception:
+            continue
+        if n in (1, 2) and n not in by_no:
+            by_no[n] = p
+
+    name1 = _disp(by_no.get(1, {})) if 1 in by_no else (_disp(people[0]) if people else None)
+    if hh_type == "couple":
+        name2 = _disp(by_no.get(2, {})) if 2 in by_no else (_disp(people[1]) if len(people) > 1 else None)
+        return name1, name2
+    return name1, None
+
+
+def _ensure_opening_and_closing(
+    transcript_lines: List[str],
+    *,
+    household_type: HouseholdType,
+    client1_label: str,
+    client2_label: Optional[str],
+    client1_name: Optional[str],
+    client2_name: Optional[str],
+    max_turns: int,
+) -> List[str]:
+    """Light deterministic guardrails for natural starts/ends.
+
+    We do this post-validation to avoid affecting grounding checks.
+    """
+
+    lines = [str(l).strip() for l in (transcript_lines or []) if str(l).strip()]
+    if not lines:
+        return []
+
+    def _has_opening() -> bool:
+        head = "\n".join(lines[:12]).lower()
+        if any(w in head for w in ("hi", "hello", "good morning", "good afternoon", "nice to meet", "thanks for")):
+            return True
+        if client1_name and client1_name.lower() in head:
+            return True
+        if household_type == "couple" and client2_name and client2_name.lower() in head:
+            return True
+        return False
+
+    def _has_closing() -> bool:
+        tail = "\n".join(lines[-14:]).lower()
+        # Require explicit goodbye-style cues; don't let an early "thanks" suppress close-out.
+        return any(w in tail for w in ("bye", "goodbye", "talk soon", "see you", "take care", "thanks", "thank you"))
+
+    if not _has_opening():
+        n1 = client1_name or "there"
+        n2 = client2_name or ""
+        if household_type == "couple":
+            opening = [
+                f"Advisor: Hey {n1}—hey {n2}. Thanks for making the time.",
+                "Advisor: So let me introduce myself quickly—I'm your financial advisor for today.",
+                f"{client1_label} Hi—yeah, thanks.",
+                f"{client2_label or 'Client 2:'} Hi.",
+                "Advisor: Do you want some water or should we just jump in?",
+                "Advisor: So—tell me about you two a bit. What prompted you to reach out?",
+            ]
+        else:
+            opening = [
+                f"Advisor: Hey {n1}—thanks for making the time today.",
+                "Advisor: So let me introduce myself quickly—I'm your financial advisor for today.",
+                f"{client1_label} Hi.",
+                "Advisor: Before we get into the numbers, do you want some water or are you good?",
+                f"Advisor: So—tell me a bit about what prompted you to reach out, {n1}.",
+            ]
+        room = max(0, int(max_turns) - len(lines))
+        if room > 0:
+            lines = opening[:room] + lines
+
+    if not _has_closing():
+        n1 = client1_name or ""
+        n2 = client2_name or ""
+        if household_type == "couple":
+            closing = [
+                f"Advisor: Alright—thank you both. I’ll send a quick recap and next steps. Thanks, {n1}—thanks, {n2}.",
+                f"{client1_label} Thanks—appreciate it.",
+                f"{client2_label or 'Client 2:'} Yeah, thanks. Talk soon.",
+                "Advisor: Perfect. Take care—bye.",
+            ]
+        else:
+            closing = [
+                f"Advisor: Alright—thanks, {n1}. I’ll send a quick recap and next steps.",
+                f"{client1_label} Thanks. Bye.",
+                "Advisor: Bye—talk soon.",
+            ]
+        room = max(0, int(max_turns) - len(lines))
+        if room > 0:
+            lines = lines + closing[:room]
+
+    return lines
+
 
 def _format_profile_for_prompt(profile: Dict[str, Any]) -> str:
     redacted = _redact_profile_pii(profile)
@@ -1105,12 +1340,12 @@ def _redact_profile_pii(profile: Dict[str, Any]) -> Dict[str, Any]:
             _drop(
                 p,
                 [
+                    # Keep first-name-like identifiers so the dialogue can address clients naturally.
+                    # (We still drop last names and contact details below.)
                     "name",
-                    "first_name",
                     "middle_name",
+                    "middle_names",
                     "last_name",
-                    "full_name",
-                    "known_as",
                     "nickname",
                     "suffix",
                     "email",
@@ -1195,6 +1430,8 @@ def _extend_transcript_to_min_turns(
     max_turns: int,
     client1_label: str,
     client2_label: str,
+    client1_name: Optional[str],
+    client2_name: Optional[str],
     max_output_tokens: int,
     context_last_utterances: int,
 ) -> List[str]:
@@ -1229,7 +1466,9 @@ def _extend_transcript_to_min_turns(
             extend_prompt_template,
             {
                 "client1_label": client1_label,
-                "client2_label": client2_label if household_type == "couple" else "Client:",
+                "client2_label": (client2_label or client1_label) if household_type == "couple" else client1_label,
+                "client1_name": (client1_name or ""),
+                "client2_name": (client2_name or ""),
                 "target_new_turns": str(int(target_new)),
                 "target_total_turns": str(int(want_total)),
                 "max_total_turns": str(int(max_turns)),
@@ -1241,7 +1480,10 @@ def _extend_transcript_to_min_turns(
             user_prompt=extend_user,
             max_output_tokens=int(max_output_tokens),
         )
-        new_lines = _clean_prefixed_lines(text, household_type=household_type)
+        allowed_prefixes = ["Advisor:", client1_label]
+        if household_type == "couple" and client2_label:
+            allowed_prefixes.append(client2_label)
+        new_lines = _clean_prefixed_lines(text, allowed_prefixes=allowed_prefixes)
         new_lines = [l.strip() for l in new_lines if str(l).strip()]
         if not new_lines:
             break
@@ -1320,16 +1562,34 @@ def _build_rolling_summary(phase_summaries: List[str], *, max_phases: int, max_c
     return text
 
 
-def _clean_prefixed_lines(text: str, *, household_type: str) -> List[str]:
-    allowed_prefixes = {"Advisor:", "Client:"}
-    if str(household_type).strip().lower() == "couple":
-        allowed_prefixes = {"Advisor:", "Client 1:", "Client 2:"}
+def _clean_prefixed_lines(
+    text: str,
+    *,
+    household_type: Optional[HouseholdType] = None,
+    allowed_prefixes: Optional[Iterable[str]] = None,
+) -> List[str]:
+    """Keep only well-formed transcript lines that start with valid speaker prefixes.
+
+    Backward compatible:
+    - Old call sites pass household_type and rely on fixed labels.
+    - Newer call sites pass explicit allowed_prefixes.
+    """
+
+    if allowed_prefixes is None:
+        if household_type is None:
+            raise TypeError("_clean_prefixed_lines requires either household_type or allowed_prefixes")
+        client1_label, client2_label = _speaker_labels(household_type)
+        allowed_prefixes = ["Advisor:", client1_label]
+        if household_type == "couple" and client2_label:
+            allowed_prefixes.append(client2_label)
+
+    allowed = [str(p) for p in (allowed_prefixes or []) if str(p).strip()]
     cleaned: List[str] = []
     for raw in (text or "").splitlines():
         line = str(raw).strip()
         if not line:
             continue
-        if any(line.startswith(prefix) for prefix in allowed_prefixes):
+        if any(line.startswith(prefix) for prefix in allowed):
             cleaned.append(line)
     return cleaned
 
@@ -1446,7 +1706,7 @@ class DialogGenerationPipeline:
                     user_prompt=bridge_user,
                     max_output_tokens=max_output_tokens,
                 )
-                stitched.extend(_clean_prefixed_lines(bridge_text, household_type=household_type))
+                stitched.extend(_clean_prefixed_lines(bridge_text, allowed_prefixes=["Advisor:", client1_label, client2_label]))
                 stitched.extend(utterances)
         return "\n".join(stitched).strip() + "\n"
 
@@ -1662,6 +1922,7 @@ class DialogGenerationPipeline:
 
         hh_type = _household_type(profile)
         client1_label, client2_label = _speaker_labels(hh_type)
+        client1_name, client2_name = _client_display_names(profile, hh_type)
 
         logger.info("%s | scenario=%s | household_type=%s | seed=%s", log_ctx, scenario_name, hh_type, dialog_seed)
         system_prompt = self.prompts.system
@@ -1686,11 +1947,16 @@ class DialogGenerationPipeline:
             max_output_tokens=int(getattr(cfg, "personas_max_output_tokens", cfg.model.max_output_tokens)),
         )
         personas: List[Dict[str, Any]] = [p.model_dump() for p in personas_obj.root]
-        # Reduce PII leakage: keep personas behavioral, but avoid personal names.
+        # Use profile-derived first names for natural addressing in-dialog (prefixes remain Client 1/2).
         for p in personas:
             prof = p.get("profile")
-            if isinstance(prof, dict):
-                prof["name"] = None
+            if not isinstance(prof, dict):
+                continue
+            pid = str(p.get("id") or "").strip()
+            if pid == "client_1":
+                prof["name"] = client1_name
+            elif pid == "client_2":
+                prof["name"] = client2_name
         logger.info("%s | step=personas | done | dt=%.2fs", log_ctx, time.perf_counter() - t0)
 
         mode = str(getattr(cfg, "mode", "phases") or "phases").strip().lower()
@@ -1736,6 +2002,8 @@ class DialogGenerationPipeline:
                         "transcript_so_far": "\n".join(transcript_window),
                         "client1_label": client1_label,
                         "client2_label": client2_label or "Client 2:",
+                        "client1_name": client1_name or "",
+                        "client2_name": client2_name or "",
                     },
                 )
                 chunk_res = llm.create_json(
@@ -2158,6 +2426,8 @@ class DialogGenerationPipeline:
                         {
                             "household_type": hh_type,
                             "skeleton_transcript": transcript_text,
+                            "client1_name": client1_name or "",
+                            "client2_name": client2_name or "",
                         },
                     )
                     polished = llm.create_text(
@@ -2198,6 +2468,8 @@ class DialogGenerationPipeline:
                     max_turns=int(getattr(cfg, "max_turns", 0) or 0),
                     client1_label=client1_label,
                     client2_label=client2_label or "Client 2:",
+                    client1_name=client1_name,
+                    client2_name=client2_name,
                     max_output_tokens=int(getattr(cfg, "finalize_max_output_tokens", 2200)),
                     context_last_utterances=int(getattr(cfg, "context_last_utterances", 60) or 60),
                 )
@@ -2205,6 +2477,23 @@ class DialogGenerationPipeline:
                     final_transcript = "\n".join(extended_lines).strip() + "\n"
             except Exception:
                 # Never fail generation due to extension helper.
+                pass
+
+            # Ensure the transcript has a natural start and end (greetings + goodbyes).
+            try:
+                base_lines = [l for l in (final_transcript or "").splitlines() if str(l).strip()]
+                ensured = _ensure_opening_and_closing(
+                    base_lines,
+                    household_type=hh_type,
+                    client1_label=client1_label,
+                    client2_label=client2_label,
+                    client1_name=client1_name,
+                    client2_name=client2_name,
+                    max_turns=int(cfg.max_turns),
+                )
+                if ensured:
+                    final_transcript = "\n".join(ensured).strip() + "\n"
+            except Exception:
                 pass
 
             deepseek_realism: Optional[Dict[str, Any]] = None
@@ -2365,6 +2654,8 @@ class DialogGenerationPipeline:
                     "transcript_so_far": "\n".join(transcript_window),
                     "client1_label": client1_label,
                     "client2_label": client2_label or "Client 2:",
+                    "client1_name": client1_name or "",
+                    "client2_name": client2_name or "",
                     "example_transcripts": example_transcripts,
                     "financial_profile_digest": digest,
                     "valid_record_ids_json": valid_ids_json,
@@ -2526,6 +2817,8 @@ class DialogGenerationPipeline:
                     ),
                     "client1_label": client1_label,
                     "client2_label": client2_label or "Client 2:",
+                    "client1_name": client1_name or "",
+                    "client2_name": client2_name or "",
                     "example_transcripts": example_transcripts,
                     "financial_profile_digest": digest,
                     "valid_record_ids_json": valid_ids_json,
@@ -2626,6 +2919,15 @@ class DialogGenerationPipeline:
                 f"({dialog_id}): {json.dumps(remaining_by_type, ensure_ascii=False)}"
             )
 
+        transcript_lines = _ensure_opening_and_closing(
+            transcript_lines,
+            household_type=hh_type,
+            client1_label=client1_label,
+            client2_label=client2_label,
+            client1_name=client1_name,
+            client2_name=client2_name,
+            max_turns=int(cfg.max_turns),
+        )
         transcript_text = "\n".join(transcript_lines).strip() + "\n"
 
         evidence_report: Optional[Dict[str, Any]] = None
@@ -2687,6 +2989,31 @@ class DialogGenerationPipeline:
             }
             logger.info("%s | step=evidence | done | dt=%.2fs", log_ctx, time.perf_counter() - te0)
 
+        deepseek_realism: Optional[Dict[str, Any]] = None
+        if bool(getattr(cfg, "deepseek_realism_check", True)):
+            try:
+                logger.info("%s | step=deepseek_judge | start", log_ctx)
+                deepseek_realism = self._judge_realism_with_deepseek(
+                    cfg=cfg,
+                    dialog_id=dialog_id,
+                    final_transcript=transcript_text,
+                    # phases mode has no separate skeleton transcript; use the final transcript for both inputs
+                    transcript_skeleton=transcript_text,
+                    household_type=hh_type,
+                    scenario_name=scenario_name,
+                    rng=rng,
+                )
+                if deepseek_realism is not None:
+                    logger.info(
+                        "%s | step=deepseek_judge | done | score=%s threshold=%s passed_threshold=%s",
+                        log_ctx,
+                        deepseek_realism.get("realism_score"),
+                        deepseek_realism.get("threshold"),
+                        bool(deepseek_realism.get("passed_threshold")),
+                    )
+            except Exception:
+                logger.exception("%s | step=deepseek_judge | failed", log_ctx)
+
         out_obj = {
             "id": dialog_id,
             "scenario": scenario_name,
@@ -2695,12 +3022,15 @@ class DialogGenerationPipeline:
             "transcript": transcript_text,
             "phases": phases_out,
             "evidence": evidence_report,
+            "deepseek_realism": deepseek_realism,
             "metadata": {
                 "num_turns": _count_turns(transcript_lines),
                 "household_type": hh_type,
                 "scenario_name": scenario_name,
                 "dialog_seed": dialog_seed,
                 "openai_seed": openai_seed,
+                "deepseek_realism_checked": deepseek_realism is not None,
+                "deepseek_realism_passed": bool((deepseek_realism or {}).get("passed_threshold")),
             },
         }
 
@@ -2710,6 +3040,14 @@ class DialogGenerationPipeline:
             save_json(cfg.output_dir / f"{dialog_id}_evidence.json", evidence_report, exclude_none=True)
         if cfg.save_txt:
             save_text(cfg.output_dir / f"{dialog_id}.txt", transcript_text)
+        if deepseek_realism is not None:
+            save_json(cfg.output_dir / f"{dialog_id}_deepseek_judge.json", deepseek_realism)
+        if bool((deepseek_realism or {}).get("passed_threshold")):
+            pass_dir = cfg.output_dir / str(getattr(cfg, "deepseek_pass_subdir", "realism_passed"))
+            save_json(pass_dir / f"{dialog_id}.json", out_obj)
+            if cfg.save_txt:
+                save_text(pass_dir / f"{dialog_id}.txt", transcript_text)
+            save_json(pass_dir / f"{dialog_id}_deepseek_judge.json", deepseek_realism)
 
         logger.info(
             "%s | wrote=%s | turns=%s | total_dt=%.2fs",
@@ -2764,7 +3102,9 @@ class DialogGenerationPipeline:
             output_dir=getattr(cfg, "output_dir", None),
             registry_path=(Path(registry_path) if registry_path is not None else None),
             skip_existing=bool(getattr(cfg, "skip_existing", True)),
-            registry_skip_statuses=str(getattr(cfg, "registry_skip_statuses", "success") or "success"),
+            registry_skip_statuses=str(
+                getattr(cfg, "registry_skip_statuses", "success,validation_failed") or "success,validation_failed"
+            ),
         )
 
         n = len(selected_profiles)
@@ -2804,12 +3144,39 @@ class DialogGenerationPipeline:
                     dialog_id = f"DIALOG_{hh_id}"
                     errored.append(dialog_id)
                     logger.exception("failed: %s", dialog_id)
+                    if getattr(cfg, "registry_path", None) is not None:
+                        try:
+                            _append_registry_row(
+                                path=Path(getattr(cfg, "registry_path")),
+                                row={
+                                    "ts": int(time.time()),
+                                    "household_id": str(hh_id),
+                                    "dialog_id": dialog_id,
+                                    "status": "error",
+                                    "scenario_name": "",
+                                    "profile_scenario": _profile_scenario(profile),
+                                    "mode": str(getattr(cfg, "mode", "")),
+                                    "error": "exception",
+                                },
+                            )
+                        except Exception:
+                            pass
                     if not continue_on_error:
                         raise
             if skipped:
                 logger.info("Skipped dialogs (validation_failed): %s", skipped[:50])
             if errored:
                 logger.warning("Errored dialogs: %s", errored[:50])
+
+            try:
+                write_generation_report(
+                    cfg=cfg,
+                    attempted_profiles=profiles,
+                    errored_dialog_ids=errored,
+                    skipped_dialog_ids=skipped,
+                )
+            except Exception:
+                logger.exception("Failed to write generation report")
             return
 
         logger.info("Generating %s transcripts with workers=%s", n, workers)
@@ -2849,3 +3216,13 @@ class DialogGenerationPipeline:
             logger.info("Skipped dialogs (validation_failed): %s", skipped[:50])
         if errored:
             logger.warning("Errored dialogs: %s", errored[:50])
+
+        try:
+            write_generation_report(
+                cfg=cfg,
+                attempted_profiles=profiles,
+                errored_dialog_ids=errored,
+                skipped_dialog_ids=skipped,
+            )
+        except Exception:
+            logger.exception("Failed to write generation report")

@@ -78,7 +78,8 @@ docker compose up --build
 #
 # There is also an optional dialog registry (CSV) that can be used for skipping by status:
 # DIALOG_REGISTRY_PATH=... (default: <OUTPUT_DIR>/dialog_registry.csv)
-# DIALOG_REGISTRY_SKIP_STATUSES=success
+# DIALOG_REGISTRY_SKIP_STATUSES=success,validation_failed  # default
+# (Set to "success" if you want to re-try previously validation-failed households.)
 
 # If phases get truncated (invalid JSON), increase output budget, e.g.
 # MAX_OUTPUT_TOKENS=8000
