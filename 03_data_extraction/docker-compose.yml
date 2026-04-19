@@ -1,0 +1,7 @@
+services:
+  extract_ground_truth:
+    build: .
+    volumes:
+      - ..:/repo
+    working_dir: /repo/03_data_extraction
+    command: ["python", "run.py"]
