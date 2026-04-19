@@ -411,6 +411,33 @@ def employment_started(priors, dob, age, status, snap, rng):
     min_allowed = dob + timedelta(days=int(work_age * 365.25))
     return max(d, min_allowed)
 
+
+def choose_occupation_group(occupation_values: list[str], *, status: str, rng) -> str:
+    """Choose an occupation_group consistent with employment_status.
+
+    Rule (requested): employment_status="employed" must never have occupation_group="retired".
+    We also enforce the natural inverse: if status is "retired", occupation_group is "retired".
+    """
+
+    status = str(status or "").strip().lower()
+    occs = [str(x) for x in (occupation_values or []) if str(x).strip()]
+    if not occs:
+        return "professional"
+
+    if status == "retired":
+        return "retired"
+
+    if status == "inactive":
+        if "inactive" in occs:
+            return "inactive"
+        non_retired = [o for o in occs if o != "retired"]
+        return str(rng.choice(non_retired or occs))
+
+    # employed / self_employed / unemployed (and any other non-retired statuses)
+    non_retired_non_inactive = [o for o in occs if o not in {"retired", "inactive"}]
+    non_retired = [o for o in occs if o != "retired"]
+    return str(rng.choice(non_retired_non_inactive or non_retired or occs))
+
 @dataclass
 class Ctx:
     priors: dict
@@ -902,7 +929,7 @@ def gen_one(hidx, ctx: Ctx):
         "employment_status": st1,
         "employment_started": es1.isoformat() if es1 else None,
         "desired_retirement_age": ret_age1,
-        "occupation_group": str(rng.choice(occ["primary"])),
+        "occupation_group": choose_occupation_group(list(occ["primary"]), status=st1, rng=rng),
         "smoker": bool(rng.random() < float(smoke["primary"])),
         "state_of_health": str(
             rng.choice(
@@ -920,7 +947,7 @@ def gen_one(hidx, ctx: Ctx):
             "employment_status": st2,
             "employment_started": es2.isoformat() if es2 else None,
             "desired_retirement_age": ret_age2,
-            "occupation_group": str(rng.choice(occ["secondary"])),
+            "occupation_group": choose_occupation_group(list(occ["secondary"]), status=st2 or "", rng=rng),
             "smoker": bool(rng.random() < float(smoke["secondary"])),
             "state_of_health": str(
                 rng.choice(

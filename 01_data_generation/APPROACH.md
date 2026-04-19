@@ -293,7 +293,10 @@ Below is a human-readable “map” of field generation. Each line corresponds t
 
 **people.desired_retirement_age** — normal distribution with min/max constraints (`generator_params.person_model.desired_retirement_age`).
 
-**people.occupation_group** — sampled from `generator_params.person_model.occupation_group`.
+**people.occupation_group** — sampled from `generator_params.person_model.occupation_group`, with a consistency constraint against `people.employment_status`:
+
+- If `employment_status == retired`, then `occupation_group` is set to `retired`.
+- If `employment_status == employed`, then `occupation_group` is never `retired`.
 
 **people.smoker** — Bernoulli draw using `generator_params.person_model.smoker_probability`.
 

@@ -31,8 +31,16 @@ REALISM + PACING RULES (STRICT)
   - Break expense discovery into multiple turns and categories (e.g., housing, utilities, food, healthcare, insurance, childcare, travel, subscriptions, taxes, irregular repairs).
   - It is normal for clients to forget categories (e.g., childcare) and mention them later when prompted.
 - Include some "water" / filler: small talk, short tangents, checking understanding, non-substantive phrases.
+- Emotional texture is normal: clients may SOMETIMES sound tired, stressed, impatient, or mildly irritated (no rudeness).
+  - The advisor should acknowledge it briefly and keep the meeting on track.
 - Include at least one moment where someone answers indirectly first, then gets more specific after a follow-up.
 - Never include timestamps (e.g., "[00:01:23]" or "0:01:23").
+
+CORRECTIONS + CONFIRMATION (CRITICAL FOR VALIDATION)
+- You MAY have a client initially guess a number imprecisely or even say a wrong number.
+- If any number is stated imprecisely or incorrectly, you MUST later correct it explicitly in the SAME phase.
+- The advisor should periodically "restate + confirm" key numeric facts in short, natural check-backs.
+  Make the FINAL restate/confirm near the end of the phase.
 
 STYLE TARGET (DERIVED FROM synthetic_transcript1/2)
 - The vibe is a real meeting/call: lots of short acknowledgements ("yeah", "right", "okay"), occasional overlaps, and incomplete sentences.
@@ -121,6 +129,7 @@ REALISM CHECKLIST
 - Include at least one clarification or repair.
 - Include at least one moment of slight topic drift and return.
 - For couples: include at least one interaction between clients (agreement/disagreement, correction, interruption).
+- Include at least one small misunderstanding that gets resolved.
 
 FEW-SHOT STYLE GUIDANCE
 - Read the injected STYLE EXEMPLARS below and imitate their pacing and imperfections.

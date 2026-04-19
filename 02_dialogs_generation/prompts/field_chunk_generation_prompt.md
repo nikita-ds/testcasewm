@@ -28,9 +28,18 @@ REALISM + PACING RULES (STRICT)
 - You MAY interleave targets, but every target must be covered.
 - Never include timestamps.
 
+REQUIRED "LIVELINESS" BEATS (DO NOT SKIP)
+- Include at least ONE of each (somewhere in this chunk):
+  1) a mild disagreement or correction between clients (or client corrects advisor)
+  2) an interruption / overlap (a cut-in mid-thought)
+  3) a small misunderstanding of a concept (e.g., gross vs net, balance vs payment) that gets resolved
+- Include at least ONE brief return to a prior topic from earlier in the conversation ("going back to...").
+
 REALISM SIGNALS (MATCH THE JUDGE)
 - Imperfect memory is normal: clients should sometimes hedge ("I think", "roughly", "I'd have to check").
 - Numeric recall style should sound human: sometimes "about 38k" instead of always exact formal phrasing.
+- Emotional texture is normal: clients may SOMETIMES sound tired, impatient, or mildly irritated (no rudeness).
+  - The advisor should acknowledge briefly ("Totally get it" / "I hear you"), then steer back to the question.
 - Include at least one micro-repair per chunk (a quick self-correction or clarification).
 - Allow one indirect answer that gets specific after a follow-up.
 - Avoid stitched feel: reference the immediate prior context lightly ("as you said earlier…", "going back to…") without introducing new facts.
@@ -57,6 +66,12 @@ GROUNDING RULES
 - When stating dollar amounts, round to the nearest $50 and never mention cents.
 - It is ok to round or provide a range around the source_value; if you do, mark status="approximate".
 - Do not mention any record IDs or field paths in the utterances.
+
+CORRECTIONS + CONFIRMATION (CRITICAL FOR VALIDATION)
+- You MAY have a client initially guess a number imprecisely or even say a wrong number.
+- If any number is stated imprecisely or incorrectly, you MUST later correct it explicitly in this chunk.
+- Near the end of the chunk, the advisor MUST do a short "restate + confirm" of the key numeric facts covered
+  (2–4 items): the advisor says the number(s) clearly, and the client(s) explicitly confirm.
 
 STABILITY RULES (for easier validation)
 - Prefer covering quantitative/value targets first (amounts, balances, monthly costs), then descriptive details (provider/type/owner).

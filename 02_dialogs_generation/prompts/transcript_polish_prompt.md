@@ -28,6 +28,11 @@ FACT PRESERVATION RULES (STRICT)
 - If the skeleton gives a total expense number, you may unpack how the client remembers it into separate categories only if the categories are explicitly framed as a recall process and still consistent with the known totals.
 - Do not remove required factual lines; you may rewrite them into more natural speech while preserving meaning.
 
+CORRECTIONS + CONFIRMATION (CRITICAL FOR VALIDATION)
+- You MAY add imperfect recall moments ("I think", "roughly", "maybe") and brief misstatements.
+- If you introduce an imprecise or wrong numeric phrasing, you MUST later restate the correct grounded number
+  (from the skeleton) explicitly, and have the client(s) confirm.
+
 REALISM SIGNALS TO ADD
 - Clients should sometimes sound unsure: "I think", "roughly", "off the top of my head", "let me think", "that sounds about right".
 - Let clients remember spending in pieces, not only in one grand total:
@@ -44,6 +49,8 @@ STYLE TARGET (DERIVED FROM synthetic_transcript1/2)
 - Use small admin beats to hide stitching: "Let me write that down", "one second", "okay—go ahead".
 - Small talk often pops up during admin moments (FACT-SAFE): weather, holidays, scheduling, generic weekend plans.
 - Mild pushback and repair is normal: a client challenges, advisor reassures, then returns to the agenda.
+- Emotional texture is normal: clients may SOMETIMES sound tired, stressed, or mildly irritated (no rudeness).
+  - The advisor should acknowledge briefly and steer back to facts.
 
 LIGHT SMALL-TALK (SAFE "WATER")
 - Add 2–5 brief human moments across the transcript: weather, commute/traffic, scheduling, generic weekend plans.

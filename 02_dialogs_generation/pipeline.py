@@ -47,6 +47,22 @@ _VALIDATION_REPORT_LOCK = threading.Lock()
 _REGISTRY_LOCK = threading.Lock()
 
 
+def _exclude_from_validation(field_path: str) -> bool:
+    """Return True if a field should not be used for dialog validation.
+
+    Some fields are internal dataset labels that aren't naturally spoken in a
+    realistic conversation (e.g. scenario names), and validating them creates
+    persistent false 'missing' failures.
+    """
+
+    fp = str(field_path or "").strip()
+    if not fp:
+        return False
+    if fp == "households.scenario":
+        return True
+    return False
+
+
 def _append_validation_failure_csv(
     *,
     out_dir: Path,
@@ -427,6 +443,8 @@ def _build_evidence_targets(
 
     def _add(*, record_type: str, record_id: Optional[str], field_path: str, source_value: Any) -> None:
         nonlocal seq
+        if _exclude_from_validation(field_path):
+            return
         seq += 1
         targets_by_type[record_type].append(
             {
@@ -458,7 +476,6 @@ def _build_evidence_targets(
         "marital_status",
         "num_adults",
         "num_dependants",
-        "scenario",
         "country",
         "market",
     ]
@@ -565,6 +582,55 @@ def _value_variants(v: Any, *, field_path: str = "") -> List[str]:
     s = _stringify_value(v).strip()
     if s:
         out.append(s)
+
+    # Enum-like string variants: datasets often use machine-friendly tokens
+    # (e.g. "married_or_civil_partner", "US_RIA", "advisor_platform") while
+    # transcripts use human forms (spaces, hyphens, punctuation).
+    if isinstance(v, str) and s:
+        low = s.lower()
+
+        # Common geography abbreviations.
+        if low == "us":
+            out.extend(["U.S.", "U.S", "USA", "United States", "United States of America"])
+
+        # Client labels.
+        if low in {"client_1", "client_2"}:
+            n = "1" if low.endswith("_1") else "2"
+            out.extend([f"client {n}", f"Client {n}", f"client {n}.", f"Client {n}."])
+
+        # Generic underscore conversions.
+        if "_" in s:
+            # Simple all-space and all-hyphen conversions.
+            out.append(s.replace("_", " "))
+            out.append(s.replace("_", "-"))
+
+            # Mixed hyphen/space forms (common in speech):
+            # e.g. pre_retirement_wealthy -> pre-retirement wealthy
+            # We cap the number of underscores to avoid combinatorial blow-ups.
+            parts = s.split("_")
+            num_seps = len(parts) - 1
+            if 1 <= num_seps <= 4:
+                # Each separator can be either space or hyphen.
+                for mask in range(1 << num_seps):
+                    cur = parts[0]
+                    for j in range(num_seps):
+                        sep = "-" if ((mask >> j) & 1) else " "
+                        cur += sep + parts[j + 1]
+                    out.append(cur)
+
+        # Specific high-signal enums that are commonly spoken more loosely.
+        if low == "married_or_civil_partner":
+            out.extend(["married", "civil partner", "civil partners", "civil partnership"])
+        if low == "spouse_partner":
+            out.extend(["spouse", "partner", "spouse/partner", "spouse partner"])
+        if low == "us_ria":
+            out.extend(["US RIA", "U.S. RIA", "U.S. registered investment advisor", "registered investment advisor", "RIA"])
+        if low == "advisor_platform":
+            out.extend(["advisor platform", "advisor's platform"])
+        if low == "primary_residence":
+            out.extend(["primary residence", "main home", "primary home"])
+        if low == "401k_ira":
+            out.extend(["401k", "401(k)", "ira", "401(k)/ira", "401k/ira", "retirement account"])
 
     # Date variants: YYYY-MM-DD -> common spoken/written formats (Jan 12th, 1999; 1/12/1999; etc.).
     if _is_date_field_path(field_path):
@@ -766,11 +832,64 @@ def _extract_date_mentions(text: str) -> List[datetime.date]:
     return uniq
 
 
-def _strict_date_match(*, source_value: Any, evidence_text: str, transcript_text: str) -> bool:
+_MONTH_YEAR_TEXT_RE = re.compile(
+    r"\b(?P<mon>jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b"
+    r"(?:\s+of)?\s+"
+    r"(?P<y>\d{4})\b",
+    re.IGNORECASE,
+)
+_MONTH_YEAR_NUM_RE = re.compile(r"\b(?P<m>\d{1,2})[/-](?P<y>\d{4})\b")
+
+
+def _extract_month_year_mentions(text: str) -> List[Tuple[int, int]]:
+    out: List[Tuple[int, int]] = []
+    if not text:
+        return out
+
+    for m in _MONTH_YEAR_TEXT_RE.finditer(text):
+        mon_s = str(m.group("mon") or "").strip().lower()
+        mon = _MONTHS.get(mon_s) or _MONTHS.get(mon_s[:3])
+        try:
+            y = int(m.group("y"))
+        except Exception:
+            continue
+        if mon is None:
+            continue
+        out.append((y, int(mon)))
+
+    for m in _MONTH_YEAR_NUM_RE.finditer(text):
+        try:
+            mm = int(m.group("m"))
+            yy = int(m.group("y"))
+        except Exception:
+            continue
+        if 1 <= mm <= 12:
+            out.append((yy, mm))
+
+    seen: set[Tuple[int, int]] = set()
+    uniq: List[Tuple[int, int]] = []
+    for ym in out:
+        if ym in seen:
+            continue
+        seen.add(ym)
+        uniq.append(ym)
+    return uniq
+
+
+def _strict_date_match(*, source_value: Any, evidence_text: str, transcript_text: str, field_path: str = "") -> bool:
     src = _parse_ymd_date(source_value)
     if src is None:
         return False
     hay = evidence_text if str(evidence_text or "").strip() else transcript_text
+
+    # Special case: dataset often encodes month-level dates as YYYY-MM-01.
+    # For final_payment_date, accept month+year mentions like "April 2033" or "04/2033".
+    fp = str(field_path or "").strip().lower()
+    if fp.endswith(".final_payment_date"):
+        for yy, mm in _extract_month_year_mentions(str(hay or "")):
+            if int(yy) == int(src.year) and int(mm) == int(src.month):
+                return True
+
     return any(d == src for d in _extract_date_mentions(str(hay or "")))
 
 
@@ -989,6 +1108,135 @@ def _plausibility_issues_for_profile(profile: Dict[str, Any], *, max_age: int = 
     return issues
 
 
+def _consistency_issues_for_profile(profile: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Return deterministic internal-consistency issues for a profile.
+
+    These are not dialogue-generation failures; they indicate the source profile
+    contains conflicting fields that make a grounded dialogue hard or impossible.
+    """
+
+    issues: List[Dict[str, Any]] = []
+    people = [p for p in (profile.get("people") or []) if isinstance(p, dict)]
+    income_lines = [x for x in (profile.get("income_lines") or []) if isinstance(x, dict)]
+
+    # Map person_id -> owner key (client_1/client_2) when known.
+    person_owner_key: Dict[str, str] = {}
+    for p in people:
+        pid0 = str(p.get("person_id") or "").strip()
+        try:
+            cn = int(p.get("client_no"))
+        except Exception:
+            cn = None
+        if pid0 and cn in {1, 2}:
+            person_owner_key[pid0] = f"client_{cn}"
+
+    active_income_types = {"salary", "bonus", "business_income"}
+
+    for p in people:
+        pid = p.get("person_id")
+        employment_status = str(p.get("employment_status") or "").strip().lower()
+        occupation_group = str(p.get("occupation_group") or "").strip().lower()
+
+        if employment_status == "employed" and occupation_group == "retired":
+            issues.append(
+                {
+                    "record_type": "people",
+                    "record_id": pid,
+                    "field_paths": [
+                        f"people[person_id={pid}].employment_status",
+                        f"people[person_id={pid}].occupation_group",
+                    ],
+                    "values": {
+                        "employment_status": p.get("employment_status"),
+                        "occupation_group": p.get("occupation_group"),
+                    },
+                    "reason": "employment_status=employed conflicts with occupation_group=retired",
+                }
+            )
+
+        if employment_status == "retired" and occupation_group and occupation_group != "retired":
+            issues.append(
+                {
+                    "record_type": "people",
+                    "record_id": pid,
+                    "field_paths": [
+                        f"people[person_id={pid}].employment_status",
+                        f"people[person_id={pid}].occupation_group",
+                    ],
+                    "values": {
+                        "employment_status": p.get("employment_status"),
+                        "occupation_group": p.get("occupation_group"),
+                    },
+                    "reason": "employment_status=retired conflicts with occupation_group!=retired",
+                }
+            )
+
+        if employment_status == "employed" and occupation_group in {"inactive", "retired"}:
+            issues.append(
+                {
+                    "record_type": "people",
+                    "record_id": pid,
+                    "field_paths": [
+                        f"people[person_id={pid}].employment_status",
+                        f"people[person_id={pid}].occupation_group",
+                    ],
+                    "values": {
+                        "employment_status": p.get("employment_status"),
+                        "occupation_group": p.get("occupation_group"),
+                    },
+                    "reason": "employment_status=employed conflicts with occupation_group in {inactive,retired}",
+                }
+            )
+
+        # High-confidence: non-working statuses should not have salary/bonus/business income lines owned by that person.
+        if employment_status in {"retired", "inactive", "unemployed"}:
+            owner_key = person_owner_key.get(str(pid or "").strip())
+            if owner_key:
+                bad_lines: List[Dict[str, Any]] = []
+                for inc in income_lines:
+                    if str(inc.get("owner") or "").strip().lower() != owner_key:
+                        continue
+                    st = str(inc.get("source_type") or "").strip().lower()
+                    if st not in active_income_types:
+                        continue
+                    try:
+                        amt = float(inc.get("amount_annualized") or 0.0)
+                    except Exception:
+                        amt = 0.0
+                    if amt <= 0.0:
+                        continue
+                    bad_lines.append(inc)
+
+                if bad_lines:
+                    issues.append(
+                        {
+                            "record_type": "people",
+                            "record_id": pid,
+                            "field_paths": [
+                                f"people[person_id={pid}].employment_status",
+                                "income_lines[*].source_type",
+                                "income_lines[*].amount_annualized",
+                                "income_lines[*].owner",
+                            ],
+                            "values": {
+                                "employment_status": p.get("employment_status"),
+                                "income_lines": [
+                                    {
+                                        "income_line_id": bl.get("income_line_id"),
+                                        "owner": bl.get("owner"),
+                                        "source_type": bl.get("source_type"),
+                                        "amount_annualized": bl.get("amount_annualized"),
+                                    }
+                                    for bl in bad_lines[:5]
+                                ],
+                            },
+                            "reason": f"employment_status={employment_status} conflicts with active income source_type in {sorted(active_income_types)}",
+                        }
+                    )
+
+    return issues
+
+
 def _validate_and_score_items(
     *,
     items: List[Dict[str, Any]],
@@ -1065,6 +1313,7 @@ def _validate_and_score_items(
                 source_value=src_val,
                 evidence_text=str(it.get("evidence_text") or ""),
                 transcript_text=transcript_text,
+                field_path=field_path,
             ):
                 strict_match = True
             if (not strict_match) and _is_rate_field_path(field_path) and _strict_rate_match(
@@ -1105,7 +1354,7 @@ def _validate_and_score_items(
     covered_lenient = counts["present"] + counts["approximate"]
     covered_strict = strict_matched
 
-    passed_lenient = (counts["missing"] == 0 and counts["contradiction"] == 0)
+    passed_lenient = (counts["missing"] == 0 and counts["contradiction"] == 0 and (len(pii_terms) == 0))
     passed_strict = (
         covered_strict == total
         and counts["contradiction"] == 0
@@ -1131,6 +1380,387 @@ def _validate_and_score_items(
         # For non-strict runs, these are the fields that actually fail validation (missing/contradiction).
         "lenient_failed_fields": lenient_failed_fields[:200],
     }
+
+
+def _rule_based_aliases_for_field(field_path: str) -> List[str]:
+    """Return a small set of keyword aliases for a field path.
+
+    This is intentionally minimal and biased toward high-signal, schema-known topics:
+    income, expenses, debts, assets/buckets.
+    """
+
+    fp = str(field_path or "").strip()
+    leaf = fp.split(".")[-1]
+    # Household-level.
+    if leaf == "annual_household_gross_income":
+        return ["household income", "annual income", "gross income", "income per year", "yearly income", "income"]
+    if leaf == "monthly_expenses_total":
+        return ["monthly expenses", "expenses", "spend", "spending", "monthly spend"]
+    if leaf == "monthly_debt_cost_total":
+        return ["monthly debt", "debt payments", "debt service", "monthly payments", "debt cost"]
+    if leaf in {"loan_outstanding_total", "mortgage_outstanding_total", "non_mortgage_outstanding_total"}:
+        return ["outstanding", "balance", "owed", "debt balance"]
+    if leaf == "investable_assets_total":
+        return ["investable assets", "portfolio", "investments", "assets"]
+    if leaf == "retirement_assets_total":
+        return ["retirement", "401k", "ira", "retirement account"]
+    if leaf == "cash_and_cashlike_total":
+        return ["cash", "checking", "savings", "cash on hand"]
+    if leaf == "alternatives_total":
+        return ["alternatives", "private markets", "alts"]
+
+    # Asset rows.
+    if leaf == "value" and fp.startswith("assets["):
+        return ["value", "balance", "worth", "amount"]
+
+    # Liabilities.
+    if leaf in {"outstanding", "monthly_cost"} and fp.startswith("liabilities["):
+        return ["balance", "outstanding", "payment", "monthly payment"]
+    if leaf == "interest_rate" and fp.startswith("liabilities["):
+        return ["interest rate", "apr", "rate"]
+
+    # Income lines.
+    if leaf == "amount_annualized" and fp.startswith("income_lines["):
+        return ["income", "annual", "per year", "yearly"]
+
+    # Fallback: use the leaf itself (underscores -> spaces).
+    leaf_words = leaf.replace("_", " ").strip()
+    return [leaf_words] if leaf_words else []
+
+
+def _numeric_within_rel_tolerance(*, source_value: Any, text: str, rel_tol: float) -> bool:
+    try:
+        src = float(source_value)
+    except Exception:
+        return False
+    if not text:
+        return False
+    nums = _extract_numeric_mentions(text)
+    if not nums:
+        return False
+    denom = abs(src) if abs(src) > 1e-9 else 1e-9
+    for v in nums:
+        try:
+            rel_err = abs(float(v) - src) / denom
+        except Exception:
+            continue
+        if rel_err <= float(rel_tol):
+            return True
+    return False
+
+
+def _money_approx_match(*, source_value: Any, text: str) -> bool:
+    """Heuristic money approximate match for last-mention selection.
+
+    Rule:
+    - If the text uses a k/thousand suffix ("38k", "38.5k", "38 thousand"),
+      treat it as an explicit magnitude and only allow a tiny absolute tolerance
+      for our $50 rounding.
+    - Otherwise, allow a conservative 1% relative tolerance on numeric mentions.
+
+    This ensures "$38k" matches ~38000 only (not 38450).
+    """
+
+    if not text:
+        return False
+
+    try:
+        src = float(source_value)
+    except Exception:
+        return False
+
+    saw_k_token = False
+    for m in _NUM_TOKEN_RE.finditer(text):
+        raw_num = (m.group("num") or "").replace(",", "")
+        raw_dec = m.group("dec") or ""
+        raw_suffix = (m.group("suffix") or "").strip().lower()
+        if not raw_num:
+            continue
+        if raw_suffix not in {"k", "thousand"}:
+            continue
+        saw_k_token = True
+        try:
+            base = float(f"{raw_num}.{raw_dec}") if raw_dec else float(raw_num)
+        except Exception:
+            continue
+        v = base * 1_000.0
+        if abs(v - src) <= 50.0:
+            return True
+
+    if saw_k_token:
+        return False
+
+    return _numeric_within_rel_tolerance(source_value=source_value, text=text, rel_tol=0.01)
+
+
+def _find_last_mention_anchor_index(
+    transcript_lines: List[str],
+    *,
+    field_path: str,
+    source_value: Any,
+    aliases: List[str],
+    variants: List[str],
+) -> Optional[int]:
+    """Find the last line index that likely contains the *final* mention.
+
+    Priority:
+    1) last line that matches the value (strict matchers or tolerant numeric mention)
+    2) else last alias/topic anchor mention
+    3) else last raw variant string mention
+    """
+
+    lines = [str(l) for l in (transcript_lines or []) if str(l).strip()]
+    if not lines:
+        return None
+
+    last_value_idx: Optional[int] = None
+    last_alias_idx: Optional[int] = None
+    last_variant_idx: Optional[int] = None
+
+    for i, ln in enumerate(lines):
+        low = ln.lower()
+
+        if aliases and any(a.lower() in low for a in aliases if str(a).strip()):
+            last_alias_idx = i
+
+        if variants and any(v.lower() in low for v in variants if str(v).strip()):
+            last_variant_idx = i
+
+        # Strict/tolerant value matching for anchor selection.
+        if _is_date_field_path(field_path) and _strict_date_match(
+            source_value=source_value,
+            evidence_text=ln,
+            transcript_text=ln,
+        ):
+            last_value_idx = i
+            continue
+        if _is_rate_field_path(field_path) and _strict_rate_match(
+            source_value=source_value,
+            evidence_text=ln,
+            transcript_text=ln,
+            field_path=field_path,
+        ):
+            last_value_idx = i
+            continue
+
+        # For numeric / money fields, allow anchor detection by tolerant numeric mentions.
+        # This is *only* for picking the last-mention window; the actual status below
+        # still uses strict matchers first.
+        if _strict_numeric_within_1pct(source_value=source_value, evidence_text=ln, transcript_text=ln):
+            last_value_idx = i
+            continue
+
+        if is_money_field_path(field_path) and _money_approx_match(source_value=source_value, text=ln):
+            last_value_idx = i
+            continue
+
+    return last_value_idx if last_value_idx is not None else (last_alias_idx if last_alias_idx is not None else last_variant_idx)
+
+
+def _find_first_correct_mention_anchor_index(
+    transcript_lines: List[str],
+    *,
+    field_path: str,
+    source_value: Any,
+    aliases: List[str],
+    variants: List[str],
+) -> Optional[int]:
+    """Find the first *correct* mention of a field.
+
+    Rule (per user request): scan from start → end.
+    - If we encounter a mention that matches the source value (using the same
+      strict/tolerant matchers used by the validator), stop and return it.
+    - If we encounter a mention that does *not* match, keep scanning until we
+      find a correct mention.
+
+    If we never find a correct mention, we fall back to the first “topic mention”
+    line (alias/variant), to keep evidence snippets useful for debugging.
+    """
+
+    lines = [str(l) for l in (transcript_lines or []) if str(l).strip()]
+    if not lines:
+        return None
+
+    first_mention_idx: Optional[int] = None
+
+    fp = str(field_path or "")
+    is_money = is_money_field_path(fp)
+    is_date = _is_date_field_path(fp)
+    is_rate = _is_rate_field_path(fp)
+
+    for i, ln in enumerate(lines):
+        low = ln.lower()
+
+        alias_hit = bool(aliases) and any(a.lower() in low for a in aliases if str(a).strip())
+        variant_hit = bool(variants) and any(v.lower() in low for v in variants if str(v).strip())
+
+        # Track the earliest line that appears to be “about this field”, so that
+        # if we never find a correct mention we still anchor the snippet somewhere
+        # relevant instead of a random later recap.
+        if first_mention_idx is None and (alias_hit or variant_hit):
+            first_mention_idx = i
+
+        # Correctness checks: if this line matches the source value, we stop.
+        if variants and _contains_any(ln, variants):
+            return i
+
+        if is_date and _strict_date_match(source_value=source_value, evidence_text=ln, transcript_text=ln):
+            return i
+
+        if is_rate and _strict_rate_match(source_value=source_value, evidence_text=ln, transcript_text=ln):
+            return i
+
+        # Numeric fields: accept our existing 1% numeric tolerance.
+        if _strict_numeric_within_1pct(source_value=source_value, evidence_text=ln, transcript_text=ln):
+            return i
+
+        # Money fields: accept our conservative money approx matcher for anchoring.
+        if is_money and _money_approx_match(source_value=source_value, text=ln):
+            return i
+
+    return first_mention_idx
+
+
+def _window_snippet_from_transcript(
+    transcript_lines: List[str],
+    *,
+    anchor_index: Optional[int],
+    max_lines: int = 6,
+) -> str:
+    lines = [str(l) for l in (transcript_lines or []) if str(l).strip()]
+    if not lines:
+        return ""
+    if anchor_index is None:
+        return "\n".join(lines[: max_lines]).strip()
+
+    idx = int(anchor_index)
+    idx = max(0, min(idx, len(lines) - 1))
+    lo = max(0, idx - 2)
+    hi = min(len(lines), idx + 3)
+    snippet = "\n".join(lines[lo:hi]).strip()
+    sn_lines = snippet.splitlines()
+    if len(sn_lines) > max_lines:
+        sn_lines = sn_lines[:max_lines]
+    return "\n".join(sn_lines).strip()
+
+
+def _rule_based_evidence_items(
+    *,
+    targets: List[Dict[str, Any]],
+    transcript_lines: List[str],
+) -> List[Dict[str, Any]]:
+    """Deterministic extractor (variant 1) for chunk validation.
+
+    We know the schema upfront (targets contain the exact field paths). The extractor:
+    - searches for aliases and value variants in the transcript
+    - marks present/missing (and a few high-signal contradictions)
+    - provides a short snippet for debugging
+
+    It preserves existing robust matching logic for money/date/rates via the same
+    helpers used in strict validation.
+    """
+
+    transcript_text = "\n".join([str(l).strip() for l in (transcript_lines or []) if str(l).strip()])
+    out: List[Dict[str, Any]] = []
+
+    for t in targets or []:
+        if not isinstance(t, dict):
+            continue
+        tid = str(t.get("target_id") or "").strip()
+        field_path = str(t.get("field_path") or "")
+        if _exclude_from_validation(field_path):
+            continue
+        src_val = t.get("source_value")
+        record_type = str(t.get("record_type") or "")
+        record_id = t.get("record_id")
+
+        aliases = _rule_based_aliases_for_field(field_path)
+
+        src_for_match = round_money_value(src_val, increment=50.0) if is_money_field_path(field_path) else src_val
+        variants = _value_variants(src_for_match, field_path=field_path)
+
+        anchor_idx = _find_first_correct_mention_anchor_index(
+            transcript_lines,
+            field_path=field_path,
+            source_value=src_val,
+            aliases=aliases,
+            variants=variants,
+        )
+        snippet = _window_snippet_from_transcript(transcript_lines, anchor_index=anchor_idx)
+        snippet_text = snippet
+
+        match_method = None
+        present = False
+        approximate = False
+        # Important: validate against the LAST-MENTION snippet, not the entire transcript.
+        if variants and _contains_any(snippet_text, variants):
+            present = True
+            match_method = "last_snippet_variants"
+        elif _is_date_field_path(field_path) and _strict_date_match(
+            source_value=src_val,
+            evidence_text="",
+            transcript_text=snippet_text,
+            field_path=field_path,
+        ):
+            present = True
+            match_method = "last_snippet_date_match"
+        elif _is_rate_field_path(field_path) and _strict_rate_match(
+            source_value=src_val,
+            evidence_text="",
+            transcript_text=snippet_text,
+            field_path=field_path,
+        ):
+            present = True
+            match_method = "last_snippet_rate_match"
+        elif _strict_numeric_within_1pct(
+            source_value=src_val,
+            evidence_text="",
+            transcript_text=snippet_text,
+        ):
+            present = True
+            match_method = "last_snippet_numeric_1pct"
+
+        # If strict match didn't hit for money fields, allow a clearly-marked approximate
+        # based on conservative tolerant matching (1% rel, plus k/thousand abs<=1k).
+        if (not present) and is_money_field_path(field_path) and _money_approx_match(source_value=src_val, text=snippet_text):
+            approximate = True
+            match_method = "last_snippet_money_approx_1pct_or_k_abs_50"
+
+        status = "present" if present else ("approximate" if approximate else "missing")
+
+        # Conservative contradictions for a couple of high-signal fields.
+        if not present:
+            tlow = transcript_text.lower()
+            if field_path == "households.num_dependants":
+                try:
+                    n = int(src_val)
+                except Exception:
+                    n = None
+                if n is not None and n > 0 and ("zero depend" in tlow or "no depend" in tlow or "0 depend" in tlow):
+                    status = "contradiction"
+                    match_method = "explicit_zero_dependents"
+            if field_path.endswith(".occupation_group") and str(src_val).strip().lower() == "retired":
+                if "not retired" in tlow or "definitely not retired" in tlow:
+                    status = "contradiction"
+                    match_method = "explicit_not_retired"
+
+        notes = None
+        if match_method:
+            notes = f"rule-based: {match_method}"
+
+        out.append(
+            {
+                "target_id": tid,
+                "record_type": record_type,
+                "record_id": record_id,
+                "field_path": field_path,
+                "source_value": src_val,
+                "status": status,
+                "evidence_text": snippet,
+                "notes": notes,
+            }
+        )
+    return out
 
 
 def _norm_ids(values: List[Any]) -> List[str]:
@@ -1979,7 +2609,6 @@ class DialogGenerationPipeline:
             )
 
             transcript_lines: List[str] = []
-            evidence_by_target: Dict[str, Dict[str, Any]] = {}
             chunks_out: List[Dict[str, Any]] = []
             had_chunk_errors = False
             for chunk_index, batch in enumerate(batches, start=1):
@@ -2013,88 +2642,9 @@ class DialogGenerationPipeline:
                     max_output_tokens=int(getattr(cfg, "evidence_max_output_tokens", cfg.model.max_output_tokens)),
                 )
 
-                # Deterministic guardrails for a few administrative fields that the model sometimes
-                # mislabels as contradiction despite correct source_value and conversation structure.
-                try:
-                    def _excerpt(text: Any, limit: int = 160) -> str:
-                        s = str(text or "")
-                        s = " ".join(s.split())
-                        return (s[:limit] + "…") if len(s) > limit else s
-
-                    tid_to_target: Dict[str, Dict[str, Any]] = {str(t.get("target_id")): t for t in (batch or []) if isinstance(t, dict)}
-                    for ev in chunk_res.evidence_items:
-                        tid = str(getattr(ev, "target_id", "") or "")
-                        tgt = tid_to_target.get(tid) or {}
-                        field_path = str(tgt.get("field_path") or "")
-                        st = str(getattr(ev, "status", "") or "").strip().lower()
-                        if st not in {"missing", "contradiction"}:
-                            continue
-
-                        src = tgt.get("source_value")
-                        try:
-                            src_n = int(src)
-                        except Exception:
-                            continue
-
-                        # 1) households.num_adults
-                        if field_path == "households.num_adults":
-                            if hh_type == "couple" and src_n >= 2:
-                                ev.status = "present"  # type: ignore[assignment]
-                                if not (ev.notes or "").strip():
-                                    ev.notes = "auto-override: couple household implies >=2 adults"  # type: ignore[assignment]
-                                logger.info(
-                                    "%s | step=field_chunks | override | target_id=%s field_path=households.num_adults %s->present | ev=%s",
-                                    log_ctx,
-                                    tid,
-                                    st,
-                                    _excerpt(getattr(ev, "evidence_text", "")),
-                                )
-                            if hh_type == "single" and src_n == 1:
-                                ev.status = "present"  # type: ignore[assignment]
-                                if not (ev.notes or "").strip():
-                                    ev.notes = "auto-override: single household implies 1 adult"  # type: ignore[assignment]
-                                logger.info(
-                                    "%s | step=field_chunks | override | target_id=%s field_path=households.num_adults %s->present | ev=%s",
-                                    log_ctx,
-                                    tid,
-                                    st,
-                                    _excerpt(getattr(ev, "evidence_text", "")),
-                                )
-                            continue
-
-                        # 2) people[...].client_no
-                        if field_path.endswith(".client_no") and src_n in {1, 2}:
-                            ev_text = str(getattr(ev, "evidence_text", "") or "")
-                            # Fallback to raw utterances from this chunk (useful when evidence_text is empty).
-                            chunk_text = "\n".join([l.strip() for l in (chunk_res.utterances or []) if str(l).strip()])
-                            hay = (ev_text + "\n" + chunk_text).lower()
-                            # If someone explicitly mentions "client number 0", do NOT override.
-                            if ("client number 0" in hay) or ("client no 0" in hay) or ("client #0" in hay):
-                                continue
-                            wants = f"client {src_n}"
-                            if wants in hay:
-                                ev.status = "present"  # type: ignore[assignment]
-                                if not (ev.notes or "").strip():
-                                    ev.notes = "auto-override: explicit Client label matches source_value"  # type: ignore[assignment]
-                                logger.info(
-                                    "%s | step=field_chunks | override | target_id=%s field_path=%s %s->present | ev=%s",
-                                    log_ctx,
-                                    tid,
-                                    field_path,
-                                    st,
-                                    _excerpt(ev_text or chunk_text),
-                                )
-                except Exception:
-                    # Never fail generation due to an override bug.
-                    pass
-
+                # NOTE: Validation uses deterministic rule-based extraction (variant 1: last mention).
+                # Model-provided evidence_items are kept only as debug artifacts.
                 bad_target_ids: List[str] = []
-                for it in chunk_res.evidence_items:
-                    st = str(getattr(it, "status", "") or "").strip().lower()
-                    if st in {"missing", "contradiction"}:
-                        bad_target_ids.append(str(it.target_id))
-                if bad_target_ids:
-                    had_chunk_errors = True
 
                 new_lines = [l.strip() for l in chunk_res.utterances if str(l).strip()]
                 # Respect global max_turns.
@@ -2135,10 +2685,6 @@ class DialogGenerationPipeline:
                         a, b = transition_pairs[int(rng.integers(0, len(transition_pairs)))]
                         transcript_lines.extend([a, b])
 
-                # Merge inline evidence into a global report keyed by target_id.
-                for it in chunk_res.evidence_items:
-                    evidence_by_target[str(it.target_id)] = it.model_dump()
-
                 chunks_out.append(
                     {
                         "chunk_index": chunk_index,
@@ -2160,27 +2706,38 @@ class DialogGenerationPipeline:
 
             transcript_text = "\n".join(transcript_lines).strip() + "\n"
 
+            # Deterministic evidence extraction for validation (Variant 1: rule-based last mention).
+            rule_items = _rule_based_evidence_items(targets=targets, transcript_lines=transcript_lines)
+            rule_by_tid: Dict[str, Dict[str, Any]] = {
+                str(it.get("target_id") or ""): it for it in (rule_items or []) if isinstance(it, dict)
+            }
+
+            items: List[Dict[str, Any]] = []
+            bad_statuses = {"missing", "contradiction"}
+            bad_ids: List[str] = []
+            for t in targets:
+                tid = str(t["target_id"])
+                ev = rule_by_tid.get(tid) or {"target_id": tid, "status": "missing", "evidence_text": "", "notes": None}
+                st = str(ev.get("status") or "missing").strip().lower()
+                if st in bad_statuses:
+                    bad_ids.append(tid)
+                items.append(
+                    {
+                        "target_id": tid,
+                        "record_type": t["record_type"],
+                        "record_id": t.get("record_id"),
+                        "field_path": t["field_path"],
+                        "source_value": t["source_value"],
+                        "status": ev.get("status"),
+                        "evidence_text": ev.get("evidence_text", ""),
+                        "notes": _sanitize_evidence_notes(ev.get("notes"), actual_source_value=t.get("source_value")),
+                    }
+                )
+
+            had_chunk_errors = bool(bad_ids)
+
             evidence_report: Optional[Dict[str, Any]] = None
             if bool(getattr(cfg, "save_evidence_json", True)):
-                # Join targets with inline evidence (no second pass).
-                items: List[Dict[str, Any]] = []
-                for t in targets:
-                    tid = str(t["target_id"])
-                    ev = evidence_by_target.get(tid) or {"target_id": tid, "status": "missing", "evidence_text": "", "notes": None}
-                    clean_notes = _sanitize_evidence_notes(ev.get("notes"), actual_source_value=t.get("source_value"))
-                    items.append(
-                        {
-                            "target_id": tid,
-                            "record_type": t["record_type"],
-                            "record_id": t.get("record_id"),
-                            "field_path": t["field_path"],
-                            "source_value": t["source_value"],
-                            "status": ev.get("status"),
-                            "evidence_text": ev.get("evidence_text", ""),
-                            "notes": clean_notes,
-                        }
-                    )
-
                 evidence_report = {
                     "meta": {
                         "dialog_id": dialog_id,
@@ -2190,6 +2747,7 @@ class DialogGenerationPipeline:
                         "num_targets": len(targets),
                         "batch_size": batch_size,
                         "mode": "field_chunks",
+                        "extractor": "rule_based_first_correct_v1",
                     },
                     "targets": targets,
                     "items": items,
@@ -2198,7 +2756,7 @@ class DialogGenerationPipeline:
             metrics: Optional[Dict[str, Any]] = None
             if bool(getattr(cfg, "save_metrics_json", True)):
                 metrics = _validate_and_score_items(
-                    items=(evidence_report or {}).get("items") or [],
+                    items=items,
                     transcript_text=transcript_text,
                     strict=bool(getattr(cfg, "validation_strict", False)),
                 )
@@ -2225,6 +2783,26 @@ class DialogGenerationPipeline:
                 metrics["passed"] = False
                 metrics["plausibility_issues"] = plausibility_issues
 
+            consistency_issues = _consistency_issues_for_profile(profile)
+            if consistency_issues:
+                if metrics is None:
+                    metrics = {
+                        "passed": False,
+                        "strict": bool(getattr(cfg, "validation_strict", False)),
+                        "format_ok": True,
+                        "bad_transcript_lines": [],
+                        "pii_terms_detected": [],
+                        "total_targets": len((evidence_report or {}).get("items") or []),
+                        "counts": {"present": 0, "approximate": 0, "missing": 0, "contradiction": 0, "unknown": 0},
+                        "coverage_lenient": 0.0,
+                        "coverage_strict": 0.0,
+                        "strict_unmatched_target_ids": [],
+                        "strict_unmatched_fields": [],
+                        "lenient_failed_fields": [],
+                    }
+                metrics["passed"] = False
+                metrics["consistency_issues"] = consistency_issues
+
             if metrics is not None and not bool(metrics.get("passed")):
                 failure_reasons: List[str] = []
                 counts = (metrics.get("counts") or {}) if isinstance(metrics.get("counts"), dict) else {}
@@ -2238,6 +2816,8 @@ class DialogGenerationPipeline:
                     failure_reasons.append("pii")
                 if metrics.get("plausibility_issues"):
                     failure_reasons.append("plausibility")
+                if metrics.get("consistency_issues"):
+                    failure_reasons.append("consistency")
 
                 strict_run = bool(metrics.get("strict"))
                 failing_fields = metrics.get("strict_unmatched_fields") if strict_run else metrics.get("lenient_failed_fields")
@@ -2325,6 +2905,24 @@ class DialogGenerationPipeline:
                         val = str(issue.get("value") or "")
                         if fp:
                             failed_field_paths.append(f"{fp} (value={val}, age_at_date={age})")
+
+                cons = metrics.get("consistency_issues")
+                if isinstance(cons, list) and cons:
+                    for issue in cons[:50]:
+                        if not isinstance(issue, dict):
+                            continue
+                        rid = str(issue.get("record_id") or "")
+                        reason = str(issue.get("reason") or "")
+                        fps = issue.get("field_paths")
+                        if not isinstance(fps, list):
+                            fps = []
+                        fp_join = ",".join([str(x) for x in fps if str(x).strip()])
+                        msg = reason or "profile consistency issue"
+                        if fp_join:
+                            msg = f"{msg} ({fp_join})"
+                        if rid:
+                            msg = f"people[{rid}]: {msg}"
+                        failed_field_paths.append(msg)
 
                 # Log a one-line, machine-readable report for downstream analysis.
                 _append_validation_failure_csv(
