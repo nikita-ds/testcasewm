@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Synthetic Household Dialog Extraction: High-Level Approach</title>
+  <style>
+    :root {
+      --bg: #f6f2ea;
+      --paper: #fffaf0;
+      --ink: #202017;
+      --muted: #686350;
+      --line: #dfd2bd;
+      --accent: #0d5c63;
+      --accent-2: #a6512b;
+      --soft: #e9dfce;
+      --good: #226344;
+      --warn: #9a5b17;
+      --shadow: 0 18px 45px rgba(52, 43, 28, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% 8%, rgba(13, 92, 99, 0.14), transparent 32rem),
+        radial-gradient(circle at 86% 18%, rgba(166, 81, 43, 0.13), transparent 28rem),
+        linear-gradient(180deg, #f8f3ea 0%, var(--bg) 42%, #eee4d4 100%);
+      color: var(--ink);
+      font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+      line-height: 1.55;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration-thickness: 0.08em;
+      text-underline-offset: 0.16em;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      padding: 58px 0 34px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      padding: 7px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 250, 240, 0.72);
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 {
+      line-height: 1.08;
+      margin: 0;
+      letter-spacing: -0.035em;
+    }
+
+    h1 {
+      max-width: 980px;
+      margin-top: 22px;
+      font-size: clamp(42px, 7vw, 86px);
+    }
+
+    h2 {
+      margin-bottom: 18px;
+      font-size: clamp(30px, 4vw, 52px);
+    }
+
+    h3 {
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+
+    p { margin: 0 0 14px; }
+
+    .lead {
+      max-width: 860px;
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: clamp(18px, 2vw, 23px);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 34px;
+    }
+
+    .stat-card, .card, .callout, .toc {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(255, 250, 240, 0.82);
+      box-shadow: var(--shadow);
+    }
+
+    .stat-card {
+      padding: 19px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+
+    .stat-note {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .nav-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-top: 1px solid rgba(223, 210, 189, 0.7);
+      border-bottom: 1px solid rgba(223, 210, 189, 0.9);
+      background: rgba(246, 242, 234, 0.9);
+      backdrop-filter: blur(16px);
+    }
+
+    nav {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 12px 0;
+    }
+
+    nav a {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      color: var(--ink);
+      font-size: 14px;
+      text-decoration: none;
+    }
+
+    nav a:hover {
+      border-color: var(--line);
+      background: var(--paper);
+    }
+
+    section {
+      padding: 48px 0;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: 1fr minmax(240px, 380px);
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+
+    .section-kicker {
+      color: var(--accent-2);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .summary {
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .card {
+      padding: 24px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .visual-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    figure {
+      margin: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--paper);
+    }
+
+    figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: white;
+    }
+
+    figcaption {
+      padding: 12px 15px 14px;
+      color: var(--muted);
+      font-size: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      counter-reset: step;
+    }
+
+    .step {
+      position: relative;
+      min-height: 210px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(160deg, rgba(255, 250, 240, 0.94), rgba(233, 223, 206, 0.72));
+    }
+
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      display: inline-grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      margin-bottom: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
+    }
+
+    .step p { color: var(--muted); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 18px;
+      background: var(--paper);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #efe2cf;
+      color: #3f3729;
+      font-weight: 700;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .metric {
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .callout {
+      padding: 22px;
+      background: linear-gradient(135deg, rgba(13, 92, 99, 0.1), rgba(255, 250, 240, 0.92));
+    }
+
+    .toc {
+      padding: 20px;
+    }
+
+    .toc ol {
+      margin: 10px 0 0;
+      padding-left: 22px;
+    }
+
+    .toc li { margin: 7px 0; }
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .button {
+      display: inline-flex;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .empty {
+      min-height: 170px;
+      display: grid;
+      place-items: center;
+      border: 1px dashed #cbbba2;
+      border-radius: 24px;
+      color: var(--muted);
+      background: rgba(255, 250, 240, 0.52);
+      font-size: 18px;
+      font-style: italic;
+    }
+
+    footer {
+      padding: 44px 0 70px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid, .grid-3, .pipeline {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .section-head, .grid-2, .visual-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .shell { width: min(100% - 24px, 1180px); }
+      .hero-grid, .grid-3, .pipeline {
+        grid-template-columns: 1fr;
+      }
+      section { padding: 34px 0; }
+      .card { padding: 18px; }
+      th, td { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero shell" id="top">
+    <div class="eyebrow">Synthetic financial dialogs · extraction benchmark</div>
+    <h1>High-level approach for generating household data, dialogs, and extraction metrics</h1>
+    <p class="lead">
+      This page summarizes the end-to-end methodology across data generation, dialog generation,
+      extraction scoring, Train/holdout test split construction, and current benchmark results.
+    </p>
+
+    <div class="hero-grid">
+      <div class="stat-card">
+        <div class="stat-label">Synthetic households</div>
+        <div class="stat-value">5,000</div>
+        <div class="stat-note">Generated across 11 explicit scenarios</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Train dialogs</div>
+        <div class="stat-value">316</div>
+        <div class="stat-note">Used to debug and tune the pipeline</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Holdout test dialogs</div>
+        <div class="stat-value">99</div>
+        <div class="stat-note">Held out from extractor/evaluator tuning</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Holdout test mean accuracy</div>
+        <div class="stat-value">98.74%</div>
+        <div class="stat-note">Mean scored field fraction</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="nav-wrap">
+    <nav class="shell" aria-label="Page navigation">
+      <a href="#overview">Overview</a>
+      <a href="#data-generation">Data generation</a>
+      <a href="#dialogs">Dialog generation</a>
+      <a href="#metrics">Metrics</a>
+      <a href="#train-holdout">Train and holdout test</a>
+      <a href="#results">Results</a>
+      <a href="#quality-controls">Quality controls</a>
+      <a href="#next-steps">Next steps</a>
+      <a href="#artifacts">Artifacts</a>
+    </nav>
+  </div>
+
+  <main>
+    <section class="shell" id="overview">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">Overview</div>
+          <h2>The benchmark is built as a controlled synthetic-data pipeline</h2>
+        </div>
+        <div class="toc">
+          <strong>Table of contents</strong>
+          <ol>
+            <li><a href="#data-generation">Synthetic household generation</a></li>
+            <li><a href="#dialogs">Dialog generation and realism checks</a></li>
+            <li><a href="#metrics">Matching, scoring, and errors</a></li>
+            <li><a href="#train-holdout">Train/holdout test split logic</a></li>
+            <li><a href="#results">Train and holdout test results</a></li>
+            <li><a href="#quality-controls">Quality controls at each stage</a></li>
+            <li><a href="#next-steps">Next steps</a></li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="pipeline">
+        <div class="step">
+          <h3>Generate households</h3>
+          <p>Sample affluent US RIA-like households from explicit scenario priors, public-data anchors, and lifecycle constraints.</p>
+        </div>
+        <div class="step">
+          <h3>Generate dialogs</h3>
+          <p>Create long advisor-client conversations grounded in each household profile, with evidence files for field-level traceability.</p>
+        </div>
+        <div class="step">
+          <h3>Extract and score</h3>
+          <p>Run structured extraction from transcript text, match extracted records to dialog-grounded GT, and score field-level accuracy.</p>
+        </div>
+        <div class="step">
+          <h3>Validate holdout test</h3>
+          <p>Evaluate a held-out test set that was not used while tuning the extractor or evaluator.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell" id="data-generation">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">1. Data generation</div>
+          <h2>Household data is scenario-driven and distributionally checked</h2>
+        </div>
+        <p class="summary">
+          The generator creates affluent US advisor-like households rather than generic population samples.
+          Scenarios are explicit, weighted, and validated for coverage. Public-data anchors and curated priors
+          drive income, assets, liabilities, household structure, risk tolerance, and lifecycle fields.
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <span class="pill">Coverage requirement</span>
+          <h3>11 scenarios</h3>
+          <p>Every household belongs to one named archetype. This avoids hidden rare cases and makes coverage auditable.</p>
+        </div>
+        <div class="card">
+          <span class="pill">Affluent conditioning</span>
+          <h3>RIA-like population</h3>
+          <p>Income and wealth distributions are shifted upward and constrained by an affluent income floor.</p>
+        </div>
+        <div class="card">
+          <span class="pill">Validation</span>
+          <h3>0 rule violations</h3>
+          <p>The generated dataset has no business-rule violations in the current artifact set.</p>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 18px;">
+        <h3>Scenario coverage in the 5,000-household synthetic population</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Scenario</th>
+              <th>Count</th>
+              <th>Share</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>family_with_mortgage_and_children</td><td>898</td><td>17.96%</td></tr>
+            <tr><td>affluent_couple_brokerage_and_pensions</td><td>761</td><td>15.22%</td></tr>
+            <tr><td>pre_retirement_wealthy</td><td>535</td><td>10.70%</td></tr>
+            <tr><td>one_high_earner_one_low_earner</td><td>512</td><td>10.24%</td></tr>
+            <tr><td>young_dual_income_low_assets</td><td>419</td><td>8.38%</td></tr>
+            <tr><td>self_employed_business_owner</td><td>406</td><td>8.12%</td></tr>
+            <tr><td>financially_stressed_with_debt</td><td>401</td><td>8.02%</td></tr>
+            <tr><td>retired_couple_high_assets_low_income</td><td>388</td><td>7.76%</td></tr>
+            <tr><td>secondly_wedded_paying_alimony</td><td>257</td><td>5.14%</td></tr>
+            <tr><td>divorced</td><td>243</td><td>4.86%</td></tr>
+            <tr><td>widowed</td><td>180</td><td>3.60%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="visual-grid">
+        <figure>
+          <img src="01_data_generation/artifacts/figures/scenario_coverage.png" alt="Scenario coverage chart">
+          <figcaption>Scenario coverage confirms that all 11 target archetypes are represented.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/income_hist.png" alt="Income distribution">
+          <figcaption>Annual household gross income distribution, conditioned toward affluent households.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/investable_assets_hist.png" alt="Investable assets distribution">
+          <figcaption>Investable assets distribution, generated as a noisy income-linked wealth model.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/income_vs_investable_assets.png" alt="Income versus investable assets">
+          <figcaption>Income vs investable assets checks cross-field coherence and boundary artifacts.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/risk_tolerance.png" alt="Risk tolerance distribution">
+          <figcaption>Risk tolerance distribution is monitored as a categorical prior sanity check.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/condprob_has_mortgage_by_scenario.png" alt="Conditional mortgage probability by scenario">
+          <figcaption>Conditional mortgage incidence by scenario checks dependence structure.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="shell" id="dialogs">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">2. Dialog generation</div>
+          <h2>Dialogs are generated in stages and checked for grounding and realism</h2>
+        </div>
+        <p class="summary">
+          Dialog generation does not ask a model to produce an entire transcript in one shot. It builds a persona,
+          an outline, phase-level dialog turns, and state updates, then optionally finalizes the transcript into a
+          more natural conversation.
+        </p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Grounded transcript construction</h3>
+          <p>The dialog generator consumes the household financial profile and scenario context. It writes a transcript, JSON metadata, evidence items, validation metrics, and plain-text transcript files.</p>
+          <p>Evidence artifacts map profile fields to advisor/client excerpts. These evidence files later become dialog-grounded GT for extraction scoring.</p>
+        </div>
+        <div class="card">
+          <h3>DeepSeek realism gate</h3>
+          <p>A DeepSeek judge scores finalized transcripts on a 1 to 5 realism scale. The standard gate copies transcripts into a `realism_passed` subset when the realism score meets the configured threshold.</p>
+          <p>In the Train set, 316 dialogs are from the realism-passed subset. For the holdout test, the requested evaluation used 99 valid generated dialogs with judge artifacts retained.</p>
+        </div>
+      </div>
+
+      <div class="callout" style="margin-top: 18px;">
+        <h3>Why this matters</h3>
+        <p>
+          The extraction benchmark is only meaningful if the dialogs sound like plausible financial-discovery conversations
+          and if each scored field can be traced back to information present in the transcript. The realism gate helps with
+          conversational quality; evidence-based grounded GT helps with fair scoring.
+        </p>
+        <div class="links">
+          <a class="button" href="02_dialogs_generation/README.md">Dialog generation README</a>
+          <a class="button" href="02_dialogs_generation/prompts/deepseek_realism_judge_prompt.md">DeepSeek judge prompt</a>
+          <a class="button" href="03_data_extraction/approach.md">Extraction scoring details</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell" id="metrics">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">3. Matching and error accounting</div>
+          <h2>Metrics are computed after record matching and grounded-aware field scoring</h2>
+        </div>
+        <p class="summary">
+          The evaluator compares extracted JSON to dialog-grounded GT. It normalizes both sides, pairs records by
+          content when IDs are unstable, then scores fields cell-by-cell.
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <h3>Record matching</h3>
+          <p>Primary keys are used when reliable. Otherwise, content-based pairing is used for people, income lines, assets, liabilities, and protection policies.</p>
+        </div>
+        <div class="card">
+          <h3>Field scoring</h3>
+          <p>Numeric fields use 1% relative tolerance. Multichoice fields are compared as sets. String-like fields are compared case-insensitively after normalization.</p>
+        </div>
+        <div class="card">
+          <h3>Error types</h3>
+          <p>Errors are split into missing extracted values, invented extra values, value mismatches, and record-pairing failures.</p>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 18px;">
+        <h3>Scoring assumptions</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Assumption</th>
+              <th>Implementation</th>
+              <th>Why it matters</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Dialog-grounded denominator</td>
+              <td>When `ground_truth_is_grounded=true`, only fields present in grounded GT enter the denominator.</td>
+              <td>Extractor is not penalized for facts never stated in the dialog.</td>
+            </tr>
+            <tr>
+              <td>ID exclusion</td>
+              <td>Primary keys and `_id` fields are excluded by default.</td>
+              <td>We evaluate semantic extraction, not synthetic key guessing.</td>
+            </tr>
+            <tr>
+              <td>Derived ratio exclusion</td>
+              <td>Fields ending in `_ratio` are excluded.</td>
+              <td>Ratio fields are derived and would otherwise double-count numeric facts.</td>
+            </tr>
+            <tr>
+              <td>PII/person-detail exclusions</td>
+              <td>Configured in `03_data_extraction/config/scoring_exclusions.json`.</td>
+              <td>Reduces noise from fields that are not central to financial extraction quality.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="shell" id="train-holdout">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">4. Train and holdout test logic</div>
+          <h2>Train was used for pipeline development; holdout test is a held-out evaluation</h2>
+        </div>
+        <p class="summary">
+          The 316 Train dialogs were used while debugging the extraction pipeline, prompts, scoring, and discrepancy analysis.
+          The 99 holdout test dialogs were generated from households that did not overlap with the Train extracted households and were
+          not used for extractor/evaluator tuning.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Split summary</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Split</th>
+              <th>Dialogs</th>
+              <th>Grounded GT pairs</th>
+              <th>Median income</th>
+              <th>P10/P90 income</th>
+              <th>Median assets</th>
+              <th>P10/P90 assets</th>
+              <th>Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Train</strong></td>
+              <td>316</td>
+              <td>316</td>
+              <td>$132,125</td>
+              <td>$78,300 / $226,850</td>
+              <td>$826,600</td>
+              <td>$389,600 / $1,444,400</td>
+              <td>Pipeline debugging and tuning</td>
+            </tr>
+            <tr>
+              <td><strong>Holdout test</strong></td>
+              <td>99</td>
+              <td>99</td>
+              <td>$121,900</td>
+              <td>$71,450 / $221,050</td>
+              <td>$821,650</td>
+              <td>$431,700 / $1,810,800</td>
+              <td>Held-out evaluation</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="visual-grid">
+        <figure>
+          <img src="03_data_extraction/artifacts/figures/income_hist.png" alt="Train income distribution">
+          <figcaption>Train income distribution across 316 grounded dialogs.</figcaption>
+        </figure>
+        <figure>
+          <img src="03_data_extraction/artifacts/OOS/figures/income_hist.png" alt="Holdout test income distribution">
+          <figcaption>Holdout test income distribution across 99 held-out dialogs.</figcaption>
+        </figure>
+        <figure>
+          <img src="03_data_extraction/artifacts/figures/assets_hist.png" alt="Train assets distribution">
+          <figcaption>Train assets distribution across 316 grounded dialogs.</figcaption>
+        </figure>
+        <figure>
+          <img src="03_data_extraction/artifacts/OOS/figures/assets_hist.png" alt="Holdout test assets distribution">
+          <figcaption>Holdout test assets distribution across 99 held-out dialogs.</figcaption>
+        </figure>
+        <figure>
+          <img src="03_data_extraction/artifacts/figures/scenario_distribution.png" alt="Train scenario distribution">
+          <figcaption>Train scenario distribution. All target scenarios are represented.</figcaption>
+        </figure>
+        <figure>
+          <img src="03_data_extraction/artifacts/OOS/figures/scenario_distribution.png" alt="Holdout test scenario distribution">
+          <figcaption>Holdout test scenario distribution. The held-out set preserves broad scenario coverage.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="shell" id="results">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">5. Results</div>
+          <h2>Train and holdout test performance are closely aligned</h2>
+        </div>
+        <p class="summary">
+          Holdout test accuracy is nearly identical to Train at the aggregate field level. The strongest remaining errors are concentrated
+          in a small number of asset ownership/type/provider cases, as shown in the discrepancy reports.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Overall metrics</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Train (316)</th>
+              <th>Holdout test (99)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Mean household field accuracy</td>
+              <td class="metric">98.78%</td>
+              <td class="metric">98.74%</td>
+            </tr>
+            <tr>
+              <td>Cell-level match rate</td>
+              <td>98.79%</td>
+              <td>98.74%</td>
+            </tr>
+            <tr>
+              <td>Dialogs with 100% correct fields</td>
+              <td>201 / 316 = 63.6%</td>
+              <td>58 / 99 = 58.6%</td>
+            </tr>
+            <tr>
+              <td>Dialogs with at least 95% correct fields</td>
+              <td>296 / 316 = 93.7%</td>
+              <td>95 / 99 = 96.0%</td>
+            </tr>
+            <tr>
+              <td>Dialogs with at least 90% correct fields</td>
+              <td>316 / 316 = 100.0%</td>
+              <td>99 / 99 = 100.0%</td>
+            </tr>
+            <tr>
+              <td>Missing extracted cells</td>
+              <td>73</td>
+              <td>33</td>
+            </tr>
+            <tr>
+              <td>Invented extra cells</td>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+            <tr>
+              <td>Value mismatch cells</td>
+              <td>184</td>
+              <td>50</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid-2" style="margin-top: 18px;">
+        <div class="card">
+          <h3>Train per-entity metrics</h3>
+          <table>
+            <thead><tr><th>Entity</th><th>Missed</th><th>Errors</th><th>Invented</th><th>Cells</th></tr></thead>
+            <tbody>
+              <tr><td>people</td><td>0.2%</td><td>0.5%</td><td>0.0%</td><td>2,602</td></tr>
+              <tr><td>liabilities</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>1,338</td></tr>
+              <tr><td>protection_policies</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>950</td></tr>
+              <tr><td>assets</td><td>0.8%</td><td>1.9%</td><td>0.0%</td><td>8,635</td></tr>
+              <tr><td>households</td><td>0.0%</td><td>0.1%</td><td>0.0%</td><td>5,056</td></tr>
+              <tr><td>income_lines</td><td>0.0%</td><td>0.1%</td><td>0.0%</td><td>2,648</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h3>Holdout test per-entity metrics</h3>
+          <table>
+            <thead><tr><th>Entity</th><th>Missed</th><th>Errors</th><th>Invented</th><th>Cells</th></tr></thead>
+            <tbody>
+              <tr><td>people</td><td>0.0%</td><td>0.3%</td><td>0.0%</td><td>799</td></tr>
+              <tr><td>liabilities</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>341</td></tr>
+              <tr><td>protection_policies</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>270</td></tr>
+              <tr><td>assets</td><td>1.1%</td><td>1.7%</td><td>0.0%</td><td>2,713</td></tr>
+              <tr><td>households</td><td>0.0%</td><td>0.1%</td><td>0.0%</td><td>1,584</td></tr>
+              <tr><td>income_lines</td><td>0.4%</td><td>0.1%</td><td>0.0%</td><td>900</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="visual-grid">
+        <figure>
+          <img src="03_data_extraction/artifacts/figures/extraction_accuracy_hist.png" alt="Train extraction accuracy histogram">
+          <figcaption>Train household-level extraction accuracy histogram for 316 dialogs.</figcaption>
+        </figure>
+        <figure>
+          <img src="03_data_extraction/artifacts/OOS/figures/extraction_accuracy_hist.png" alt="Holdout test extraction accuracy histogram">
+          <figcaption>Holdout test household-level extraction accuracy histogram for 99 dialogs.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="shell" id="quality-controls">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">6. Quality controls</div>
+          <h2>Each stage has its own checks before the next stage consumes its outputs</h2>
+        </div>
+        <p class="summary">
+          Quality is controlled as a pipeline property, not only as a final accuracy number. We validate the generated
+          household data, the dialog generation process, the dialog-grounded GT construction, extraction behavior on
+          Train, and the full pipeline on the holdout test.
+        </p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>1. Synthetic data quality</h3>
+          <p>
+            The household generator is checked with business rules that enforce relationships between fields:
+            lifecycle date constraints, parent/child age consistency, mortgage burden caps, alimony-marital-status
+            compatibility, and future final-payment dates for non-revolving liabilities.
+          </p>
+          <p>
+            Statistical tests compare the generated data to priors using distributional diagnostics such as PSI and
+            Jensen-Shannon divergence. Anomaly detection is run with two complementary models: an autoencoder
+            reconstruction score and an IsolationForest score.
+          </p>
+          <div class="links">
+            <a class="button" href="01_data_generation/artifacts/tables/rule_violations.csv">Rule violations</a>
+            <a class="button" href="01_data_generation/artifacts/tables/distance_to_priors.csv">Distance to priors</a>
+            <a class="button" href="01_data_generation/artifacts/tables/anomaly_scores.csv">Anomaly scores</a>
+            <a class="button" href="01_data_generation/artifacts/tables/top5_anomalous_households.csv">Autoencoder top anomalies</a>
+            <a class="button" href="01_data_generation/artifacts/tables/top5_anomalous_households_iforest.csv">IsolationForest top anomalies</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>2. Dialog generation quality</h3>
+          <p>
+            Dialogs are generated in pieces rather than as a single monolithic response: persona, outline,
+            phase-by-phase transcript, state updates, and optional final polishing. This reduces drift and makes the
+            conversation easier to validate incrementally.
+          </p>
+          <p>
+            Evidence artifacts map profile facts to transcript excerpts. The generation pipeline also writes metrics
+            and uses validation checks, including regex-style and normalization-based checks, to catch fields that are
+            not properly grounded in the transcript. A DeepSeek realism judge adds a separate conversational-quality gate.
+          </p>
+          <div class="links">
+            <a class="button" href="02_dialogs_generation/README.md">Dialog QA details</a>
+            <a class="button" href="02_dialogs_generation/prompts/evidence_extraction_prompt.md">Evidence prompt</a>
+            <a class="button" href="02_dialogs_generation/prompts/deepseek_realism_judge_prompt.md">DeepSeek realism prompt</a>
+            <a class="button" href="02_dialogs_generation/normalization_rules.json">Normalization rules</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>3. Ground truth quality</h3>
+          <p>
+            Extraction scoring uses dialog-grounded GT whenever evidence is available. This is a sparse GT profile
+            built only from fields that have evidence in the transcript, so the evaluator does not ask the extractor
+            to recover unspoken facts from the full synthetic profile.
+          </p>
+          <p>
+            The GT export reports how many dialogs were seen, how many profiles were written, how many evidence items
+            were used, and whether any dialogs were missing profile metadata or household identifiers. During holdout
+            evaluation, the pipeline confirmed 99 dialogs written, 99 grounded profiles used, and no missing profile/text rows.
+          </p>
+          <div class="links">
+            <a class="button" href="02_dialogs_generation/artifacts/grounded_financial_profiles.json">Train grounded GT</a>
+            <a class="button" href="03_data_extraction/artifacts/OOS/grounded_financial_profiles.json">Holdout grounded GT</a>
+            <a class="button" href="03_data_extraction/artifacts/summary.json">Train pairing summary</a>
+            <a class="button" href="03_data_extraction/artifacts/OOS/summary.json">Holdout pairing summary</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>4. Extraction quality on Train</h3>
+          <p>
+            The 316-dialog Train set was used to debug the extractor, prompts, normalization, rescue passes, record
+            matching, and error reporting. This is where we iterated on the pipeline and inspected discrepancy tables
+            to identify systematic extraction failures.
+          </p>
+          <p>
+            Train quality is monitored through extracted status reports, coercion issues, coverage aggregates, field-level
+            discrepancy stats, value-mismatch tables, and accuracy histograms.
+          </p>
+          <div class="links">
+            <a class="button" href="03_data_extraction/artifacts/extracted/report.json">Train extraction report</a>
+            <a class="button" href="03_data_extraction/artifacts/extracted/coerce_issues.json">Coercion issues</a>
+            <a class="button" href="03_data_extraction/artifacts/tables/discrepancy_field_stats.csv">Field stats</a>
+            <a class="button" href="03_data_extraction/artifacts/tables/value_mismatch_cells.csv">Value mismatches</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout" style="margin-top: 18px;">
+        <h3>5. End-to-end pipeline quality on the holdout test</h3>
+        <p>
+          The holdout test validates the complete pipeline after tuning: held-out dialog generation, grounded GT export,
+          extraction, record matching, scoring, discrepancy analysis, and final metrics. The holdout households do not
+          overlap with the 316 Train households used during pipeline development.
+        </p>
+        <p>
+          This final gate is the closest approximation to an honest out-of-sample test: the same code and thresholds are
+          applied, but the 99 dialogs were not part of extractor/evaluator iteration.
+        </p>
+        <div class="links">
+          <a class="button" href="03_data_extraction/artifacts/OOS/extracted/report.json">Holdout extraction report</a>
+          <a class="button" href="03_data_extraction/artifacts/OOS/merged/accuracy_report.json">Holdout accuracy report</a>
+          <a class="button" href="03_data_extraction/artifacts/OOS/discrepancy_summary.json">Holdout discrepancy summary</a>
+          <a class="button" href="03_data_extraction/artifacts/OOS/report/discrepancy_report.md">Holdout discrepancy report</a>
+          <a class="button" href="03_data_extraction/artifacts/OOS/metrics_table.txt">Holdout metrics table</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell" id="next-steps">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">7. Next steps</div>
+          <h2>Research and product directions</h2>
+        </div>
+        <p class="summary">
+          The current benchmark gives us a controlled end-to-end baseline. The next phase should make the dialogs more
+          realistic, stress the extractor under harder conditions, and connect extraction errors to real product outcomes.
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <h3>1. Improve dialog realism with multi-model critique</h3>
+          <p>
+            Send generated dialogs to several model families such as Grok, Qwen, DeepSeek, GPT, Gemini, Claude, and others.
+            Ask each model for a concrete action plan for improving realism, aggregate feedback across dialogs and models,
+            and iteratively update the dialog-generation prompts.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>2. Run noise-based stress tests</h3>
+          <p>
+            Inject controlled noise into dialogs and measure how extraction metrics degrade. Examples include typos,
+            transcript artifacts, repeated turns, missing punctuation, speaker-label noise, irrelevant side conversations,
+            partial truncation, and contradictory corrections.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>3. Build adversarial dialog attacks</h3>
+          <p>
+            Train or prompt an adversarial model to make minimal dialog edits that break the extractor. Use these attacks
+            to design defenses, stronger validation, or a more robust extraction architecture.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>4. Compare structured output modes</h3>
+          <p>
+            Compare extraction with and without structured generation / structured output constraints. Measure not only
+            accuracy, but also parse failures, coercion issues, latency, retry rate, and cost.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>5. Study dialog length versus extraction quality</h3>
+          <p>
+            Quantify how transcript length affects extraction quality and latency. Identify the dialog size at which
+            extraction should switch from single-pass processing to batching, chunking, or hierarchical extraction.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>6. Add a pre-enrichment mode</h3>
+          <p>
+            Improve client experience by pre-filling as much information as possible from public or permissioned sources,
+            such as public professional profiles or other available records. The dialog can then focus only on missing,
+            ambiguous, or stale facts, shortening the conversation while still refreshing outdated information.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>7. Make infrastructure failure-tolerant</h3>
+          <p>
+            Design graceful failover for API outages and provider degradation. For example, if GPT is unavailable, switch
+            to Gemini or another provider, but only through a pipeline that has been explicitly tested and calibrated for
+            that fallback model.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>8. Evaluate multiple extractor models and ensembles</h3>
+          <p>
+            Test different LLMs as extractors and compare single-model, fallback, voting, and specialist-ensemble setups.
+            Track accuracy, field-specific failure modes, latency, cost, and operational reliability.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>9. Run real-world A/B validation</h3>
+          <p>
+            Compare this pipeline against the current production approach on real dialogs. Measure actual error patterns,
+            human review burden, correction rates, and how extraction errors correlate with downstream product metrics.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell" id="artifacts">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">Artifact links</div>
+          <h2>Useful local references</h2>
+        </div>
+        <p class="summary">These links point to files in this repository and should work when opening this HTML from the repo root.</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <h3>Data generation</h3>
+          <div class="links">
+            <a class="button" href="01_data_generation/APPROACH.md">01 approach</a>
+            <a class="button" href="01_data_generation/README.md">01 README</a>
+            <a class="button" href="01_data_generation/artifacts/tables/scenario_coverage.csv">Scenario coverage CSV</a>
+            <a class="button" href="01_data_generation/artifacts/figures/scenario_coverage.png">Scenario coverage plot</a>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Dialogs</h3>
+          <div class="links">
+            <a class="button" href="02_dialogs_generation/README.md">02 README</a>
+            <a class="button" href="02_dialogs_generation/prompts/deepseek_realism_judge_prompt.md">DeepSeek prompt</a>
+            <a class="button" href="02_dialogs_generation/artifacts/grounded_financial_profiles.json">Train grounded GT</a>
+            <a class="button" href="02_dialogs_generation/artifacts/OOS/dialog_registry.csv">Holdout test registry</a>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Extraction and results</h3>
+          <div class="links">
+            <a class="button" href="03_data_extraction/approach.md">03 approach</a>
+            <a class="button" href="03_data_extraction/README.md">03 README</a>
+            <a class="button" href="03_data_extraction/artifacts/metrics_table.txt">Train metrics</a>
+            <a class="button" href="03_data_extraction/artifacts/OOS/metrics_table.txt">Holdout test metrics</a>
+            <a class="button" href="03_data_extraction/artifacts/report/discrepancy_report.md">Train discrepancy report</a>
+            <a class="button" href="03_data_extraction/artifacts/OOS/report/discrepancy_report.md">Holdout test discrepancy report</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell">
+    <p>Generated from local artifacts in this repository. Open from the repository root so relative image and document links resolve correctly.</p>
+    <p><a href="#top">Back to top</a></p>
+  </footer>
+</body>
+</html>

@@ -1,35 +1,35 @@
 # Approach
 
-Документ описывает, как устроен пайплайн `03_data_extraction`: как мы строим ground truth, как извлекаем структурированные данные из диалогов, как считаем ошибки и какие артефакты используем для анализа качества.
+This document describes how the `03_data_extraction` pipeline works: how ground truth is built, how structured data is extracted from dialogs, how errors are counted, and which artifacts are used for quality and error analysis.
 
 ## 1. Ground Truth
 
-Цель ground truth в `03` - получить для каждого диалога пару:
+The goal of ground truth in `03` is to create one evaluation pair per dialog:
 
-- `dialog`: текст диалога advisor-client;
-- `profile`: структурированный эталонный профиль household, с которым будет сравниваться extractor.
+- `dialog`: the advisor-client dialog text;
+- `profile`: the structured household profile used as the extraction target.
 
-Основной файл пар создается скриптом `run.py` и записывается в:
+The main pairs file is created by `run.py` and written to:
 
 ```text
 artifacts/ground_truth_pairs.jsonl
 ```
 
-или в другой каталог, если задан `OUTPUT_DIR`.
+or to another directory when `OUTPUT_DIR` is set.
 
-### Источники данных
+### Data Sources
 
-Пайплайн читает:
+The pipeline reads:
 
-- диалоги из `REALISM_PASSED_DIR`;
-- полный синтетический профиль из `FINANCIAL_PROFILES_JSON`;
-- опциональный dialog-grounded профиль из `GROUNDED_PROFILES_JSON`.
+- dialogs from `REALISM_PASSED_DIR`;
+- full synthetic profiles from `FINANCIAL_PROFILES_JSON`;
+- optional dialog-grounded profiles from `GROUNDED_PROFILES_JSON`.
 
-Если для household есть запись в `GROUNDED_PROFILES_JSON`, она используется как ground truth вместо полного синтетического профиля. Это важно: в диалоге может быть озвучена только часть полей полного профиля, и extractor не должен штрафоваться за то, что не извлек поле, которого реально не было в тексте.
+If a household exists in `GROUNDED_PROFILES_JSON`, that grounded profile is used as ground truth instead of the full synthetic profile. This is important because a dialog may mention only part of the full profile. The extractor should not be penalized for failing to recover fields that were never present in the dialog.
 
-### Dialog-grounded GT
+### Dialog-Grounded GT
 
-Dialog-grounded profile строится из `DIALOG_*_evidence.json` с помощью:
+A dialog-grounded profile is built from `DIALOG_*_evidence.json` files with:
 
 ```bash
 python export_grounded_profiles.py \
@@ -37,18 +37,18 @@ python export_grounded_profiles.py \
   --out-json <grounded_financial_profiles.json>
 ```
 
-По умолчанию включаются только evidence items со статусом `present`. Это означает: поле попадает в grounded GT только если оно было явно найдено в диалоге. Если нужно включить приблизительные факты, можно задать `INCLUDE_APPROXIMATE_GROUNDED=1`, но для честной оценки extractor по умолчанию это выключено.
+By default, only evidence items with `status="present"` are included. This means a field enters grounded GT only when it was explicitly found in the dialog. Approximate evidence can be included with `INCLUDE_APPROXIMATE_GROUNDED=1`, but this is disabled by default for honest extractor evaluation.
 
-`run_pipeline.py` может собрать grounded GT автоматически перед построением пар:
+`run_pipeline.py` can build grounded GT automatically before pairing:
 
 - `AUTO_EXPORT_GROUNDED_PROFILES=1`;
 - `EVIDENCE_DIALOGS_DIR=<dir>`;
 - `GROUNDED_PROFILES_JSON=<out-json>`;
-- `FORCE_REBUILD_GROUNDED_PROFILES=1`, если надо пересобрать файл.
+- `FORCE_REBUILD_GROUNDED_PROFILES=1` when the file should be rebuilt.
 
-### Что попадает в пары
+### Pair Contents
 
-Каждая строка `ground_truth_pairs.jsonl` содержит:
+Each row in `ground_truth_pairs.jsonl` contains:
 
 - `household_id`;
 - `dialog_id`;
@@ -57,48 +57,48 @@ python export_grounded_profiles.py \
 - `dialog`;
 - `ground_truth_is_grounded`.
 
-`ground_truth_is_grounded=true` означает, что denominator при scoring будет учитывать только поля, присутствующие в grounded GT. Это защищает оценку от штрафа за неозвученные в диалоге факты.
+`ground_truth_is_grounded=true` means the scoring denominator will include only fields present in the grounded GT. This protects the evaluation from penalizing the extractor for facts that were not spoken in the dialog.
 
-Для диагностических графиков `run.py` использует полный профиль, даже если scoring использует grounded GT. Так распределения income/assets/scenario остаются стабильными и отражают сгенерированный набор households.
+For diagnostic dataset plots, `run.py` still uses the full profile even when scoring uses grounded GT. This keeps income/assets/scenario distributions stable and representative of the generated household set.
 
 ## 2. Extraction
 
-Extraction выполняется скриптом `extract_from_dialogs.py`. На вход он получает `.txt` диалоги, схему данных и priors, а на выход пишет один структурированный JSON на диалог:
+Extraction is performed by `extract_from_dialogs.py`. It reads `.txt` dialogs, the schema, and priors, then writes one structured JSON per dialog:
 
 ```text
 artifacts/extracted/DIALOG_<household_id>.extracted.json
 ```
 
-### Модель и prompt
+### Model and Prompt
 
-Модель задается через `OPENAI_MODEL` или аргумент `--model`. По умолчанию сейчас используется:
+The model is configured with `OPENAI_MODEL` or the `--model` argument. The current code default is:
 
 ```text
 gpt-5.2
 ```
 
-Системный prompt находится в:
+The system prompt is stored in:
 
 ```text
 prompts/extraction_system_prompt.txt
 ```
 
-В prompt подставляется compact schema из `schema.json`. Для categorical/multichoice полей также подставляются allowed values из schema и priors, чтобы модель выбирала допустимые значения, а не изобретала новые.
+The compact schema from `schema.json` is injected into the prompt. For categorical and multichoice fields, allowed values are also injected from the schema and priors so the model selects valid values instead of inventing new categories.
 
-Главные правила prompt:
+Core prompt rules:
 
-- использовать только факты, сказанные или сильно подразумеваемые в диалоге;
-- если поле не упомянуто, пропустить его;
-- если сущность явно есть, создать запись даже при частично неизвестных полях;
-- для чисел возвращать числа, для boolean - boolean;
-- для дат использовать `YYYY-MM-DD`;
-- для ranges использовать midpoint, если позже нет более точного значения;
-- для owner использовать `joint` только при явном joint/shared/both names;
-- для provider_type выбирать underlying institution, а не платформу-агрегатор, если она только показывает актив.
+- use only facts stated or strongly implied in the dialog;
+- omit a field when it is not mentioned;
+- if an entity record is clearly present, create the record even if some fields are unknown;
+- return numbers for numeric fields and booleans for boolean fields;
+- use `YYYY-MM-DD` for explicit dates;
+- use the midpoint for ranges when no later precise value is given;
+- use `owner=joint` only for explicit joint/shared/both-names language;
+- for `provider_type`, choose the underlying institution rather than an aggregator/platform that merely displays the asset.
 
-### Извлекаемые сущности и поля
+### Extracted Entities and Fields
 
-Extractor возвращает top-level JSON object с ключами:
+The extractor returns a top-level JSON object with these keys:
 
 - `households`;
 - `people`;
@@ -107,7 +107,7 @@ Extractor возвращает top-level JSON object с ключами:
 - `liabilities`;
 - `protection_policies`.
 
-Поля берутся из `01_data_generation/config/schema.json`.
+Fields come from `01_data_generation/config/schema.json`.
 
 `households`:
 
@@ -158,48 +158,48 @@ liability_id, household_id, type, monthly_cost, outstanding, interest_rate, fina
 policy_id, household_id, owner, policy_type, monthly_cost, amount_assured, assured_until
 ```
 
-### Post-processing extraction
+### Extraction Post-Processing
 
-После LLM-вызова extractor делает несколько deterministic шагов:
+After the LLM call, the extractor performs several deterministic steps:
 
-- unwrap common wrappers вроде `{"result": ...}` или `{"extracted": ...}`;
-- coerce values к типам схемы;
-- drop unknown fields/entities;
-- normalize categorical values and primary-key formats;
+- unwrap common response wrappers such as `{"result": ...}` or `{"extracted": ...}`;
+- coerce values to schema types;
+- drop unknown fields and unknown entities;
+- normalize categorical values and primary key formats;
 - compute derived household fields from liabilities where applicable;
-- сохранить raw попытки и финальный extracted JSON.
+- save raw attempts and the final extracted JSON.
 
-Если первая попытка вернула плохую структуру или пустой extraction, скрипт повторяет вызов до `EXTRACTION_RETRY_LIMIT` раз.
+If an attempt returns an invalid shape or an empty extraction, the script retries up to `EXTRACTION_RETRY_LIMIT`.
 
-### Rescue-проходы
+### Rescue Passes
 
-В текущей реализации есть два targeted rescue-прохода:
+The current implementation has two targeted rescue passes:
 
-- liability/protection rescue: если диалог явно содержит mortgage/loan/card/policy hints, но extractor вернул пустые `liabilities` или `protection_policies`;
-- asset/owner rescue: если у assets не хватает `owner`, `is_joint`, `provider_type` или у people не хватает `occupation_group`, а в тексте есть подсказки.
+- liability/protection rescue: used when the dialog clearly contains mortgage, loan, card, or policy hints, but the extractor returned empty `liabilities` or `protection_policies`;
+- asset/owner rescue: used when assets are missing `owner`, `is_joint`, or `provider_type`, or people are missing `occupation_group`, and the dialog contains relevant hints.
 
-Rescue не заменяет весь extraction. Он достает только узкий набор сущностей/полей и merge-ится в базовый результат, чтобы не размазывать ошибки одной части по всему профилю.
+Rescue does not replace the whole extraction. It extracts only a narrow set of entities/fields and merges them back into the base result, which prevents one local repair from changing unrelated parts of the profile.
 
-Есть также deterministic repair для специфического случая bank-type retirement asset, когда по текстовому паттерну видно, что запись должна быть cash/bank account, а не retirement.
+There is also a deterministic repair for a specific bank-type retirement asset pattern, where the dialog text indicates the record should be cash/bank account rather than retirement.
 
 ## 3. Error Counting
 
-Оценка выполняется `evaluate_extraction.py`, а подробный анализ ошибок - `analyze_discrepancies.py`.
+Evaluation is performed by `evaluate_extraction.py`; detailed discrepancy analysis is performed by `analyze_discrepancies.py`.
 
-### Нормализация перед сравнением
+### Normalization Before Comparison
 
-Перед scoring обе стороны нормализуются:
+Before scoring, both sides are normalized:
 
-- ground truth profile;
-- extracted profile.
+- the ground truth profile;
+- the extracted profile.
 
-Это снижает шум от разных форматов ID, categorical aliases и простых строковых расхождений.
+This reduces noise from primary key formats, categorical aliases, and trivial string differences.
 
-### Сопоставление записей
+### Record Pairing
 
-Для каждой entity сначала нужно сопоставить GT records и extracted records.
+For each entity, GT records must first be matched to extracted records.
 
-Если возможно, используется primary key. Но extractor может сгенерировать нестабильные IDs, поэтому для нескольких сущностей по умолчанию включено content-based pairing:
+Primary keys are used when possible. However, extractor-generated IDs can be unstable, so content-based pairing is enabled by default for several entities:
 
 - `income_lines`;
 - `people`;
@@ -207,7 +207,7 @@ Rescue не заменяет весь extraction. Он достает тольк
 - `liabilities`;
 - `protection_policies`.
 
-Content pairing использует weighted similarity по смысловым полям. Например:
+Content pairing uses weighted similarity over meaningful fields. For example:
 
 - assets: owner, asset_type, subtype, provider_type, value;
 - income_lines: owner, source_type, frequency, net_or_gross, amount_annualized;
@@ -215,38 +215,38 @@ Content pairing использует weighted similarity по смысловым
 - liabilities: type, final_payment_date, monthly_cost, outstanding, interest_rate;
 - protection_policies: owner, policy_type, assured_until, monthly_cost, amount_assured.
 
-Если запись есть только в GT, это `gt_only`; если только в extraction, это `ex_only`; если обе стороны найдены, это `both`.
+If a record exists only in GT, its status is `gt_only`. If it exists only in extraction, its status is `ex_only`. If both sides are matched, its status is `both`.
 
-### Сравнение значений
+### Value Comparison
 
-Сравнение идет cell-by-cell по полям схемы.
+Comparison is cell-by-cell over schema fields.
 
-Правила:
+Rules:
 
-- numeric fields (`continuous`, `integer`, `integer_nullable`) считаются совпавшими, если отличаются не более чем на `numeric_rel_tol`; default `0.01`, то есть 1%;
-- boolean сравнивается как boolean;
-- date/date_nullable сравниваются строково после нормализации;
-- multichoice сравнивается как отсортированное множество значений; строки могут быть разделены `|` или comma;
-- остальные строковые/categorical поля сравниваются case-insensitive после trim.
+- numeric fields (`continuous`, `integer`, `integer_nullable`) match when they differ by no more than `numeric_rel_tol`; the default is `0.01`, meaning 1%;
+- booleans are compared as booleans;
+- `date` and `date_nullable` fields are compared as normalized strings;
+- `multichoice` fields are compared as sorted sets; strings may be separated by `|` or commas;
+- other string/categorical fields are compared case-insensitively after trimming.
 
-Оба `None` считаются match, но scoreable denominator зависит от режима GT.
+Two `None` values count as a match, but the scoring denominator depends on the GT mode.
 
-### Grounded-aware denominator
+### Grounded-Aware Denominator
 
-Если `ground_truth_is_grounded=true`, поле идет в denominator только если оно реально присутствовало в grounded GT. Это ключевое допущение для честной оценки: extractor не обязан восстанавливать то, чего не было в диалоге.
+If `ground_truth_is_grounded=true`, a field enters the denominator only when it was present in grounded GT. This is the key assumption for honest dialog-level evaluation: the extractor is not required to recover facts that were not present in the dialog.
 
-Если GT не grounded, denominator включает scoreable поля схемы независимо от того, было ли значение `None`.
+If GT is not grounded, the denominator includes scoreable schema fields regardless of whether the GT value was `None`.
 
-### Исключения из scoring
+### Scoring Exclusions
 
-По умолчанию не оцениваются:
+By default, these fields are not scored:
 
 - primary key fields;
-- поля, заканчивающиеся на `_id`;
-- поля, заканчивающиеся на `_ratio`;
-- поля из `config/scoring_exclusions.json`.
+- fields ending with `_id`;
+- fields ending with `_ratio`;
+- fields listed in `config/scoring_exclusions.json`.
 
-Сейчас в exclusions вынесены PII/person-detail поля, которые либо не должны быть центральной целью extractor, либо создают шум:
+The current exclusions file contains PII/person-detail fields that are either not central to extractor quality or create unnecessary scoring noise:
 
 ```text
 households.household_head_email
@@ -270,59 +270,59 @@ people.smoker
 people.state_of_health
 ```
 
-ID-поля можно включить через `--include-ids`, но для extractor quality это обычно нежелательно: нас интересует смысловая правильность, а не то, угадала ли модель synthetic primary keys.
+ID fields can be included with `--include-ids`, but that is usually undesirable for extractor-quality evaluation: we care about semantic correctness, not whether the model guessed synthetic primary keys.
 
-### Типы ошибок
+### Error Types
 
-`analyze_discrepancies.py` раскладывает ошибки на:
+`analyze_discrepancies.py` breaks errors into:
 
-- `missing_extracted`: в GT есть ожидаемое значение, extraction его не дал;
-- `extra_extracted`: в GT поле не ожидалось, extraction его заполнил;
-- `value_mismatch`: extraction дал значение, но оно не совпало с GT;
+- `missing_extracted`: GT has an expected value, but extraction did not provide it;
+- `extra_extracted`: GT did not expect the field, but extraction filled it;
+- `value_mismatch`: extraction provided a value, but it did not match GT;
 - record-level statuses: `both`, `gt_only`, `ex_only`, `both_missing`.
 
-Для missing/extra дополнительно различается:
+For missing and extra values, the analysis also distinguishes:
 
-- ошибка из-за record pairing (`gt_only` / `ex_only`);
-- ошибка внутри уже сопоставленной записи (`both`).
+- errors caused by record pairing (`gt_only` / `ex_only`);
+- errors inside already matched records (`both`).
 
-Это помогает отличать "модель пропустила весь asset" от "модель нашла asset, но ошиблась в owner".
+This helps separate "the model missed the entire asset" from "the model found the asset but got owner wrong."
 
-## 4. Metrics, Tables, Figures
+## 4. Metrics, Tables, and Figures
 
-Пайплайн пишет несколько уровней диагностики.
+The pipeline writes several layers of diagnostics.
 
-### Dataset plots
+### Dataset Plots
 
-`run.py` пишет:
+`run.py` writes:
 
 - `figures/assets_hist.png`;
 - `figures/income_hist.png`;
 - `figures/scenario_distribution.png`.
 
-Эти графики проверяют состав evaluation-набора: не перекошен ли он по wealth/income/scenario, и похож ли OOS/test набор на ожидаемую популяцию.
+These plots check the composition of the evaluation set: whether it is skewed by wealth, income, or scenario, and whether an OOS/test set resembles the expected population.
 
-### Extraction accuracy
+### Extraction Accuracy
 
-`evaluate_extraction.py` пишет:
+`evaluate_extraction.py` writes:
 
 - `merged/merged_ground_truth_extracted.jsonl`;
 - `merged/accuracy_report.json`;
 - `figures/extraction_accuracy_hist.png`.
 
-`accuracy_report.json` содержит:
+`accuracy_report.json` contains:
 
-- число households;
-- число scored households;
+- household count;
+- scored household count;
 - `numeric_rel_tol`;
 - `include_ids`;
 - `mean_fraction`.
 
-Histogram показывает распределение household-level accuracy: видно, это много мелких ошибок по всем households или несколько тяжелых outliers.
+The histogram shows the household-level accuracy distribution. It helps distinguish many small errors spread across households from a few severe outliers.
 
-### Discrepancy analysis
+### Discrepancy Analysis
 
-`analyze_discrepancies.py` пишет:
+`analyze_discrepancies.py` writes:
 
 - `discrepancy_summary.json`;
 - `report/discrepancy_report.md`;
@@ -337,39 +337,39 @@ Histogram показывает распределение household-level accura
 - `figures/discrepancy_error_type_breakdown.png`;
 - `figures/discrepancy_record_pairing.png`.
 
-Как читать эти артефакты:
+How to use these artifacts:
 
-- `discrepancy_report.md` - быстрый human-readable обзор;
-- `discrepancy_field_stats.csv` - главный файл для ранжирования проблемных полей;
-- `value_mismatch_cells.csv` - лучший файл для точечной отладки конкретных неправильных значений;
-- `discrepancy_entity_record_pairing.csv` - показывает, где проблема не в значении поля, а в пропущенных/лишних records;
-- `discrepancy_error_type_breakdown.png` - помогает понять, что доминирует: missing, extra или mismatches;
-- `discrepancy_worst_fields.png` - показывает самые слабые поля;
-- `discrepancy_record_pairing.png` - показывает record-level recall/precision по entity.
+- `discrepancy_report.md` is the quick human-readable overview;
+- `discrepancy_field_stats.csv` is the main file for ranking weak fields;
+- `value_mismatch_cells.csv` is the best file for debugging specific wrong values;
+- `discrepancy_entity_record_pairing.csv` shows whether the problem is missing/extra records rather than wrong field values;
+- `discrepancy_error_type_breakdown.png` shows whether errors are dominated by missing values, extra values, or mismatches;
+- `discrepancy_worst_fields.png` shows the weakest fields;
+- `discrepancy_record_pairing.png` shows record-level recall/precision behavior by entity.
 
-### Final metrics table
+### Final Metrics Table
 
-`compute_metrics.py` пишет:
+`compute_metrics.py` writes:
 
 ```text
 metrics_table.txt
 ```
 
-В нем два блока:
+It contains two blocks:
 
-- доля диалогов с `100%`, `>=95%`, `>=90%` correct fields;
+- share of dialogs with `100%`, `>=95%`, and `>=90%` correct fields;
 - per-entity rates: missed, errors, invented, total cells.
 
-Эта таблица удобна как верхнеуровневый checkpoint для OOS/test прогона. Для поиска причин надо идти ниже: сначала в `discrepancy_report.md`, затем в CSV tables.
+This table is useful as a high-level checkpoint for an OOS/test run. For root-cause analysis, go one layer deeper: first `discrepancy_report.md`, then the CSV tables.
 
 ## 5. OOS/Test Discipline
 
-Для честного отложенного теста важно:
+For a fair holdout test:
 
-- генерировать OOS dialogs по households, которые не участвовали в настройке extractor/evaluator;
-- писать OOS outputs в отдельный `OUTPUT_DIR`, например `artifacts/OOS`;
-- не смешивать extracted JSON, merged files, figures и metrics с tuning artifacts;
-- использовать тот же код, тот же prompt, те же scoring exclusions и те же thresholds;
-- явно проверять отсутствие overlap household IDs между tuning extracted set и OOS extracted set.
+- generate OOS dialogs from households that were not used to tune the extractor or evaluator;
+- write OOS outputs to a separate `OUTPUT_DIR`, for example `artifacts/OOS`;
+- do not mix extracted JSON, merged files, figures, or metrics with tuning artifacts;
+- use the same code, prompt, scoring exclusions, and thresholds;
+- explicitly verify that household IDs do not overlap between the tuning extracted set and the OOS extracted set.
 
-Текущий `run_pipeline.py` поддерживает это через `OUTPUT_DIR`, `REALISM_PASSED_DIR`, `EVIDENCE_DIALOGS_DIR` и `GROUNDED_PROFILES_JSON`.
+The current `run_pipeline.py` supports this through `OUTPUT_DIR`, `REALISM_PASSED_DIR`, `EVIDENCE_DIALOGS_DIR`, and `GROUNDED_PROFILES_JSON`.
