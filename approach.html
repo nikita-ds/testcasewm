@@ -503,6 +503,60 @@
       </div>
 
       <div class="card" style="margin-top: 18px;">
+        <h3>Generation rules and cross-field constraints</h3>
+        <p>
+          The household generator is not just sampling independent columns. It encodes scenario-specific dependencies
+          so that income, assets, liabilities, family composition, dates, and lifecycle fields move together.
+        </p>
+        <div class="grid-2" style="margin-top: 14px;">
+          <div>
+            <h3>Income and assets</h3>
+            <ul>
+              <li>Household income is sampled from a smooth lognormal model anchored to public Census median household income.</li>
+              <li>The population is affluent-conditioned around a 2x public-median income floor, using resampling rather than a hard visible cutoff.</li>
+              <li>Scenario income multipliers adjust specific archetypes: retired households have lower income, self-employed owners skew higher, and young or financially stressed households stay closer to the floor.</li>
+              <li>Investable assets are generated as a noisy multiple of income, then adjusted by scenario, so high assets generally correspond to higher income without becoming a rigid segment label.</li>
+              <li>Age and retirement proximity modify income and assets: working households tend to peak closer to retirement, while retired households have lower income but higher accumulated assets.</li>
+              <li>Asset mix is decomposed into retirement, cash, alternatives, brokerage-style assets, and property, with retired households receiving more retirement assets and young low-asset households receiving less alternatives exposure.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Debt, mortgage, and expenses</h3>
+            <ul>
+              <li>Mortgage presence is scenario-dependent; family-with-mortgage and financially-stressed scenarios force mortgage exposure.</li>
+              <li>Mortgage payment is sampled as a bounded share of monthly income, using scenario-specific beta-shaped ranges and a hard validation cap at 70% of income.</li>
+              <li>Mortgage burden and remaining term taper down near retirement, so older and retired households are less likely to carry high mortgage exposure.</li>
+              <li>Mortgage outstanding is derived from payment and remaining term, then constrained by property LTV and income-multiple caps.</li>
+              <li>Financially-stressed households force non-mortgage debt and use higher non-mortgage payment and outstanding-balance ranges.</li>
+              <li>Total monthly expenses are built from non-debt expenses plus required debt payments, with scenario-specific expense-to-income ranges.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Household composition and lifecycle</h3>
+            <ul>
+              <li>Each scenario has an age band and couple/children rule: young dual-income households are couples without kids; family-with-mortgage households are couples with kids; widowed and divorced households are single-adult scenarios.</li>
+              <li>Spouse or partner age is generated near the primary client's age, with minimum and maximum adult-age bounds.</li>
+              <li>Child count is generated only for scenarios that allow children, with child ages capped and youngest/oldest child dates ordered consistently.</li>
+              <li>Parent age at child birth must be at least the configured minimum age.</li>
+              <li>Move-in dates cannot imply the primary client moved in before adulthood.</li>
+              <li>Employment start dates cannot precede minimum working age and cannot fall in the future.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Marital status, income lines, and products</h3>
+            <ul>
+              <li>Marital status can be scenario-overridden: widowed, divorced, and secondly-wedded households receive compatible statuses.</li>
+              <li>Alimony is only generated for divorced or secondly-wedded-paying-alimony households; the validator flags any incompatible alimony/status combination.</li>
+              <li>Household income is split across one or two adults, with a special high-earner/low-earner split for that scenario.</li>
+              <li>Income lines are decomposed into realistic sources such as salary, bonus, business income, rental income, Social Security, pension income, and interest/dividends.</li>
+              <li>Social Security and pension income are age-gated so they do not appear for implausibly young clients.</li>
+              <li>Protection policies derive coverage and premium behavior from income and term rules, with coverage dates capped to avoid implausible ages.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 18px;">
         <h3>Scenario coverage in the 5,000-household synthetic population</h3>
         <table>
           <thead>
