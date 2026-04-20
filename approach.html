@@ -528,6 +528,15 @@
         </table>
       </div>
 
+      <div class="card" style="margin-top: 18px;">
+        <h3>Selected data-generation diagnostics</h3>
+        <p>
+          The following figures are a representative slice of the diagnostic plots produced by Stage 01. Together they
+          illustrate how we check scenario coverage, marginal distributions, cross-field consistency, debt burden,
+          lifecycle effects, and categorical priors.
+        </p>
+      </div>
+
       <div class="visual-grid">
         <figure>
           <img src="01_data_generation/artifacts/figures/scenario_coverage.png" alt="Scenario coverage chart">
@@ -542,6 +551,10 @@
           <figcaption>Investable assets distribution, generated as a noisy income-linked wealth model.</figcaption>
         </figure>
         <figure>
+          <img src="01_data_generation/artifacts/figures/net_worth_hist.png" alt="Net worth distribution">
+          <figcaption>Net worth proxy distribution checks the combined wealth profile of generated households.</figcaption>
+        </figure>
+        <figure>
           <img src="01_data_generation/artifacts/figures/income_vs_investable_assets.png" alt="Income versus investable assets">
           <figcaption>Income vs investable assets checks cross-field coherence and boundary artifacts.</figcaption>
         </figure>
@@ -552,6 +565,54 @@
         <figure>
           <img src="01_data_generation/artifacts/figures/condprob_has_mortgage_by_scenario.png" alt="Conditional mortgage probability by scenario">
           <figcaption>Conditional mortgage incidence by scenario checks dependence structure.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/mortgage_payment_hist.png" alt="Mortgage payment distribution">
+          <figcaption>Monthly mortgage payment distribution for households with positive mortgage payments.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/non_mortgage_payment_hist.png" alt="Non-mortgage payment distribution">
+          <figcaption>Monthly non-mortgage payment distribution for non-mortgage debt burden checks.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/mortgage_payment_to_income_ratio_hist.png" alt="Mortgage payment to income ratio">
+          <figcaption>Mortgage payment-to-income ratio monitors affordability constraints and cap behavior.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/total_debt_cost_to_income_ratio_hist.png" alt="Total debt cost to income ratio">
+          <figcaption>Total debt service-to-income ratio checks overall debt burden realism.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/debt_cost_to_expenses_ratio_hist.png" alt="Debt cost to expenses ratio">
+          <figcaption>Debt payments as a share of monthly expenses checks expense/debt consistency.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/income_to_total_debt_ratio_hist.png" alt="Income to total debt ratio">
+          <figcaption>Income-to-total-debt ratio helps identify unrealistic leverage patterns.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/income_to_net_debt_ratio_hist.png" alt="Income to net debt ratio">
+          <figcaption>Income-to-net-debt ratio adjusts debt by cash-like liquidity.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/retirement_proximity_vs_income.png" alt="Retirement proximity versus income">
+          <figcaption>Retirement proximity vs income checks lifecycle realism across work and retirement scenarios.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/retirement_proximity_vs_assets.png" alt="Retirement proximity versus assets">
+          <figcaption>Retirement proximity vs assets checks that wealth accumulation behaves coherently with age.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/retirement_proximity_vs_mortgage_payment.png" alt="Retirement proximity versus mortgage payment">
+          <figcaption>Retirement proximity vs mortgage payment verifies mortgage tapering as households approach retirement.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/retirement_proximity_vs_mortgage_outstanding.png" alt="Retirement proximity versus mortgage outstanding">
+          <figcaption>Retirement proximity vs mortgage outstanding checks declining mortgage exposure near retirement.</figcaption>
+        </figure>
+        <figure>
+          <img src="01_data_generation/artifacts/figures/age_vs_terms_mortgage_and_protection.png" alt="Age versus mortgage and protection terms">
+          <figcaption>Age vs mortgage/protection terms validates lifecycle constraints and product-term coherence.</figcaption>
         </figure>
       </div>
     </section>
