@@ -2,7 +2,7 @@
   "households": [
     {
       "household_id": "HH004359",
-      "scenario": "self_employed_business_owner",
+      "scenario": "pre_retirement_wealthy",
       "country": "us",
       "market": "US_RIA",
       "marital_status": "married_or_civil_partner",
@@ -11,7 +11,7 @@
       "num_dependants": 0,
       "annual_household_gross_income": 224300,
       "monthly_expenses_total": 13000,
-      "expense_to_income_ratio": 0.6959465002229157,
+      "expense_to_income_ratio": 0.6957922425329175,
       "has_mortgage_or_loan": true,
       "loan_outstanding_total": 92600,
       "mortgage_outstanding_total": 89500,
@@ -19,7 +19,7 @@
       "monthly_debt_cost_total": 3350,
       "monthly_mortgage_payment_total": 3150,
       "monthly_non_mortgage_payment_total": 200,
-      "mortgage_payment_to_income_ratio": 0.16852608114132858,
+      "mortgage_payment_to_income_ratio": 0.1685483736048144,
       "property_value_total": 314100,
       "investable_assets_total": 1222500,
       "retirement_assets_total": 367950,
@@ -62,13 +62,22 @@
       "income_line_id": "HH004359_INC1",
       "household_id": "HH004359",
       "owner": "client_1",
-      "source_type": "business_income",
-      "frequency": "annual",
+      "source_type": "bonus",
+      "frequency": "weekly",
       "net_or_gross": "gross",
-      "amount_annualized": 141350
+      "amount_annualized": 50400
     },
     {
       "income_line_id": "HH004359_INC2",
+      "household_id": "HH004359",
+      "owner": "client_1",
+      "source_type": "rental_income",
+      "frequency": "monthly",
+      "net_or_gross": "gross",
+      "amount_annualized": 173850
+    },
+    {
+      "income_line_id": "HH004359_INC3",
       "household_id": "HH004359",
       "owner": "client_2",
       "source_type": "salary",
@@ -77,22 +86,13 @@
       "amount_annualized": 82950
     },
     {
-      "income_line_id": "HH004359_INC3",
-      "household_id": "HH004359",
-      "owner": "client_1",
-      "source_type": "bonus",
-      "frequency": "weekly",
-      "net_or_gross": "gross",
-      "amount_annualized": 50400
-    },
-    {
       "income_line_id": "HH004359_INC4",
       "household_id": "HH004359",
       "owner": "client_1",
-      "source_type": "rental_income",
-      "frequency": "monthly",
+      "source_type": "business_income",
+      "frequency": "annual",
       "net_or_gross": "gross",
-      "amount_annualized": 173850
+      "amount_annualized": 141350
     }
   ],
   "assets": [
@@ -100,8 +100,8 @@
       "asset_id": "HH004359_A1",
       "household_id": "HH004359",
       "owner": "joint",
-      "asset_type": "cash",
-      "subtype": "bank_account",
+      "asset_type": "brokerage",
+      "subtype": "taxable_brokerage",
       "provider_type": "brokerage",
       "value": 765000,
       "is_joint": true
@@ -169,7 +169,7 @@
   ],
   "protection_policies": [
     {
-      "policy_id": "HH004359_PP1",
+      "policy_id": "HH004359_PLC1",
       "household_id": "HH004359",
       "owner": "client_1",
       "policy_type": "ltc",
