@@ -1,0 +1,919 @@
+{
+  "meta": {
+    "dialog_id": "DIALOG_HH003218",
+    "household_id": "HH003218",
+    "scenario_name": "affluent_couple_brokerage_and_pensions",
+    "household_type": "couple",
+    "num_targets": 55,
+    "batch_size": 4,
+    "mode": "field_chunks",
+    "extractor": "rule_based_first_correct_v1"
+  },
+  "targets": [
+    {
+      "target_id": "t00001",
+      "record_type": "households",
+      "field_path": "households.annual_household_gross_income",
+      "source_value": 85650
+    },
+    {
+      "target_id": "t00002",
+      "record_type": "households",
+      "field_path": "households.monthly_expenses_total",
+      "source_value": 4150
+    },
+    {
+      "target_id": "t00003",
+      "record_type": "households",
+      "field_path": "households.monthly_debt_cost_total",
+      "source_value": 0
+    },
+    {
+      "target_id": "t00004",
+      "record_type": "households",
+      "field_path": "households.investable_assets_total",
+      "source_value": 295600
+    },
+    {
+      "target_id": "t00005",
+      "record_type": "households",
+      "field_path": "households.property_value_total",
+      "source_value": 262050
+    },
+    {
+      "target_id": "t00006",
+      "record_type": "households",
+      "field_path": "households.loan_outstanding_total",
+      "source_value": 0
+    },
+    {
+      "target_id": "t00007",
+      "record_type": "households",
+      "field_path": "households.mortgage_outstanding_total",
+      "source_value": 0
+    },
+    {
+      "target_id": "t00008",
+      "record_type": "households",
+      "field_path": "households.non_mortgage_outstanding_total",
+      "source_value": 0
+    },
+    {
+      "target_id": "t00009",
+      "record_type": "households",
+      "field_path": "households.market",
+      "source_value": "US_RIA"
+    },
+    {
+      "target_id": "t00010",
+      "record_type": "households",
+      "field_path": "households.num_adults",
+      "source_value": 2
+    },
+    {
+      "target_id": "t00011",
+      "record_type": "households",
+      "field_path": "households.marital_status",
+      "source_value": "married_or_civil_partner"
+    },
+    {
+      "target_id": "t00012",
+      "record_type": "households",
+      "field_path": "households.tax_bracket_band",
+      "source_value": "35%"
+    },
+    {
+      "target_id": "t00013",
+      "record_type": "households",
+      "field_path": "households.num_dependants",
+      "source_value": 0
+    },
+    {
+      "target_id": "t00014",
+      "record_type": "households",
+      "field_path": "households.risk_tolerance",
+      "source_value": "conservative"
+    },
+    {
+      "target_id": "t00015",
+      "record_type": "households",
+      "field_path": "households.country",
+      "source_value": "US"
+    },
+    {
+      "target_id": "t00016",
+      "record_type": "households",
+      "field_path": "households.residence_state",
+      "source_value": "CA"
+    },
+    {
+      "target_id": "t00017",
+      "record_type": "people",
+      "record_id": "HH003218_P2",
+      "field_path": "people[person_id=HH003218_P2].gross_annual_income",
+      "source_value": 27500
+    },
+    {
+      "target_id": "t00018",
+      "record_type": "people",
+      "record_id": "HH003218_P2",
+      "field_path": "people[person_id=HH003218_P2].role",
+      "source_value": "spouse_partner"
+    },
+    {
+      "target_id": "t00019",
+      "record_type": "people",
+      "record_id": "HH003218_P2",
+      "field_path": "people[person_id=HH003218_P2].client_no",
+      "source_value": 2
+    },
+    {
+      "target_id": "t00020",
+      "record_type": "people",
+      "record_id": "HH003218_P2",
+      "field_path": "people[person_id=HH003218_P2].occupation_group",
+      "source_value": "inactive"
+    },
+    {
+      "target_id": "t00021",
+      "record_type": "people",
+      "record_id": "HH003218_P2",
+      "field_path": "people[person_id=HH003218_P2].employment_status",
+      "source_value": "inactive"
+    },
+    {
+      "target_id": "t00022",
+      "record_type": "people",
+      "record_id": "HH003218_P1",
+      "field_path": "people[person_id=HH003218_P1].gross_annual_income",
+      "source_value": 58150
+    },
+    {
+      "target_id": "t00023",
+      "record_type": "people",
+      "record_id": "HH003218_P1",
+      "field_path": "people[person_id=HH003218_P1].client_no",
+      "source_value": 1
+    },
+    {
+      "target_id": "t00024",
+      "record_type": "people",
+      "record_id": "HH003218_P1",
+      "field_path": "people[person_id=HH003218_P1].employment_status",
+      "source_value": "self_employed"
+    },
+    {
+      "target_id": "t00025",
+      "record_type": "people",
+      "record_id": "HH003218_P1",
+      "field_path": "people[person_id=HH003218_P1].occupation_group",
+      "source_value": "operations"
+    },
+    {
+      "target_id": "t00026",
+      "record_type": "people",
+      "record_id": "HH003218_P1",
+      "field_path": "people[person_id=HH003218_P1].role",
+      "source_value": "primary"
+    },
+    {
+      "target_id": "t00027",
+      "record_type": "income_lines",
+      "record_id": "HH003218_I1",
+      "field_path": "income_lines[income_line_id=HH003218_I1].amount_annualized",
+      "source_value": 85650
+    },
+    {
+      "target_id": "t00028",
+      "record_type": "income_lines",
+      "record_id": "HH003218_I1",
+      "field_path": "income_lines[income_line_id=HH003218_I1].source_type",
+      "source_value": "rental_income"
+    },
+    {
+      "target_id": "t00029",
+      "record_type": "income_lines",
+      "record_id": "HH003218_I1",
+      "field_path": "income_lines[income_line_id=HH003218_I1].owner",
+      "source_value": "client_1"
+    },
+    {
+      "target_id": "t00030",
+      "record_type": "income_lines",
+      "record_id": "HH003218_I1",
+      "field_path": "income_lines[income_line_id=HH003218_I1].frequency",
+      "source_value": "monthly"
+    },
+    {
+      "target_id": "t00031",
+      "record_type": "assets",
+      "record_id": "HH003218_A4",
+      "field_path": "assets[asset_id=HH003218_A4].value",
+      "source_value": 36600
+    },
+    {
+      "target_id": "t00032",
+      "record_type": "assets",
+      "record_id": "HH003218_A4",
+      "field_path": "assets[asset_id=HH003218_A4].asset_type",
+      "source_value": "alternatives"
+    },
+    {
+      "target_id": "t00033",
+      "record_type": "assets",
+      "record_id": "HH003218_A4",
+      "field_path": "assets[asset_id=HH003218_A4].subtype",
+      "source_value": "private_markets"
+    },
+    {
+      "target_id": "t00034",
+      "record_type": "assets",
+      "record_id": "HH003218_A4",
+      "field_path": "assets[asset_id=HH003218_A4].provider_type",
+      "source_value": "brokerage"
+    },
+    {
+      "target_id": "t00035",
+      "record_type": "assets",
+      "record_id": "HH003218_A4",
+      "field_path": "assets[asset_id=HH003218_A4].owner",
+      "source_value": "client_1"
+    },
+    {
+      "target_id": "t00036",
+      "record_type": "assets",
+      "record_id": "HH003218_A3",
+      "field_path": "assets[asset_id=HH003218_A3].value",
+      "source_value": 16700
+    },
+    {
+      "target_id": "t00037",
+      "record_type": "assets",
+      "record_id": "HH003218_A3",
+      "field_path": "assets[asset_id=HH003218_A3].asset_type",
+      "source_value": "cash"
+    },
+    {
+      "target_id": "t00038",
+      "record_type": "assets",
+      "record_id": "HH003218_A3",
+      "field_path": "assets[asset_id=HH003218_A3].subtype",
+      "source_value": "bank"
+    },
+    {
+      "target_id": "t00039",
+      "record_type": "assets",
+      "record_id": "HH003218_A3",
+      "field_path": "assets[asset_id=HH003218_A3].provider_type",
+      "source_value": "bank"
+    },
+    {
+      "target_id": "t00040",
+      "record_type": "assets",
+      "record_id": "HH003218_A3",
+      "field_path": "assets[asset_id=HH003218_A3].owner",
+      "source_value": "client_1"
+    },
+    {
+      "target_id": "t00041",
+      "record_type": "assets",
+      "record_id": "HH003218_A2",
+      "field_path": "assets[asset_id=HH003218_A2].value",
+      "source_value": 82200
+    },
+    {
+      "target_id": "t00042",
+      "record_type": "assets",
+      "record_id": "HH003218_A2",
+      "field_path": "assets[asset_id=HH003218_A2].owner",
+      "source_value": "client_1"
+    },
+    {
+      "target_id": "t00043",
+      "record_type": "assets",
+      "record_id": "HH003218_A2",
+      "field_path": "assets[asset_id=HH003218_A2].provider_type",
+      "source_value": "bank"
+    },
+    {
+      "target_id": "t00044",
+      "record_type": "assets",
+      "record_id": "HH003218_A2",
+      "field_path": "assets[asset_id=HH003218_A2].subtype",
+      "source_value": "401k_ira"
+    },
+    {
+      "target_id": "t00045",
+      "record_type": "assets",
+      "record_id": "HH003218_A2",
+      "field_path": "assets[asset_id=HH003218_A2].asset_type",
+      "source_value": "retirement"
+    },
+    {
+      "target_id": "t00046",
+      "record_type": "assets",
+      "record_id": "HH003218_A1",
+      "field_path": "assets[asset_id=HH003218_A1].value",
+      "source_value": 160150
+    },
+    {
+      "target_id": "t00047",
+      "record_type": "assets",
+      "record_id": "HH003218_A1",
+      "field_path": "assets[asset_id=HH003218_A1].asset_type",
+      "source_value": "brokerage"
+    },
+    {
+      "target_id": "t00048",
+      "record_type": "assets",
+      "record_id": "HH003218_A1",
+      "field_path": "assets[asset_id=HH003218_A1].provider_type",
+      "source_value": "retirement_platform"
+    },
+    {
+      "target_id": "t00049",
+      "record_type": "assets",
+      "record_id": "HH003218_A1",
+      "field_path": "assets[asset_id=HH003218_A1].subtype",
+      "source_value": "taxable"
+    },
+    {
+      "target_id": "t00050",
+      "record_type": "assets",
+      "record_id": "HH003218_A1",
+      "field_path": "assets[asset_id=HH003218_A1].owner",
+      "source_value": "client_1"
+    },
+    {
+      "target_id": "t00051",
+      "record_type": "assets",
+      "record_id": "HH003218_A5",
+      "field_path": "assets[asset_id=HH003218_A5].value",
+      "source_value": 262050
+    },
+    {
+      "target_id": "t00052",
+      "record_type": "assets",
+      "record_id": "HH003218_A5",
+      "field_path": "assets[asset_id=HH003218_A5].owner",
+      "source_value": "client_1"
+    },
+    {
+      "target_id": "t00053",
+      "record_type": "assets",
+      "record_id": "HH003218_A5",
+      "field_path": "assets[asset_id=HH003218_A5].subtype",
+      "source_value": "primary_residence"
+    },
+    {
+      "target_id": "t00054",
+      "record_type": "assets",
+      "record_id": "HH003218_A5",
+      "field_path": "assets[asset_id=HH003218_A5].asset_type",
+      "source_value": "property"
+    },
+    {
+      "target_id": "t00055",
+      "record_type": "assets",
+      "record_id": "HH003218_A5",
+      "field_path": "assets[asset_id=HH003218_A5].provider_type",
+      "source_value": "retirement_platform"
+    }
+  ],
+  "items": [
+    {
+      "target_id": "t00001",
+      "record_type": "households",
+      "field_path": "households.annual_household_gross_income",
+      "source_value": 85650,
+      "status": "present",
+      "evidence_text": "Client 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?\nClient 1: The number we’re working off is 85650 annually.\nAdvisor: Got it—thank you. And on the spending side, about what do your total monthly expenses run, all-in?\nClient 2: Roughly four thousand a month—like groceries, utilities, all that.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00002",
+      "record_type": "households",
+      "field_path": "households.monthly_expenses_total",
+      "source_value": 4150,
+      "status": "present",
+      "evidence_text": "Client 2: Roughly four thousand a month—like groceries, utilities, all that.\nAdvisor: Okay. When you say roughly, do you have a tighter number you two track?\nClient 1: Yes—4150 per month is what we’ve been using.\nAdvisor: Perfect. Now debt—any monthly debt payments right now? Mortgage, car loans, credit cards you’re carrying?\nClient 2: No, we don’t have any payments like that.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00003",
+      "record_type": "households",
+      "field_path": "households.monthly_debt_cost_total",
+      "source_value": 0,
+      "status": "present",
+      "evidence_text": "Client 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?\nClient 1: The number we’re working off is 85650 annually.\nAdvisor: Got it—thank you. And on the spending side, about what do your total monthly expenses run, all-in?\nClient 2: Roughly four thousand a month—like groceries, utilities, all that.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00004",
+      "record_type": "households",
+      "field_path": "households.investable_assets_total",
+      "source_value": 295600,
+      "status": "present",
+      "evidence_text": "Client 1: Right—monthly debt payments total is 0.\nAdvisor: Great. Let me switch to assets for a minute—just to understand what you’ve built. About how much do you consider investable across everything, excluding the home?\nClient 1: Investable assets total is 295600.\nAdvisor: Okay—thank you. Now I’m going to walk through what makes up that pile, and you tell me if I’m missing anything.\nAdvisor: First, you’ve got a taxable investment account—what do you show as the current value there?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00005",
+      "record_type": "households",
+      "field_path": "households.property_value_total",
+      "source_value": 262050,
+      "status": "present",
+      "evidence_text": "Client 1: 36600.\nAdvisor: Okay. And then separately from investable assets, you have your primary residence—what value are you using for the home?\nClient 2: We’ve got it at 262050.\nAdvisor: Got it. And just to confirm on liabilities: you said no loans outstanding—so no mortgage balance, no car note, nothing like that?\nClient 1: Correct, no loans outstanding.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00006",
+      "record_type": "households",
+      "field_path": "households.loan_outstanding_total",
+      "source_value": 0,
+      "status": "present",
+      "evidence_text": "Client 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?\nClient 1: The number we’re working off is 85650 annually.\nAdvisor: Got it—thank you. And on the spending side, about what do your total monthly expenses run, all-in?\nClient 2: Roughly four thousand a month—like groceries, utilities, all that.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00007",
+      "record_type": "households",
+      "field_path": "households.mortgage_outstanding_total",
+      "source_value": 0,
+      "status": "present",
+      "evidence_text": "Client 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?\nClient 1: The number we’re working off is 85650 annually.\nAdvisor: Got it—thank you. And on the spending side, about what do your total monthly expenses run, all-in?\nClient 2: Roughly four thousand a month—like groceries, utilities, all that.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00008",
+      "record_type": "households",
+      "field_path": "households.non_mortgage_outstanding_total",
+      "source_value": 0,
+      "status": "present",
+      "evidence_text": "Client 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?\nClient 1: The number we’re working off is 85650 annually.\nAdvisor: Got it—thank you. And on the spending side, about what do your total monthly expenses run, all-in?\nClient 2: Roughly four thousand a month—like groceries, utilities, all that.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00009",
+      "record_type": "households",
+      "field_path": "households.market",
+      "source_value": "US_RIA",
+      "status": "present",
+      "evidence_text": "Advisor: Close, but not exactly—think of it as the top tax rate band your next dollar falls into. Do you know what bracket you’re in most years?\nClient 1: We’re in the 35% bracket band.\nAdvisor: Okay, 35%—thank you. And last admin-ish thing: how are we engaging—are you looking for an RIA relationship, meaning registered investment advisor, versus like a brokerage-only setup?\nClient 1: Yes—RIA (registered investment advisor).\nAdvisor: Perfect. And just to keep the full picture consistent with what we covered: income is rental income paid monthly, and on the balance sheet you’ve got the taxable account at 160150, the retirement account at the bank at 82200, cash at the bank at 16700, private markets at 36600, and the home at 262050.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00010",
+      "record_type": "households",
+      "field_path": "households.num_adults",
+      "source_value": 2,
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Susan—nice to meet you both. I’m glad you came in. Before we get into the weeds, what prompted you to reach out now?\nClient 1: Thanks. I just want a clean plan—like, what we should do next and what could go wrong. We’ve got a bunch of accounts and I don’t want surprises.\nClient 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?\nClient 1: The number we’re working off is 85650 annually.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00011",
+      "record_type": "households",
+      "field_path": "households.marital_status",
+      "source_value": "married_or_civil_partner",
+      "status": "present",
+      "evidence_text": "Advisor: First, just confirming household makeup: is it just the two of you—how many adults are in the household?\nClient 1: Two adults—just me and Susan.\nAdvisor: Great. And marital status—are you two married?\nClient 2: Yes, we’re married.\nAdvisor: Got it. Switching gears slightly—taxes. When you think about your marginal bracket, what band are you usually in?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00012",
+      "record_type": "households",
+      "field_path": "households.tax_bracket_band",
+      "source_value": "35%",
+      "status": "present",
+      "evidence_text": "Client 2: I always mix this up—like is that the percent that comes out of the paycheck?\nAdvisor: Close, but not exactly—think of it as the top tax rate band your next dollar falls into. Do you know what bracket you’re in most years?\nClient 1: We’re in the 35% bracket band.\nAdvisor: Okay, 35%—thank you. And last admin-ish thing: how are we engaging—are you looking for an RIA relationship, meaning registered investment advisor, versus like a brokerage-only setup?\nClient 1: Yes—RIA (registered investment advisor).",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00013",
+      "record_type": "households",
+      "field_path": "households.num_dependants",
+      "source_value": 0,
+      "status": "present",
+      "evidence_text": "Client 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?\nClient 1: The number we’re working off is 85650 annually.\nAdvisor: Got it—thank you. And on the spending side, about what do your total monthly expenses run, all-in?\nClient 2: Roughly four thousand a month—like groceries, utilities, all that.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00014",
+      "record_type": "households",
+      "field_path": "households.risk_tolerance",
+      "source_value": "conservative",
+      "status": "present",
+      "evidence_text": "Client 1: Yes, I’m Client 1.\nClient 2: And I’m Client 2.\nAdvisor: Perfect. Next time we can dig into how conservative you want to be with that 295600 and what you want the money to do, but for today this gives me a clean starting map.\nAdvisor: Before we wrap today, I want to make sure the home and debt pieces are super clear, William and Susan.\nAdvisor: On the house—Susan, you mentioned the value you’re using. What number should I anchor to for the property value?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00015",
+      "record_type": "households",
+      "field_path": "households.country",
+      "source_value": "US",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Susan—nice to meet you both. I’m glad you came in. Before we get into the weeds, what prompted you to reach out now?\nClient 1: Thanks. I just want a clean plan—like, what we should do next and what could go wrong. We’ve got a bunch of accounts and I don’t want surprises.\nClient 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00016",
+      "record_type": "households",
+      "field_path": "households.residence_state",
+      "source_value": "CA",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Susan—nice to meet you both. I’m glad you came in. Before we get into the weeds, what prompted you to reach out now?\nClient 1: Thanks. I just want a clean plan—like, what we should do next and what could go wrong. We’ve got a bunch of accounts and I don’t want surprises.\nClient 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00017",
+      "record_type": "people",
+      "record_id": "HH003218_P2",
+      "field_path": "people[person_id=HH003218_P2].gross_annual_income",
+      "source_value": 27500,
+      "status": "present",
+      "evidence_text": "Client 2: Right, no job income right now.\nAdvisor: Understood. On income for you specifically, Susan—what’s your gross annual income number we should use?\nClient 2: It’s 27500 gross annual.\nAdvisor: Thanks. And just to be super clear, that 27500 is your annual gross, not monthly—right?\nClient 2: Annual, yes—27500 for the year.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00018",
+      "record_type": "people",
+      "record_id": "HH003218_P2",
+      "field_path": "people[person_id=HH003218_P2].role",
+      "source_value": "spouse_partner",
+      "status": "present",
+      "evidence_text": "Client 2: Yes, still correct.\nAdvisor: Okay—last couple basics about you individually, Susan, just so I’m not mixing anything up.\nAdvisor: In the household, you’re listed as William’s spouse or partner—does “spouse/partner” describe your role here?\nClient 2: Yes, spouse/partner is right.\nAdvisor: Got it. And are you currently working, or more not working right now—retired, on a break, anything like that?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00019",
+      "record_type": "people",
+      "record_id": "HH003218_P2",
+      "field_path": "people[person_id=HH003218_P2].client_no",
+      "source_value": 2,
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Susan—nice to meet you both. I’m glad you came in. Before we get into the weeds, what prompted you to reach out now?\nClient 1: Thanks. I just want a clean plan—like, what we should do next and what could go wrong. We’ve got a bunch of accounts and I don’t want surprises.\nClient 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?\nClient 1: The number we’re working off is 85650 annually.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00020",
+      "record_type": "people",
+      "record_id": "HH003218_P2",
+      "field_path": "people[person_id=HH003218_P2].occupation_group",
+      "source_value": "inactive",
+      "status": "present",
+      "evidence_text": "Client 2: Yes, spouse/partner is right.\nAdvisor: Got it. And are you currently working, or more not working right now—retired, on a break, anything like that?\nClient 2: I’m not working right now—inactive.\nAdvisor: Okay. When you say inactive, is that like not employed at the moment—no wages coming in?\nClient 2: Right, no job income right now.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00021",
+      "record_type": "people",
+      "record_id": "HH003218_P2",
+      "field_path": "people[person_id=HH003218_P2].employment_status",
+      "source_value": "inactive",
+      "status": "present",
+      "evidence_text": "Client 2: Yes, spouse/partner is right.\nAdvisor: Got it. And are you currently working, or more not working right now—retired, on a break, anything like that?\nClient 2: I’m not working right now—inactive.\nAdvisor: Okay. When you say inactive, is that like not employed at the moment—no wages coming in?\nClient 2: Right, no job income right now.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00022",
+      "record_type": "people",
+      "record_id": "HH003218_P1",
+      "field_path": "people[person_id=HH003218_P1].gross_annual_income",
+      "source_value": 58150,
+      "status": "present",
+      "evidence_text": "Client 1: Self employed.\nAdvisor: Got it. And for your income number, William—what gross annual income should I use for you personally?\nClient 1: It’s 58150 gross annual income.\nAdvisor: Perfect—thank you. One sec, I’m just noting that down.\nAdvisor: And just to double-check the labeling one more time so I don’t flip you two later—William, you’re Client 1, correct?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00023",
+      "record_type": "people",
+      "record_id": "HH003218_P1",
+      "field_path": "people[person_id=HH003218_P1].client_no",
+      "source_value": 1,
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Susan—nice to meet you both. I’m glad you came in. Before we get into the weeds, what prompted you to reach out now?\nClient 1: Thanks. I just want a clean plan—like, what we should do next and what could go wrong. We’ve got a bunch of accounts and I don’t want surprises.\nClient 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00024",
+      "record_type": "people",
+      "record_id": "HH003218_P1",
+      "field_path": "people[person_id=HH003218_P1].employment_status",
+      "source_value": "self_employed",
+      "status": "present",
+      "evidence_text": "Client 1: Yep, still correct.\nClient 2: Yes.\nAdvisor: Okay—thanks. I know we just did a wrap-up, but I want to make sure I’ve got each of you right individually. William, can I confirm your work situation—are you employed by a company, or self-employed?\nClient 1: Self employed.\nAdvisor: Got it. And for your income number, William—what gross annual income should I use for you personally?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00025",
+      "record_type": "people",
+      "record_id": "HH003218_P1",
+      "field_path": "people[person_id=HH003218_P1].occupation_group",
+      "source_value": "operations",
+      "status": "present",
+      "evidence_text": "Advisor: Okay—thanks for hanging with me, William and Susan. I want to round out William’s profile a bit so the plan isn’t generic.\nAdvisor: William, in plain English, what kind of work do you do—what’s your occupation area?\nClient 1: Operations.\nAdvisor: Operations—got it. When you say operations, is that like running day-to-day processes, logistics, that kind of thing?\nClient 1: Yeah, exactly—operations.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00026",
+      "record_type": "people",
+      "record_id": "HH003218_P1",
+      "field_path": "people[person_id=HH003218_P1].role",
+      "source_value": "primary",
+      "status": "present",
+      "evidence_text": "Advisor: Great, thanks. And you mentioned some private investments—private markets—what’s the value you’re using for that?\nClient 1: 36600.\nAdvisor: Okay. And then separately from investable assets, you have your primary residence—what value are you using for the home?\nClient 2: We’ve got it at 262050.\nAdvisor: Got it. And just to confirm on liabilities: you said no loans outstanding—so no mortgage balance, no car note, nothing like that?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00027",
+      "record_type": "income_lines",
+      "record_id": "HH003218_I1",
+      "field_path": "income_lines[income_line_id=HH003218_I1].amount_annualized",
+      "source_value": 85650,
+      "status": "present",
+      "evidence_text": "Client 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?\nClient 1: The number we’re working off is 85650 annually.\nAdvisor: Got it—thank you. And on the spending side, about what do your total monthly expenses run, all-in?\nClient 2: Roughly four thousand a month—like groceries, utilities, all that.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00028",
+      "record_type": "income_lines",
+      "record_id": "HH003218_I1",
+      "field_path": "income_lines[income_line_id=HH003218_I1].source_type",
+      "source_value": "rental_income",
+      "status": "present",
+      "evidence_text": "Client 1: Investable assets total is 295600.\nAdvisor: Okay—thank you. Now I’m going to walk through what makes up that pile, and you tell me if I’m missing anything.\nAdvisor: First, you’ve got a taxable investment account—what do you show as the current value there?\nClient 1: That taxable account is 160150.\nAdvisor: Next, there’s a retirement account at a bank—what’s the balance on that one?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00029",
+      "record_type": "income_lines",
+      "record_id": "HH003218_I1",
+      "field_path": "income_lines[income_line_id=HH003218_I1].owner",
+      "source_value": "client_1",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Susan—nice to meet you both. I’m glad you came in. Before we get into the weeds, what prompted you to reach out now?\nClient 1: Thanks. I just want a clean plan—like, what we should do next and what could go wrong. We’ve got a bunch of accounts and I don’t want surprises.\nClient 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00030",
+      "record_type": "income_lines",
+      "record_id": "HH003218_I1",
+      "field_path": "income_lines[income_line_id=HH003218_I1].frequency",
+      "source_value": "monthly",
+      "status": "present",
+      "evidence_text": "Advisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?\nClient 1: The number we’re working off is 85650 annually.\nAdvisor: Got it—thank you. And on the spending side, about what do your total monthly expenses run, all-in?\nClient 2: Roughly four thousand a month—like groceries, utilities, all that.\nAdvisor: Okay. When you say roughly, do you have a tighter number you two track?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00031",
+      "record_type": "assets",
+      "record_id": "HH003218_A4",
+      "field_path": "assets[asset_id=HH003218_A4].value",
+      "source_value": 36600,
+      "status": "present",
+      "evidence_text": "Client 1: It’s 16700.\nAdvisor: Great, thanks. And you mentioned some private investments—private markets—what’s the value you’re using for that?\nClient 1: 36600.\nAdvisor: Okay. And then separately from investable assets, you have your primary residence—what value are you using for the home?\nClient 2: We’ve got it at 262050.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00032",
+      "record_type": "assets",
+      "record_id": "HH003218_A4",
+      "field_path": "assets[asset_id=HH003218_A4].asset_type",
+      "source_value": "alternatives",
+      "status": "present",
+      "evidence_text": "Advisor: Alright—income is squared away. Let’s hop back to the assets for a minute, William and Susan.\nAdvisor: There was one bucket you mentioned that’s not the bank cash or the retirement accounts—the private investment piece. What do you call that in your own words?\nClient 1: We call it alternatives.\nAdvisor: Okay, alternatives—thanks. And within that, what’s the specific type—like private equity, private credit, that sort of thing?\nClient 2: It’s private markets.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00033",
+      "record_type": "assets",
+      "record_id": "HH003218_A4",
+      "field_path": "assets[asset_id=HH003218_A4].subtype",
+      "source_value": "private_markets",
+      "status": "present",
+      "evidence_text": "Client 2: I think it’s like… fifteen-ish?\nClient 1: It’s 16700.\nAdvisor: Great, thanks. And you mentioned some private investments—private markets—what’s the value you’re using for that?\nClient 1: 36600.\nAdvisor: Okay. And then separately from investable assets, you have your primary residence—what value are you using for the home?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00034",
+      "record_type": "assets",
+      "record_id": "HH003218_A4",
+      "field_path": "assets[asset_id=HH003218_A4].provider_type",
+      "source_value": "brokerage",
+      "status": "present",
+      "evidence_text": "Advisor: Close, but not exactly—think of it as the top tax rate band your next dollar falls into. Do you know what bracket you’re in most years?\nClient 1: We’re in the 35% bracket band.\nAdvisor: Okay, 35%—thank you. And last admin-ish thing: how are we engaging—are you looking for an RIA relationship, meaning registered investment advisor, versus like a brokerage-only setup?\nClient 1: Yes—RIA (registered investment advisor).\nAdvisor: Perfect. And just to keep the full picture consistent with what we covered: income is rental income paid monthly, and on the balance sheet you’ve got the taxable account at 160150, the retirement account at the bank at 82200, cash at the bank at 16700, private markets at 36600, and the home at 262050.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00035",
+      "record_type": "assets",
+      "record_id": "HH003218_A4",
+      "field_path": "assets[asset_id=HH003218_A4].owner",
+      "source_value": "client_1",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Susan—nice to meet you both. I’m glad you came in. Before we get into the weeds, what prompted you to reach out now?\nClient 1: Thanks. I just want a clean plan—like, what we should do next and what could go wrong. We’ve got a bunch of accounts and I don’t want surprises.\nClient 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00036",
+      "record_type": "assets",
+      "record_id": "HH003218_A3",
+      "field_path": "assets[asset_id=HH003218_A3].value",
+      "source_value": 16700,
+      "status": "present",
+      "evidence_text": "Advisor: And then you’ve got cash at the bank as well—what’s sitting there?\nClient 2: I think it’s like… fifteen-ish?\nClient 1: It’s 16700.\nAdvisor: Great, thanks. And you mentioned some private investments—private markets—what’s the value you’re using for that?\nClient 1: 36600.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00037",
+      "record_type": "assets",
+      "record_id": "HH003218_A3",
+      "field_path": "assets[asset_id=HH003218_A3].asset_type",
+      "source_value": "cash",
+      "status": "present",
+      "evidence_text": "Client 1: Thanks. I just want a clean plan—like, what we should do next and what could go wrong. We’ve got a bunch of accounts and I don’t want surprises.\nClient 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?\nClient 1: The number we’re working off is 85650 annually.\nAdvisor: Got it—thank you. And on the spending side, about what do your total monthly expenses run, all-in?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00038",
+      "record_type": "assets",
+      "record_id": "HH003218_A3",
+      "field_path": "assets[asset_id=HH003218_A3].subtype",
+      "source_value": "bank",
+      "status": "present",
+      "evidence_text": "Advisor: First, you’ve got a taxable investment account—what do you show as the current value there?\nClient 1: That taxable account is 160150.\nAdvisor: Next, there’s a retirement account at a bank—what’s the balance on that one?\nClient 1: That one is 82200.\nAdvisor: And then you’ve got cash at the bank as well—what’s sitting there?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00039",
+      "record_type": "assets",
+      "record_id": "HH003218_A3",
+      "field_path": "assets[asset_id=HH003218_A3].provider_type",
+      "source_value": "bank",
+      "status": "present",
+      "evidence_text": "Advisor: First, you’ve got a taxable investment account—what do you show as the current value there?\nClient 1: That taxable account is 160150.\nAdvisor: Next, there’s a retirement account at a bank—what’s the balance on that one?\nClient 1: That one is 82200.\nAdvisor: And then you’ve got cash at the bank as well—what’s sitting there?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00040",
+      "record_type": "assets",
+      "record_id": "HH003218_A3",
+      "field_path": "assets[asset_id=HH003218_A3].owner",
+      "source_value": "client_1",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Susan—nice to meet you both. I’m glad you came in. Before we get into the weeds, what prompted you to reach out now?\nClient 1: Thanks. I just want a clean plan—like, what we should do next and what could go wrong. We’ve got a bunch of accounts and I don’t want surprises.\nClient 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00041",
+      "record_type": "assets",
+      "record_id": "HH003218_A2",
+      "field_path": "assets[asset_id=HH003218_A2].value",
+      "source_value": 82200,
+      "status": "present",
+      "evidence_text": "Client 1: That taxable account is 160150.\nAdvisor: Next, there’s a retirement account at a bank—what’s the balance on that one?\nClient 1: That one is 82200.\nAdvisor: And then you’ve got cash at the bank as well—what’s sitting there?\nClient 2: I think it’s like… fifteen-ish?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00042",
+      "record_type": "assets",
+      "record_id": "HH003218_A2",
+      "field_path": "assets[asset_id=HH003218_A2].owner",
+      "source_value": "client_1",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Susan—nice to meet you both. I’m glad you came in. Before we get into the weeds, what prompted you to reach out now?\nClient 1: Thanks. I just want a clean plan—like, what we should do next and what could go wrong. We’ve got a bunch of accounts and I don’t want surprises.\nClient 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00043",
+      "record_type": "assets",
+      "record_id": "HH003218_A2",
+      "field_path": "assets[asset_id=HH003218_A2].provider_type",
+      "source_value": "bank",
+      "status": "present",
+      "evidence_text": "Advisor: First, you’ve got a taxable investment account—what do you show as the current value there?\nClient 1: That taxable account is 160150.\nAdvisor: Next, there’s a retirement account at a bank—what’s the balance on that one?\nClient 1: That one is 82200.\nAdvisor: And then you’ve got cash at the bank as well—what’s sitting there?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00044",
+      "record_type": "assets",
+      "record_id": "HH003218_A2",
+      "field_path": "assets[asset_id=HH003218_A2].subtype",
+      "source_value": "401k_ira",
+      "status": "present",
+      "evidence_text": "Advisor: First, you’ve got a taxable investment account—what do you show as the current value there?\nClient 1: That taxable account is 160150.\nAdvisor: Next, there’s a retirement account at a bank—what’s the balance on that one?\nClient 1: That one is 82200.\nAdvisor: And then you’ve got cash at the bank as well—what’s sitting there?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00045",
+      "record_type": "assets",
+      "record_id": "HH003218_A2",
+      "field_path": "assets[asset_id=HH003218_A2].asset_type",
+      "source_value": "retirement",
+      "status": "present",
+      "evidence_text": "Advisor: First, you’ve got a taxable investment account—what do you show as the current value there?\nClient 1: That taxable account is 160150.\nAdvisor: Next, there’s a retirement account at a bank—what’s the balance on that one?\nClient 1: That one is 82200.\nAdvisor: And then you’ve got cash at the bank as well—what’s sitting there?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00046",
+      "record_type": "assets",
+      "record_id": "HH003218_A1",
+      "field_path": "assets[asset_id=HH003218_A1].value",
+      "source_value": 160150,
+      "status": "present",
+      "evidence_text": "Advisor: Okay—thank you. Now I’m going to walk through what makes up that pile, and you tell me if I’m missing anything.\nAdvisor: First, you’ve got a taxable investment account—what do you show as the current value there?\nClient 1: That taxable account is 160150.\nAdvisor: Next, there’s a retirement account at a bank—what’s the balance on that one?\nClient 1: That one is 82200.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00047",
+      "record_type": "assets",
+      "record_id": "HH003218_A1",
+      "field_path": "assets[asset_id=HH003218_A1].asset_type",
+      "source_value": "brokerage",
+      "status": "present",
+      "evidence_text": "Advisor: Close, but not exactly—think of it as the top tax rate band your next dollar falls into. Do you know what bracket you’re in most years?\nClient 1: We’re in the 35% bracket band.\nAdvisor: Okay, 35%—thank you. And last admin-ish thing: how are we engaging—are you looking for an RIA relationship, meaning registered investment advisor, versus like a brokerage-only setup?\nClient 1: Yes—RIA (registered investment advisor).\nAdvisor: Perfect. And just to keep the full picture consistent with what we covered: income is rental income paid monthly, and on the balance sheet you’ve got the taxable account at 160150, the retirement account at the bank at 82200, cash at the bank at 16700, private markets at 36600, and the home at 262050.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00048",
+      "record_type": "assets",
+      "record_id": "HH003218_A1",
+      "field_path": "assets[asset_id=HH003218_A1].provider_type",
+      "source_value": "retirement_platform",
+      "status": "present",
+      "evidence_text": "Advisor: Okay, alternatives—thanks. And within that, what’s the specific type—like private equity, private credit, that sort of thing?\nClient 2: It’s private markets.\nAdvisor: Got it. And where is that actually held—like is it sitting at a bank, a retirement platform, or a brokerage?\nClient 1: Brokerage.\nAdvisor: Okay. And the current value—what number should I put next to that alternatives holding?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00049",
+      "record_type": "assets",
+      "record_id": "HH003218_A1",
+      "field_path": "assets[asset_id=HH003218_A1].subtype",
+      "source_value": "taxable",
+      "status": "present",
+      "evidence_text": "Client 1: Investable assets total is 295600.\nAdvisor: Okay—thank you. Now I’m going to walk through what makes up that pile, and you tell me if I’m missing anything.\nAdvisor: First, you’ve got a taxable investment account—what do you show as the current value there?\nClient 1: That taxable account is 160150.\nAdvisor: Next, there’s a retirement account at a bank—what’s the balance on that one?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00050",
+      "record_type": "assets",
+      "record_id": "HH003218_A1",
+      "field_path": "assets[asset_id=HH003218_A1].owner",
+      "source_value": "client_1",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Susan—nice to meet you both. I’m glad you came in. Before we get into the weeds, what prompted you to reach out now?\nClient 1: Thanks. I just want a clean plan—like, what we should do next and what could go wrong. We’ve got a bunch of accounts and I don’t want surprises.\nClient 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00051",
+      "record_type": "assets",
+      "record_id": "HH003218_A5",
+      "field_path": "assets[asset_id=HH003218_A5].value",
+      "source_value": 262050,
+      "status": "present",
+      "evidence_text": "Client 1: 36600.\nAdvisor: Okay. And then separately from investable assets, you have your primary residence—what value are you using for the home?\nClient 2: We’ve got it at 262050.\nAdvisor: Got it. And just to confirm on liabilities: you said no loans outstanding—so no mortgage balance, no car note, nothing like that?\nClient 1: Correct, no loans outstanding.",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00052",
+      "record_type": "assets",
+      "record_id": "HH003218_A5",
+      "field_path": "assets[asset_id=HH003218_A5].owner",
+      "source_value": "client_1",
+      "status": "present",
+      "evidence_text": "Advisor: Hi William, hi Susan—nice to meet you both. I’m glad you came in. Before we get into the weeds, what prompted you to reach out now?\nClient 1: Thanks. I just want a clean plan—like, what we should do next and what could go wrong. We’ve got a bunch of accounts and I don’t want surprises.\nClient 2: Yeah, and I want it to feel… stable. Not like we’re guessing every month.\nAdvisor: Totally. Let’s start with the big picture cash flow, then we’ll map the accounts. William, what are you using as your household gross income for the year?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00053",
+      "record_type": "assets",
+      "record_id": "HH003218_A5",
+      "field_path": "assets[asset_id=HH003218_A5].subtype",
+      "source_value": "primary_residence",
+      "status": "present",
+      "evidence_text": "Advisor: Great, thanks. And you mentioned some private investments—private markets—what’s the value you’re using for that?\nClient 1: 36600.\nAdvisor: Okay. And then separately from investable assets, you have your primary residence—what value are you using for the home?\nClient 2: We’ve got it at 262050.\nAdvisor: Got it. And just to confirm on liabilities: you said no loans outstanding—so no mortgage balance, no car note, nothing like that?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00054",
+      "record_type": "assets",
+      "record_id": "HH003218_A5",
+      "field_path": "assets[asset_id=HH003218_A5].asset_type",
+      "source_value": "property",
+      "status": "present",
+      "evidence_text": "Advisor: Perfect. Next time we can dig into how conservative you want to be with that 295600 and what you want the money to do, but for today this gives me a clean starting map.\nAdvisor: Before we wrap today, I want to make sure the home and debt pieces are super clear, William and Susan.\nAdvisor: On the house—Susan, you mentioned the value you’re using. What number should I anchor to for the property value?\nClient 2: We’ve got it at 262050.\nAdvisor: Great—thank you. And on loans overall, you both said none, but I want to separate it cleanly: total loans outstanding right now—what’s that number?",
+      "notes": "rule-based: last_snippet_variants"
+    },
+    {
+      "target_id": "t00055",
+      "record_type": "assets",
+      "record_id": "HH003218_A5",
+      "field_path": "assets[asset_id=HH003218_A5].provider_type",
+      "source_value": "retirement_platform",
+      "status": "present",
+      "evidence_text": "Advisor: Okay, alternatives—thanks. And within that, what’s the specific type—like private equity, private credit, that sort of thing?\nClient 2: It’s private markets.\nAdvisor: Got it. And where is that actually held—like is it sitting at a bank, a retirement platform, or a brokerage?\nClient 1: Brokerage.\nAdvisor: Okay. And the current value—what number should I put next to that alternatives holding?",
+      "notes": "rule-based: last_snippet_variants"
+    }
+  ]
+}

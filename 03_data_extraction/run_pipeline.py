@@ -126,7 +126,20 @@ def main() -> int:
 
     force_reextract = _truthy_env("EXTRACTION_FORCE_REEXTRACT", default=False)
 
-    extracted_dir = base / "artifacts" / "extracted"
+    output_dir = Path(os.environ.get("OUTPUT_DIR", str(base / "artifacts")) or str(base / "artifacts")).resolve()
+    pairs_path = output_dir / "ground_truth_pairs.jsonl"
+    extracted_dir = output_dir / "extracted"
+    merged_jsonl = output_dir / "merged" / "merged_ground_truth_extracted.jsonl"
+    joint_dataset = output_dir / "joint_dataset.jsonl"
+    hist_path = output_dir / "figures" / "extraction_accuracy_hist.png"
+    dialogs_dir = Path(
+        os.environ.get(
+            "REALISM_PASSED_DIR",
+            str(base.parent / "02_dialogs_generation" / "artifacts" / "dialogs" / "realism_passed"),
+        )
+        or str(base.parent / "02_dialogs_generation" / "artifacts" / "dialogs" / "realism_passed")
+    ).resolve()
+
     extracted_dir.mkdir(parents=True, exist_ok=True)
 
     # Optional: build dialog-grounded GT from evidence before pairing.
@@ -140,7 +153,14 @@ def main() -> int:
     _run(run_reports_cmd)
 
     if force_reextract:
-        cmd = [sys.executable, str(base / "extract_from_dialogs.py")]
+        cmd = [
+            sys.executable,
+            str(base / "extract_from_dialogs.py"),
+            "--dialogs-dir",
+            str(dialogs_dir),
+            "--out-dir",
+            str(extracted_dir),
+        ]
         if extraction_limit and extraction_limit > 0:
             cmd += ["--limit", str(extraction_limit)]
         print(
@@ -173,29 +193,72 @@ def main() -> int:
                     )
                 )
             else:
-                cmd = [sys.executable, str(base / "extract_from_dialogs.py"), "--skip-existing"]
+                cmd = [
+                    sys.executable,
+                    str(base / "extract_from_dialogs.py"),
+                    "--skip-existing",
+                    "--dialogs-dir",
+                    str(dialogs_dir),
+                    "--out-dir",
+                    str(extracted_dir),
+                ]
                 # Keep the limit explicit for clarity.
                 cmd += ["--limit", str(extraction_limit)]
                 print(json.dumps({"step": "extract_from_dialogs", "cmd": cmd}, ensure_ascii=False))
                 _run(cmd)
         else:
-            cmd = [sys.executable, str(base / "extract_from_dialogs.py"), "--skip-existing"]
+            cmd = [
+                sys.executable,
+                str(base / "extract_from_dialogs.py"),
+                "--skip-existing",
+                "--dialogs-dir",
+                str(dialogs_dir),
+                "--out-dir",
+                str(extracted_dir),
+            ]
             print(json.dumps({"step": "extract_from_dialogs", "cmd": cmd}, ensure_ascii=False))
             _run(cmd)
 
-    build_cmd = [sys.executable, str(base / "build_joint_dataset.py")]
+    build_cmd = [
+        sys.executable,
+        str(base / "build_joint_dataset.py"),
+        "--pairs",
+        str(pairs_path),
+        "--extracted-dir",
+        str(extracted_dir),
+        "--out",
+        str(joint_dataset),
+    ]
     if extraction_limit and extraction_limit > 0:
         build_cmd += ["--limit", str(extraction_limit)]
     print(json.dumps({"step": "build_joint_dataset", "cmd": build_cmd}, ensure_ascii=False))
     _run(build_cmd)
 
-    eval_cmd = [sys.executable, str(base / "evaluate_extraction.py")]
+    eval_cmd = [
+        sys.executable,
+        str(base / "evaluate_extraction.py"),
+        "--pairs",
+        str(pairs_path),
+        "--extracted-dir",
+        str(extracted_dir),
+        "--out-jsonl",
+        str(merged_jsonl),
+        "--hist-path",
+        str(hist_path),
+    ]
     if extraction_limit and extraction_limit > 0:
         eval_cmd += ["--limit", str(extraction_limit)]
     print(json.dumps({"step": "evaluate_extraction", "cmd": eval_cmd}, ensure_ascii=False))
     _run(eval_cmd)
 
-    disc_cmd = [sys.executable, str(base / "analyze_discrepancies.py")]
+    disc_cmd = [
+        sys.executable,
+        str(base / "analyze_discrepancies.py"),
+        "--merged-jsonl",
+        str(merged_jsonl),
+        "--out-dir",
+        str(output_dir),
+    ]
     # Print a small sample of value mismatches by default to make debugging easier.
     # Can be disabled via PRINT_VALUE_MISMATCHES=0.
     if _truthy_env("PRINT_VALUE_MISMATCHES", default=True):

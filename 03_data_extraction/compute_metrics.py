@@ -3,6 +3,7 @@ Extraction quality metrics computation module for pipeline results.
 """
 import json
 import csv
+import os
 from pathlib import Path
 from collections import defaultdict
 
@@ -26,7 +27,7 @@ except Exception:  # pragma: no cover - fallback for local envs
         return "\n".join(lines)
 
 # Input artifact paths
-ARTIFACTS = Path(__file__).parent / "artifacts"
+ARTIFACTS = Path(os.environ.get("OUTPUT_DIR", Path(__file__).parent / "artifacts")).resolve()
 MERGED = ARTIFACTS / "merged"
 ACCURACY_REPORT = MERGED / "accuracy_report.json"
 DISCREPANCY = ARTIFACTS / "discrepancy_summary.json"
