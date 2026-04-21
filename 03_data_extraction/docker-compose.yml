@@ -3,6 +3,17 @@ services:
     build: .
     env_file:
       - .env
+    environment:
+      OUTPUT_DIR: ${OUTPUT_DIR:-/repo/03_data_extraction/artifacts}
+      REALISM_PASSED_DIR: ${REALISM_PASSED_DIR:-/repo/02_dialogs_generation/artifacts/dialogs/realism_passed}
+      EVIDENCE_DIALOGS_DIR: ${EVIDENCE_DIALOGS_DIR:-/repo/02_dialogs_generation/artifacts/dialogs}
+      GROUNDED_PROFILES_JSON: ${GROUNDED_PROFILES_JSON:-/repo/02_dialogs_generation/artifacts/grounded_financial_profiles.json}
+      FINANCIAL_PROFILES_JSON: ${FINANCIAL_PROFILES_JSON:-/repo/02_dialogs_generation/artifacts/financial_profiles.json}
+      AUTO_EXPORT_GROUNDED_PROFILES: ${AUTO_EXPORT_GROUNDED_PROFILES:-1}
+      FORCE_REBUILD_GROUNDED_PROFILES: ${FORCE_REBUILD_GROUNDED_PROFILES:-0}
+      EXTRACTION_LIMIT: ${EXTRACTION_LIMIT:-999}
+      EXTRACTION_FORCE_REEXTRACT: ${EXTRACTION_FORCE_REEXTRACT:-0}
+      EXTRACTION_WORKERS: ${EXTRACTION_WORKERS:-20}
     volumes:
       - ..:/repo
     working_dir: /repo/03_data_extraction

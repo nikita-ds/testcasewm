@@ -7,10 +7,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple, TypeGuard
 
-import matplotlib
+try:
+    import matplotlib
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt  # noqa: E402
+except Exception:  # pragma: no cover - local minimal environments may skip plots
+    plt = None  # type: ignore[assignment]
 
 from normalization_bridge import normalize_profile_values
 from scoring_config import default_exclusions_path, load_exclusions, should_score_field
@@ -617,6 +620,8 @@ def merge_and_score_one(
 
 
 def _plot_hist(fractions: List[float], out_path: Path) -> None:
+    if plt is None:
+        return
     out_path.parent.mkdir(parents=True, exist_ok=True)
     plt.figure(figsize=(10, 6))
     plt.hist(fractions, bins=40, range=(0.0, 1.0))

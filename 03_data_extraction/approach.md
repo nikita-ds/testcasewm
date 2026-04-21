@@ -182,6 +182,46 @@ Rescue does not replace the whole extraction. It extracts only a narrow set of e
 
 There is also a deterministic repair for a specific bank-type retirement asset pattern, where the dialog text indicates the record should be cash/bank account rather than retirement.
 
+### Evaluated Improvement: Asset Rescue Overwrite
+
+The baseline discrepancy reports showed that most remaining extraction errors were concentrated in `assets`, especially `owner`, `is_joint`, `provider_type`, `asset_type`, and `subtype`.
+
+The improvement keeps the existing narrow asset/owner rescue pass, but changes how it is merged:
+
+- before: rescue values only filled missing base fields;
+- after: when a rescue asset matches a base asset by exact extracted `value`, the rescue may overwrite `owner`, `is_joint`, `provider_type`, `asset_type`, and `subtype`.
+
+This pass does **not** read ground truth, dialog-grounded profiles, evidence files, discrepancy tables, or evaluation results. It only consumes:
+
+- the baseline extracted JSON;
+- the asset/owner rescue output generated from the dialog text.
+
+The main Docker pipeline now evaluates both versions:
+
+- baseline scoring is written to `baseline/merged/merged_ground_truth_extracted.jsonl`;
+- improved scoring is written to `merged/merged_ground_truth_extracted.jsonl`;
+- before/after deltas are written to `improvement_delta.json` and `improvement_delta.md`.
+
+Train delta from `docker compose up --build`:
+
+| Metric | Baseline | Improved | Delta |
+| --- | ---: | ---: | ---: |
+| Dialogs with 100% correct fields | 201/316 = 0.636 | 203/316 = 0.642 | +0.006 |
+| Dialogs with >=95% correct fields | 296/316 = 0.937 | 297/316 = 0.940 | +0.003 |
+| Dialogs with >=90% correct fields | 316/316 = 1.000 | 315/316 = 0.997 | -0.003 |
+| Mean dialog field accuracy | 0.988 | 0.988 | +0.000 |
+| Asset error rate | 1.9% | 1.8% | -0.1 pp |
+
+OOS holdout delta from the same Docker pipeline with OOS environment variables:
+
+| Metric | Baseline | Improved | Delta |
+| --- | ---: | ---: | ---: |
+| Dialogs with 100% correct fields | 58/99 = 0.586 | 59/99 = 0.596 | +0.010 |
+| Dialogs with >=95% correct fields | 95/99 = 0.960 | 96/99 = 0.970 | +0.010 |
+| Dialogs with >=90% correct fields | 99/99 = 1.000 | 99/99 = 1.000 | +0.000 |
+| Mean dialog field accuracy | 0.987 | 0.988 | +0.001 |
+| Asset error rate | 1.7% | 1.5% | -0.2 pp |
+
 ## 3. Error Counting
 
 Evaluation is performed by `evaluate_extraction.py`; detailed discrepancy analysis is performed by `analyze_discrepancies.py`.

@@ -426,6 +426,7 @@
       <a href="#results">Results</a>
       <a href="#quality-controls">Quality controls</a>
       <a href="#next-steps">Next steps</a>
+      <a href="#developed-improvement">Improvement</a>
       <a href="#artifacts">Artifacts</a>
     </nav>
   </div>
@@ -447,6 +448,7 @@
             <li><a href="#results">Train and holdout test results</a></li>
             <li><a href="#quality-controls">Quality controls at each stage</a></li>
             <li><a href="#next-steps">Next steps</a></li>
+            <li><a href="#developed-improvement">Suggested and developed improvement</a></li>
           </ol>
         </div>
       </div>
@@ -863,8 +865,8 @@
           <h2>Train and holdout test performance are closely aligned</h2>
         </div>
         <p class="summary">
-          Holdout test accuracy is nearly identical to Train at the aggregate field level. The strongest remaining errors are concentrated
-          in a small number of asset ownership/type/provider cases, as shown in the discrepancy reports.
+          Holdout test accuracy is nearly identical to Train at the aggregate field level. The final extraction metrics include the
+          evaluated asset rescue overwrite improvement, with before/after deltas written by the Docker pipeline.
         </p>
       </div>
 
@@ -881,27 +883,27 @@
           <tbody>
             <tr>
               <td>Mean household field accuracy</td>
-              <td class="metric">98.78%</td>
-              <td class="metric">98.74%</td>
+              <td class="metric">98.81%</td>
+              <td class="metric">98.81%</td>
             </tr>
             <tr>
               <td>Cell-level match rate</td>
-              <td>98.79%</td>
-              <td>98.74%</td>
+              <td>98.81%</td>
+              <td>98.81%</td>
             </tr>
             <tr>
               <td>Dialogs with 100% correct fields</td>
-              <td>201 / 316 = 63.6%</td>
-              <td>58 / 99 = 58.6%</td>
+              <td>203 / 316 = 64.2%</td>
+              <td>59 / 99 = 59.6%</td>
             </tr>
             <tr>
               <td>Dialogs with at least 95% correct fields</td>
-              <td>296 / 316 = 93.7%</td>
-              <td>95 / 99 = 96.0%</td>
+              <td>297 / 316 = 94.0%</td>
+              <td>96 / 99 = 97.0%</td>
             </tr>
             <tr>
               <td>Dialogs with at least 90% correct fields</td>
-              <td>316 / 316 = 100.0%</td>
+              <td>315 / 316 = 99.7%</td>
               <td>99 / 99 = 100.0%</td>
             </tr>
             <tr>
@@ -916,8 +918,8 @@
             </tr>
             <tr>
               <td>Value mismatch cells</td>
-              <td>184</td>
-              <td>50</td>
+              <td>176</td>
+              <td>45</td>
             </tr>
           </tbody>
         </table>
@@ -932,7 +934,7 @@
               <tr><td>people</td><td>0.2%</td><td>0.5%</td><td>0.0%</td><td>2,602</td></tr>
               <tr><td>liabilities</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>1,338</td></tr>
               <tr><td>protection_policies</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>950</td></tr>
-              <tr><td>assets</td><td>0.8%</td><td>1.9%</td><td>0.0%</td><td>8,635</td></tr>
+              <tr><td>assets</td><td>0.8%</td><td>1.8%</td><td>0.0%</td><td>8,635</td></tr>
               <tr><td>households</td><td>0.0%</td><td>0.1%</td><td>0.0%</td><td>5,056</td></tr>
               <tr><td>income_lines</td><td>0.0%</td><td>0.1%</td><td>0.0%</td><td>2,648</td></tr>
             </tbody>
@@ -946,7 +948,7 @@
               <tr><td>people</td><td>0.0%</td><td>0.3%</td><td>0.0%</td><td>799</td></tr>
               <tr><td>liabilities</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>341</td></tr>
               <tr><td>protection_policies</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>270</td></tr>
-              <tr><td>assets</td><td>1.1%</td><td>1.7%</td><td>0.0%</td><td>2,713</td></tr>
+              <tr><td>assets</td><td>1.1%</td><td>1.5%</td><td>0.0%</td><td>2,713</td></tr>
               <tr><td>households</td><td>0.0%</td><td>0.1%</td><td>0.0%</td><td>1,584</td></tr>
               <tr><td>income_lines</td><td>0.4%</td><td>0.1%</td><td>0.0%</td><td>900</td></tr>
             </tbody>
@@ -963,6 +965,25 @@
           <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" data-embedded-image="embedded-image-27" alt="Holdout test extraction accuracy histogram">
           <figcaption>Holdout test household-level extraction accuracy histogram for 99 dialogs.</figcaption>
         </figure>
+      </div>
+
+      <div class="card" style="margin-top: 18px;">
+        <h3>Measured improvement delta</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Train delta</th>
+              <th>Holdout test delta</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Dialogs with 100% correct fields</td><td>+0.6 percentage points</td><td>+1.0 percentage points</td></tr>
+            <tr><td>Dialogs with at least 95% correct fields</td><td>+0.3 percentage points</td><td>+1.0 percentage points</td></tr>
+            <tr><td>Mean dialog field accuracy</td><td>+0.03 percentage points</td><td>+0.07 percentage points</td></tr>
+            <tr><td>Asset value-mismatch error rate</td><td>-0.1 percentage points</td><td>-0.2 percentage points</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
@@ -1102,6 +1123,7 @@
             Ask each model for a concrete action plan for improving realism, aggregate feedback across dialogs and models,
             and iteratively update the dialog-generation prompts.
           </p>
+          <p><strong>Expected effect:</strong> More realistic synthetic dialogs should make the benchmark closer to real calls and increase confidence that extraction performance transfers to production conversations.</p>
         </div>
 
         <div class="card">
@@ -1111,6 +1133,7 @@
             transcript artifacts, repeated turns, missing punctuation, speaker-label noise, irrelevant side conversations,
             partial truncation, and contradictory corrections.
           </p>
+          <p><strong>Expected effect:</strong> The extractor should become more robust to imperfect transcripts, and the team can learn which noise patterns require validation, retries, or manual review.</p>
         </div>
 
         <div class="card">
@@ -1119,6 +1142,7 @@
             Train or prompt an adversarial model to make minimal dialog edits that break the extractor. Use these attacks
             to design defenses, stronger validation, or a more robust extraction architecture.
           </p>
+          <p><strong>Expected effect:</strong> The system should fail less silently on edge cases and become more stable under confusing, contradictory, or intentionally difficult conversations.</p>
         </div>
 
         <div class="card">
@@ -1127,6 +1151,7 @@
             Compare extraction with and without structured generation / structured output constraints. Measure not only
             accuracy, but also parse failures, coercion issues, latency, retry rate, and cost.
           </p>
+          <p><strong>Expected effect:</strong> Better schema adherence should reduce parsing failures, simplify post-processing, and make model behavior more predictable.</p>
         </div>
 
         <div class="card">
@@ -1135,6 +1160,7 @@
             Quantify how transcript length affects extraction quality and latency. Identify the dialog size at which
             extraction should switch from single-pass processing to batching, chunking, or hierarchical extraction.
           </p>
+          <p><strong>Expected effect:</strong> The pipeline can choose the cheapest reliable extraction strategy for each dialog length, reducing latency and cost without sacrificing accuracy.</p>
         </div>
 
         <div class="card">
@@ -1144,6 +1170,7 @@
             such as public professional profiles or other available records. The dialog can then focus only on missing,
             ambiguous, or stale facts, shortening the conversation while still refreshing outdated information.
           </p>
+          <p><strong>Expected effect:</strong> Calls can become shorter and more focused, while extraction quality may improve because the model has fewer missing or ambiguous facts to recover from speech alone.</p>
         </div>
 
         <div class="card">
@@ -1153,6 +1180,7 @@
             to Gemini or another provider, but only through a pipeline that has been explicitly tested and calibrated for
             that fallback model.
           </p>
+          <p><strong>Expected effect:</strong> Production extraction becomes more reliable during provider outages while keeping quality changes visible and measurable.</p>
         </div>
 
         <div class="card">
@@ -1161,14 +1189,146 @@
             Test different LLMs as extractors and compare single-model, fallback, voting, and specialist-ensemble setups.
             Track accuracy, field-specific failure modes, latency, cost, and operational reliability.
           </p>
+          <p><strong>Expected effect:</strong> The team can choose a model setup based on measured accuracy, cost, and reliability rather than defaulting to a single provider or model family.</p>
         </div>
 
         <div class="card">
-          <h3>9. Run real-world A/B validation</h3>
+          <h3>9. Add inference-time extraction quality prediction</h3>
+          <p>
+            Train or calibrate a quality estimator that scores each extracted dialog after inference, even when ground truth
+            is unavailable. Use signals such as schema/coercion issues, missing critical fields, low evidence density,
+            internal inconsistency, rescue-pass changes, and model self-check disagreement.
+          </p>
+          <p><strong>Expected effect:</strong> Risky extractions can be routed to human review or targeted re-processing, reducing silent failures in real-world usage.</p>
+        </div>
+
+        <div class="card">
+          <h3>10. Build durable dialog and artifact storage</h3>
+          <p>
+            Move dialogs, raw model outputs, extracted profiles, evaluation rows, and review decisions into a proper storage
+            layer, such as object storage plus a relational database or a KV/document store for transcript-level artifacts.
+            Keep stable IDs, versions, model metadata, and audit links between dialog, extraction, and review records.
+          </p>
+          <p><strong>Expected effect:</strong> The system becomes easier to audit, replay, compare across model versions, and operate at scale, while storage and retrieval costs can be controlled more deliberately.</p>
+        </div>
+
+        <div class="card">
+          <h3>11. Run real-world A/B validation</h3>
           <p>
             Compare this pipeline against the current production approach on real dialogs. Measure actual error patterns,
             human review burden, correction rates, and how extraction errors correlate with downstream product metrics.
           </p>
+          <p><strong>Expected effect:</strong> The benchmark can be grounded in real operational outcomes, making it clearer which extractor improvements matter most for users and reviewers.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell" id="developed-improvement">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">8. Suggested and developed improvement</div>
+          <h2>A targeted asset rescue overwrite pass reduced the main remaining error cluster</h2>
+        </div>
+        <p class="summary">
+          The discrepancy analysis showed that the strongest residual errors were concentrated in asset ownership, jointness,
+          provider type, asset type, and subtype. The implemented improvement reuses transcript-derived asset rescue output
+          as a narrow correction source, then measures before/after impact on both Train and holdout test artifacts.
+        </p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <h3>Suggested improvement</h3>
+          <p>
+            Add a specialist correction step for assets instead of re-running the whole extraction. The goal is to fix
+            high-confidence asset labels while keeping unrelated household, income, liability, and protection fields stable.
+          </p>
+          <p>
+            Before the improvement, some asset fields were filled from early or indirect clues in the dialog. If the client
+            later clarified the same asset more precisely, the rescue pass could not overwrite fields that were already
+            populated. For example, an account could remain labeled as `retirement` even after a later clarification made it
+            clear that the same-value asset was actually `cash`.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Developed implementation</h3>
+          <p>
+            The pipeline now scores the original extraction as a baseline, applies `apply_asset_rescue_overwrite.py`, then
+            scores the improved extraction. To avoid correcting the wrong account, the rescue pass updates an asset only
+            when its monetary value exactly matches the value of an asset from the original extraction.
+          </p>
+          <p>
+            After the improvement, the post-extraction pass compares each baseline asset with transcript-derived rescue
+            assets. If the monetary value is an exact match, it treats the two records as the same real-world asset and
+            overwrites selected fields with the clarified values: `owner`, `is_joint`, `provider_type`, `asset_type`, and
+            `subtype`. No new asset records are invented, and non-asset entities are left unchanged.
+          </p>
+        </div>
+        <div class="card">
+          <h3>No-leak boundary</h3>
+          <p>
+            The improvement step consumes only baseline extracted JSON and asset-rescue JSON produced from the transcript.
+            Ground truth, evidence files, discrepancy tables, and evaluation outputs are used only after extraction is frozen.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top: 18px;">
+        <div class="card">
+          <h3>Train delta</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Baseline</th>
+                <th>Improved</th>
+                <th>Delta</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Dialogs with 100% correct fields</td><td>201 / 316 = 63.6%</td><td>203 / 316 = 64.2%</td><td>+0.6 pp</td></tr>
+              <tr><td>Dialogs with at least 95% correct fields</td><td>296 / 316 = 93.7%</td><td>297 / 316 = 94.0%</td><td>+0.3 pp</td></tr>
+              <tr><td>Dialogs with at least 90% correct fields</td><td>316 / 316 = 100.0%</td><td>315 / 316 = 99.7%</td><td>-0.3 pp</td></tr>
+              <tr><td>Mean dialog field accuracy</td><td>98.78%</td><td>98.81%</td><td>+0.03 pp</td></tr>
+              <tr><td>Asset value-mismatch error rate</td><td>1.9%</td><td>1.8%</td><td>-0.1 pp</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>Holdout test delta</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Baseline</th>
+                <th>Improved</th>
+                <th>Delta</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Dialogs with 100% correct fields</td><td>58 / 99 = 58.6%</td><td>59 / 99 = 59.6%</td><td>+1.0 pp</td></tr>
+              <tr><td>Dialogs with at least 95% correct fields</td><td>95 / 99 = 96.0%</td><td>96 / 99 = 97.0%</td><td>+1.0 pp</td></tr>
+              <tr><td>Dialogs with at least 90% correct fields</td><td>99 / 99 = 100.0%</td><td>99 / 99 = 100.0%</td><td>+0.0 pp</td></tr>
+              <tr><td>Mean dialog field accuracy</td><td>98.74%</td><td>98.81%</td><td>+0.07 pp</td></tr>
+              <tr><td>Asset value-mismatch error rate</td><td>1.7%</td><td>1.5%</td><td>-0.2 pp</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="callout" style="margin-top: 18px;">
+        <h3>Operational result</h3>
+        <p>
+          The improvement is intentionally modest and conservative: it changes 21 Train dialogs and 4 holdout dialogs, improves
+          the primary asset error cluster, and records the metric delta automatically in `improvement_delta.md` and
+          `improvement_delta.json` during `docker compose up --build`.
+        </p>
+        <div class="links">
+          <a class="button" href="03_data_extraction/apply_asset_rescue_overwrite.py">Improvement code</a>
+          <a class="button" href="03_data_extraction/compare_improvement_metrics.py">Delta script</a>
+          <a class="button" href="03_data_extraction/artifacts/improvement_delta.md">Train delta report</a>
+          <a class="button" href="03_data_extraction/artifacts/OOS/improvement_delta.md">Holdout delta report</a>
         </div>
       </div>
     </section>

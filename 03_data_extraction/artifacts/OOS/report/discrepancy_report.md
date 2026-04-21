@@ -4,13 +4,13 @@
 
 - Households analyzed: **99**
 - Scored cells: **6607**
-- Match rate (cells): **0.987**
+- Match rate (cells): **0.988**
 
 ### Error breakdown (scored cells)
 
 - Missing extracted: **33**
 - Extra extracted: **0**
-- Value mismatch: **50**
+- Value mismatch: **45**
 
 ## Record pairing by entity
 
@@ -28,10 +28,10 @@
 | entity | field | field_type | n_total | match_rate | n_missing_extracted | n_extra_extracted | n_value_mismatch |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | assets | provider_type | categorical | 273 | 0.959707 | 9 | 0 | 2 |
-| assets | owner | categorical | 488 | 0.961066 | 10 | 0 | 9 |
-| assets | is_joint | boolean | 488 | 0.965164 | 10 | 0 | 7 |
-| assets | asset_type | categorical | 488 | 0.971311 | 0 | 0 | 14 |
-| assets | subtype | categorical | 488 | 0.971311 | 0 | 0 | 14 |
+| assets | owner | categorical | 488 | 0.963115 | 10 | 0 | 8 |
+| assets | is_joint | boolean | 488 | 0.967213 | 10 | 0 | 6 |
+| assets | asset_type | categorical | 488 | 0.973361 | 0 | 0 | 13 |
+| assets | subtype | categorical | 488 | 0.97541 | 0 | 0 | 12 |
 | people | occupation_group | categorical | 103 | 0.980583 | 0 | 0 | 2 |
 | households | annual_household_gross_income | continuous | 99 | 0.989899 | 0 | 0 | 1 |
 | income_lines | amount_annualized | continuous | 225 | 0.991111 | 1 | 0 | 1 |
@@ -111,30 +111,30 @@ Missing extracted happens for two different reasons: (a) **record pairing failed
 
 | entity | field | ground_truth | extracted | count |
 | --- | --- | --- | --- | --- |
-| assets | is_joint | False | True | 6 |
-| assets | owner | client_1 | joint | 4 |
+| assets | asset_type | cash | retirement | 5 |
+| assets | is_joint | False | True | 5 |
 | assets | subtype | bank_account | 401k_ira | 4 |
-| assets | asset_type | cash | retirement | 4 |
-| assets | subtype | bank_account | taxable_brokerage | 3 |
-| assets | asset_type | cash | brokerage | 3 |
-| assets | subtype | taxable_brokerage | bank_account | 2 |
-| assets | asset_type | brokerage | alternatives | 2 |
-| assets | owner | joint | client_1 | 2 |
-| assets | owner | client_2 | joint | 2 |
-| assets | subtype | taxable_brokerage | private_markets | 2 |
+| assets | owner | client_1 | joint | 4 |
 | assets | asset_type | brokerage | cash | 2 |
-| assets | subtype | private_markets | bank_account | 1 |
-| households | annual_household_gross_income | 116750 | 233500 | 1 |
-| income_lines | amount_annualized | 145100 | 92100 | 1 |
-| people | occupation_group | education | business_owner | 1 |
-| assets | subtype | taxable_brokerage | 401k_ira | 1 |
+| assets | subtype | taxable_brokerage | private_markets | 2 |
+| assets | subtype | taxable_brokerage | bank_account | 2 |
+| assets | owner | joint | client_1 | 2 |
+| assets | asset_type | brokerage | alternatives | 2 |
 | assets | asset_type | alternatives | cash | 1 |
+| people | occupation_group | education | business_owner | 1 |
+| income_lines | amount_annualized | 145100 | 92100 | 1 |
+| households | annual_household_gross_income | 116750 | 233500 | 1 |
+| assets | subtype | taxable_brokerage | 401k_ira | 1 |
+| assets | subtype | private_markets | bank_account | 1 |
+| assets | subtype | bank_account | taxable_brokerage | 1 |
 | assets | provider_type | brokerage | bank | 1 |
 | assets | subtype | 401k_ira | bank_account | 1 |
 | assets | provider_type | insurance_company | bank | 1 |
+| assets | owner | client_2 | joint | 1 |
 | assets | owner | client_1 | client_2 | 1 |
 | assets | is_joint | True | False | 1 |
 | assets | asset_type | retirement | cash | 1 |
+| assets | asset_type | cash | brokerage | 1 |
 | assets | asset_type | brokerage | retirement | 1 |
 | people | occupation_group | exec | operations | 1 |
 

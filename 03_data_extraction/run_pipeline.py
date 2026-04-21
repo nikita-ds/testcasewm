@@ -129,6 +129,9 @@ def main() -> int:
     output_dir = Path(os.environ.get("OUTPUT_DIR", str(base / "artifacts")) or str(base / "artifacts")).resolve()
     pairs_path = output_dir / "ground_truth_pairs.jsonl"
     extracted_dir = output_dir / "extracted"
+    improved_extracted_dir = output_dir / "extracted_improved"
+    baseline_merged_jsonl = output_dir / "baseline" / "merged" / "merged_ground_truth_extracted.jsonl"
+    baseline_hist_path = output_dir / "baseline" / "figures" / "extraction_accuracy_hist.png"
     merged_jsonl = output_dir / "merged" / "merged_ground_truth_extracted.jsonl"
     joint_dataset = output_dir / "joint_dataset.jsonl"
     hist_path = output_dir / "figures" / "extraction_accuracy_hist.png"
@@ -219,13 +222,41 @@ def main() -> int:
             print(json.dumps({"step": "extract_from_dialogs", "cmd": cmd}, ensure_ascii=False))
             _run(cmd)
 
+    baseline_eval_cmd = [
+        sys.executable,
+        str(base / "evaluate_extraction.py"),
+        "--pairs",
+        str(pairs_path),
+        "--extracted-dir",
+        str(extracted_dir),
+        "--out-jsonl",
+        str(baseline_merged_jsonl),
+        "--hist-path",
+        str(baseline_hist_path),
+    ]
+    if extraction_limit and extraction_limit > 0:
+        baseline_eval_cmd += ["--limit", str(extraction_limit)]
+    print(json.dumps({"step": "evaluate_extraction_baseline", "cmd": baseline_eval_cmd}, ensure_ascii=False))
+    _run(baseline_eval_cmd)
+
+    improve_cmd = [
+        sys.executable,
+        str(base / "apply_asset_rescue_overwrite.py"),
+        "--input-extracted-dir",
+        str(extracted_dir),
+        "--output-extracted-dir",
+        str(improved_extracted_dir),
+    ]
+    print(json.dumps({"step": "apply_asset_rescue_overwrite", "cmd": improve_cmd}, ensure_ascii=False))
+    _run(improve_cmd)
+
     build_cmd = [
         sys.executable,
         str(base / "build_joint_dataset.py"),
         "--pairs",
         str(pairs_path),
         "--extracted-dir",
-        str(extracted_dir),
+        str(improved_extracted_dir),
         "--out",
         str(joint_dataset),
     ]
@@ -240,7 +271,7 @@ def main() -> int:
         "--pairs",
         str(pairs_path),
         "--extracted-dir",
-        str(extracted_dir),
+        str(improved_extracted_dir),
         "--out-jsonl",
         str(merged_jsonl),
         "--hist-path",
@@ -250,6 +281,23 @@ def main() -> int:
         eval_cmd += ["--limit", str(extraction_limit)]
     print(json.dumps({"step": "evaluate_extraction", "cmd": eval_cmd}, ensure_ascii=False))
     _run(eval_cmd)
+
+    delta_cmd = [
+        sys.executable,
+        str(base / "compare_improvement_metrics.py"),
+        "--baseline-merged",
+        str(baseline_merged_jsonl),
+        "--improved-merged",
+        str(merged_jsonl),
+        "--out-json",
+        str(output_dir / "improvement_delta.json"),
+        "--out-md",
+        str(output_dir / "improvement_delta.md"),
+        "--dataset-name",
+        output_dir.name if output_dir.name else "default",
+    ]
+    print(json.dumps({"step": "compare_improvement_metrics", "cmd": delta_cmd}, ensure_ascii=False))
+    _run(delta_cmd)
 
     disc_cmd = [
         sys.executable,

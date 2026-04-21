@@ -213,7 +213,7 @@ Folder:
 cd 03_data_extraction
 ```
 
-This stage builds dialog-grounded GT pairs, runs LLM extraction, scores extracted profiles against GT, and writes metrics and discrepancy reports.
+This stage builds dialog-grounded GT pairs, runs LLM extraction, applies the evaluated asset rescue overwrite improvement, scores extracted profiles against GT, and writes metrics, deltas, and discrepancy reports.
 
 ### Docker
 
@@ -270,15 +270,19 @@ python3 compute_metrics.py
 - `artifacts/ground_truth_pairs.jsonl`
 - `artifacts/grounded_financial_profiles.json` when exported into this stage
 - `artifacts/extracted/DIALOG_*.extracted.json`
+- `artifacts/baseline/merged/merged_ground_truth_extracted.jsonl`
+- `artifacts/extracted_improved/DIALOG_*.extracted.json`
 - `artifacts/joint_dataset.jsonl`
 - `artifacts/merged/merged_ground_truth_extracted.jsonl`
 - `artifacts/merged/accuracy_report.json`
+- `artifacts/improvement_delta.md`
+- `artifacts/improvement_delta.json`
 - `artifacts/metrics_table.txt`
 - `artifacts/report/discrepancy_report.md`
 - `artifacts/tables/*.csv`
 - `artifacts/figures/*.png`
 
-Extraction quality controls include schema coercion, categorical normalization, targeted rescue passes, content-based record pairing, grounded-aware scoring, and discrepancy analysis.
+Extraction quality controls include schema coercion, categorical normalization, targeted rescue passes, the measured asset rescue overwrite improvement, content-based record pairing, grounded-aware scoring, and discrepancy analysis.
 
 ## Holdout Test Run
 
@@ -295,17 +299,15 @@ Example Docker run for a prepared holdout input folder:
 ```bash
 cd 03_data_extraction
 
-docker compose run --rm \
-  -e OUTPUT_DIR=/repo/03_data_extraction/artifacts/OOS \
-  -e REALISM_PASSED_DIR=/repo/03_data_extraction/artifacts/OOS/dialogs_input \
-  -e EVIDENCE_DIALOGS_DIR=/repo/03_data_extraction/artifacts/OOS/dialogs_input \
-  -e GROUNDED_PROFILES_JSON=/repo/03_data_extraction/artifacts/OOS/grounded_financial_profiles.json \
-  -e FORCE_REBUILD_GROUNDED_PROFILES=1 \
-  -e AUTO_EXPORT_GROUNDED_PROFILES=1 \
-  -e EXTRACTION_LIMIT=99 \
-  -e EXTRACTION_FORCE_REEXTRACT=1 \
-  -e EXTRACTION_WORKERS=20 \
-  extract_from_dialogs
+OUTPUT_DIR=/repo/03_data_extraction/artifacts/OOS \
+REALISM_PASSED_DIR=/repo/03_data_extraction/artifacts/OOS/dialogs_input \
+EVIDENCE_DIALOGS_DIR=/repo/03_data_extraction/artifacts/OOS/dialogs_input \
+GROUNDED_PROFILES_JSON=/repo/03_data_extraction/artifacts/OOS/grounded_financial_profiles.json \
+FORCE_REBUILD_GROUNDED_PROFILES=1 \
+AUTO_EXPORT_GROUNDED_PROFILES=1 \
+EXTRACTION_LIMIT=999 \
+EXTRACTION_FORCE_REEXTRACT=0 \
+docker compose up --build
 ```
 
 After completion, verify counts:
@@ -327,9 +329,9 @@ Current local artifacts include:
 
 - Train/development set: 316 dialogs.
 - Holdout test set: 99 dialogs.
-- Train mean household field accuracy: 98.78%.
-- Holdout test mean household field accuracy: 98.74%.
-- Holdout test dialogs with at least 95% correct fields: 95/99.
+- Train mean household field accuracy after the measured improvement: 98.81%.
+- Holdout test mean household field accuracy after the measured improvement: 98.81%.
+- Holdout test dialogs with at least 95% correct fields: 96/99.
 - Holdout test dialogs with at least 90% correct fields: 99/99.
 
 See [`approach.html`](approach.html) for tables, plots, and links to detailed artifacts.

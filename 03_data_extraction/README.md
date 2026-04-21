@@ -17,10 +17,13 @@ This runs `run_pipeline.py` and executes the full pipeline:
 1. export grounded profiles from evidence files when `AUTO_EXPORT_GROUNDED_PROFILES` is enabled;
 2. build `ground_truth_pairs.jsonl` and basic dataset plots;
 3. run LLM extraction over `.txt` dialogs;
-4. build `joint_dataset.jsonl`;
-5. score extraction and write `merged/merged_ground_truth_extracted.jsonl`;
-6. run discrepancy analysis;
-7. write the final `metrics_table.txt`.
+4. score the original extraction into `baseline/merged/` for before/after comparison;
+5. apply the asset rescue overwrite improvement without reading ground truth or evidence;
+6. build `joint_dataset.jsonl` from the improved extraction;
+7. score improved extraction and write `merged/merged_ground_truth_extracted.jsonl`;
+8. write `improvement_delta.json` and `improvement_delta.md`;
+9. run discrepancy analysis;
+10. write the final improved `metrics_table.txt`.
 
 ## Local Run
 
@@ -107,17 +110,15 @@ For a holdout test, write everything to a separate `OUTPUT_DIR` so OOS artifacts
 Example Docker run for an already prepared OOS dialog directory:
 
 ```bash
-docker compose run --rm \
-  -e OUTPUT_DIR=/repo/03_data_extraction/artifacts/OOS \
-  -e REALISM_PASSED_DIR=/repo/03_data_extraction/artifacts/OOS/dialogs_input \
-  -e EVIDENCE_DIALOGS_DIR=/repo/03_data_extraction/artifacts/OOS/dialogs_input \
-  -e GROUNDED_PROFILES_JSON=/repo/03_data_extraction/artifacts/OOS/grounded_financial_profiles.json \
-  -e FORCE_REBUILD_GROUNDED_PROFILES=1 \
-  -e AUTO_EXPORT_GROUNDED_PROFILES=1 \
-  -e EXTRACTION_LIMIT=99 \
-  -e EXTRACTION_FORCE_REEXTRACT=1 \
-  -e EXTRACTION_WORKERS=20 \
-  extract_from_dialogs
+OUTPUT_DIR=/repo/03_data_extraction/artifacts/OOS \
+REALISM_PASSED_DIR=/repo/03_data_extraction/artifacts/OOS/dialogs_input \
+EVIDENCE_DIALOGS_DIR=/repo/03_data_extraction/artifacts/OOS/dialogs_input \
+GROUNDED_PROFILES_JSON=/repo/03_data_extraction/artifacts/OOS/grounded_financial_profiles.json \
+FORCE_REBUILD_GROUNDED_PROFILES=1 \
+AUTO_EXPORT_GROUNDED_PROFILES=1 \
+EXTRACTION_LIMIT=999 \
+EXTRACTION_FORCE_REEXTRACT=0 \
+docker compose up --build
 ```
 
 After an OOS run, verify counts:
@@ -145,6 +146,8 @@ Main files:
 - `summary.json` - pairing/build summary;
 - `grounded_financial_profiles.json` - dialog-grounded GT when generated in this output directory;
 - `extracted/DIALOG_*.extracted.json` - final extraction outputs;
+- `baseline/merged/merged_ground_truth_extracted.jsonl` - baseline scoring before the improvement pass;
+- `extracted_improved/DIALOG_*.extracted.json` - extraction outputs after the asset rescue overwrite improvement;
 - `extracted/DIALOG_*.raw.json` - raw model outputs;
 - `extracted/extracted_index.jsonl` - extraction status by dialog;
 - `extracted/coerce_issues.json` - coercion issues;
@@ -152,6 +155,8 @@ Main files:
 - `joint_dataset.jsonl` - side-by-side GT/extracted dataset;
 - `merged/merged_ground_truth_extracted.jsonl` - scored field-level merge;
 - `merged/accuracy_report.json` - aggregate evaluation report;
+- `improvement_delta.json` - structured before/after metrics;
+- `improvement_delta.md` - markdown before/after metrics;
 - `metrics_table.txt` - high-level quality metrics.
 
 Plots:
