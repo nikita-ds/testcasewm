@@ -452,7 +452,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-label">Holdout test mean accuracy</div>
-        <div class="stat-value">98.810%</div>
+        <div class="stat-value">98.81%</div>
         <div class="stat-note">Mean scored field fraction</div>
       </div>
     </div>
@@ -949,7 +949,7 @@
             <tr>
               <td>Mean household field accuracy</td>
               <td class="metric">98.811%</td>
-              <td class="metric">98.810%</td>
+              <td class="metric">98.8102%</td>
             </tr>
             <tr>
               <td>Cell-level match rate</td>
@@ -1282,7 +1282,16 @@
         </div>
 
         <div class="card">
-          <h3>11. Run real-world A/B validation</h3>
+          <h3>11. Version benchmark artifacts with DVC</h3>
+          <p>
+            Add DVC for versioning large datasets and generated artifacts outside git. Each benchmark run should point to
+            the exact dialog set, extraction outputs, metric files, prompts, and model configuration used to produce it.
+          </p>
+          <p><strong>Expected effect:</strong> Benchmark results become more reproducible and easier to compare across runs without committing bulky generated artifacts directly to git.</p>
+        </div>
+
+        <div class="card">
+          <h3>12. Run real-world A/B validation</h3>
           <p>
             Compare this pipeline against the current production approach on real dialogs. Measure actual error patterns,
             human review burden, correction rates, and how extraction errors correlate with downstream product metrics.
@@ -1379,7 +1388,7 @@
               <tr><td>Dialogs with 100% correct fields</td><td>58 / 99 = 58.6%</td><td>59 / 99 = 59.6%</td><td>+1.0 pp</td></tr>
               <tr><td>Dialogs with at least 95% correct fields</td><td>95 / 99 = 96.0%</td><td>96 / 99 = 97.0%</td><td>+1.0 pp</td></tr>
               <tr><td>Dialogs with at least 90% correct fields</td><td>99 / 99 = 100.0%</td><td>99 / 99 = 100.0%</td><td>+0.0 pp</td></tr>
-              <tr><td>Mean dialog field accuracy</td><td>98.737%</td><td>98.810%</td><td>+0.073 pp</td></tr>
+              <tr><td>Mean dialog field accuracy</td><td>98.737%</td><td>98.8102%</td><td>+0.073 pp</td></tr>
               <tr><td>Asset value-mismatch error rate</td><td>1.7%</td><td>1.5%</td><td>-0.2 pp</td></tr>
             </tbody>
           </table>
