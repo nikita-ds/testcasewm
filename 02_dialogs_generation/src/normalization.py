@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 
-RULES_PATH = Path(__file__).resolve().parent / "normalization_rules.json"
+RULES_PATH = Path(__file__).resolve().parents[1] / "normalization_rules.json"
 
 
 @lru_cache(maxsize=1)

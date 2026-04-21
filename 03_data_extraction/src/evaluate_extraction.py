@@ -21,7 +21,7 @@ from schema_spec import DEFAULT_ENTITY_ORDER, DataSchema, EntitySpec, FieldSpec
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]
 
 
 def _read_json(path: Path) -> Any:

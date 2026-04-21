@@ -14,8 +14,8 @@ _FIELD_PATH_RE = re.compile(
 
 
 def _repo_root() -> Path:
-    # export_grounded_profiles.py lives in <repo>/03_data_extraction/
-    return Path(__file__).resolve().parents[1]
+    # export_grounded_profiles.py lives in <repo>/03_data_extraction/src/
+    return Path(__file__).resolve().parents[2]
 
 
 def _read_json(path: Path) -> Any:

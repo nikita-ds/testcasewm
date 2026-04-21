@@ -6,6 +6,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+_THIS_DIR = Path(__file__).resolve().parent
+_SRC_DIR = _THIS_DIR / "src"
+for _path in (_SRC_DIR, _THIS_DIR):
+    if str(_path) not in sys.path:
+        sys.path.insert(0, str(_path))
+
 from env_utils import load_dotenv_if_present
 
 
@@ -99,7 +105,7 @@ def _maybe_export_grounded_profiles(base: Path) -> None:
 
     cmd = [
         sys.executable,
-        str(base / "export_grounded_profiles.py"),
+        str(base / "src" / "export_grounded_profiles.py"),
         "--dialogs-dir",
         str(evidence_dir),
         "--out-json",
@@ -224,7 +230,7 @@ def main() -> int:
 
     baseline_eval_cmd = [
         sys.executable,
-        str(base / "evaluate_extraction.py"),
+        str(base / "src" / "evaluate_extraction.py"),
         "--pairs",
         str(pairs_path),
         "--extracted-dir",
@@ -241,7 +247,7 @@ def main() -> int:
 
     improve_cmd = [
         sys.executable,
-        str(base / "apply_asset_rescue_overwrite.py"),
+        str(base / "src" / "apply_asset_rescue_overwrite.py"),
         "--input-extracted-dir",
         str(extracted_dir),
         "--output-extracted-dir",
@@ -252,7 +258,7 @@ def main() -> int:
 
     build_cmd = [
         sys.executable,
-        str(base / "build_joint_dataset.py"),
+        str(base / "src" / "build_joint_dataset.py"),
         "--pairs",
         str(pairs_path),
         "--extracted-dir",
@@ -267,7 +273,7 @@ def main() -> int:
 
     eval_cmd = [
         sys.executable,
-        str(base / "evaluate_extraction.py"),
+        str(base / "src" / "evaluate_extraction.py"),
         "--pairs",
         str(pairs_path),
         "--extracted-dir",
@@ -284,7 +290,7 @@ def main() -> int:
 
     delta_cmd = [
         sys.executable,
-        str(base / "compare_improvement_metrics.py"),
+        str(base / "src" / "compare_improvement_metrics.py"),
         "--baseline-merged",
         str(baseline_merged_jsonl),
         "--improved-merged",
@@ -301,7 +307,7 @@ def main() -> int:
 
     disc_cmd = [
         sys.executable,
-        str(base / "analyze_discrepancies.py"),
+        str(base / "src" / "analyze_discrepancies.py"),
         "--merged-jsonl",
         str(merged_jsonl),
         "--out-dir",
@@ -320,7 +326,7 @@ def main() -> int:
     _run(disc_cmd)
 
     # Compute and print/save extraction metrics
-    metrics_cmd = [sys.executable, str(base / "compute_metrics.py")]
+    metrics_cmd = [sys.executable, str(base / "src" / "compute_metrics.py")]
     print(json.dumps({"step": "compute_metrics", "cmd": metrics_cmd}, ensure_ascii=False))
     _run(metrics_cmd)
     return 0

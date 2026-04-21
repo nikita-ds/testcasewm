@@ -4,10 +4,17 @@ import argparse
 import json
 import os
 import re
+import sys
 from dataclasses import asdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+_THIS_DIR = Path(__file__).resolve().parent
+_SRC_DIR = _THIS_DIR / "src"
+for _path in (_SRC_DIR, _THIS_DIR):
+    if str(_path) not in sys.path:
+        sys.path.insert(0, str(_path))
 
 from coerce import CoerceIssue, coerce_record, compute_derived_household_fields
 from env_utils import load_dotenv_if_present

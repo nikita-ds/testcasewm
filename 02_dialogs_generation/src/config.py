@@ -123,4 +123,4 @@ class GenerationConfig:
 
 def default_repo_root() -> Path:
     # Assumes scripts are run from within the repo.
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]

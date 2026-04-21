@@ -51,20 +51,20 @@ python3 extract_from_dialogs.py \
 To recompute evaluation from already existing extracted JSON files:
 
 ```bash
-python3 evaluate_extraction.py \
+python3 src/evaluate_extraction.py \
   --extracted-dir artifacts/extracted \
   --out-jsonl artifacts/baseline/merged/merged_ground_truth_extracted.jsonl \
   --hist-path artifacts/baseline/figures/extraction_accuracy_hist.png
-python3 apply_asset_rescue_overwrite.py
-python3 build_joint_dataset.py --extracted-dir artifacts/extracted_improved
-python3 evaluate_extraction.py --extracted-dir artifacts/extracted_improved
-python3 compare_improvement_metrics.py \
+python3 src/apply_asset_rescue_overwrite.py
+python3 src/build_joint_dataset.py --extracted-dir artifacts/extracted_improved
+python3 src/evaluate_extraction.py --extracted-dir artifacts/extracted_improved
+python3 src/compare_improvement_metrics.py \
   --baseline-merged artifacts/baseline/merged/merged_ground_truth_extracted.jsonl \
   --improved-merged artifacts/merged/merged_ground_truth_extracted.jsonl \
   --out-json artifacts/improvement_delta.json \
   --out-md artifacts/improvement_delta.md
-python3 analyze_discrepancies.py
-python3 compute_metrics.py
+python3 src/analyze_discrepancies.py
+python3 src/compute_metrics.py
 ```
 
 ## Main Environment Variables
@@ -196,7 +196,7 @@ Discrepancy outputs:
 Rebuild only grounded GT:
 
 ```bash
-python3 export_grounded_profiles.py \
+python3 src/export_grounded_profiles.py \
   --dialogs-dir ../02_dialogs_generation/artifacts/dialogs \
   --out-json ../02_dialogs_generation/artifacts/grounded_financial_profiles.json
 ```
@@ -210,22 +210,23 @@ GROUNDED_PROFILES_JSON=../02_dialogs_generation/artifacts/grounded_financial_pro
 python3 run.py --reports-only
 ```
 
-Run evaluation with a custom tolerance:
+Run evaluation with a custom tolerance. Use a separate output path if you are experimenting; the standard pipeline
+uses `artifacts/baseline/merged/` for baseline scoring and `artifacts/merged/` for the improved final scoring.
 
 ```bash
-python3 evaluate_extraction.py \
+python3 src/evaluate_extraction.py \
   --pairs artifacts/ground_truth_pairs.jsonl \
   --extracted-dir artifacts/extracted \
-  --out-jsonl artifacts/merged/merged_ground_truth_extracted.jsonl \
-  --hist-path artifacts/figures/extraction_accuracy_hist.png \
+  --out-jsonl artifacts/debug_custom_tolerance/merged_ground_truth_extracted.jsonl \
+  --hist-path artifacts/debug_custom_tolerance/extraction_accuracy_hist.png \
   --numeric-rel-tol 0.01
 ```
 
 Include ID fields in scoring:
 
 ```bash
-python3 evaluate_extraction.py --include-ids
-python3 analyze_discrepancies.py --include-ids
+python3 src/evaluate_extraction.py --include-ids
+python3 src/analyze_discrepancies.py --include-ids
 ```
 
 ID fields are usually excluded because extractor quality is evaluated on semantic data, not on guessing synthetic primary keys.

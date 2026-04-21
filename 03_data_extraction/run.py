@@ -14,6 +14,12 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
+_THIS_DIR = Path(__file__).resolve().parent
+_SRC_DIR = _THIS_DIR / "src"
+for _path in (_SRC_DIR, _THIS_DIR):
+    if str(_path) not in sys.path:
+        sys.path.insert(0, str(_path))
+
 from env_utils import load_dotenv_if_present
 
 
@@ -353,19 +359,20 @@ def main() -> None:
 
     extraction_limit = _int_env("EXTRACTION_LIMIT", 0)
 
-    build_cmd: List[str] = [sys.executable, str(Path(__file__).resolve().parent / "build_joint_dataset.py")]
+    src_dir = Path(__file__).resolve().parent / "src"
+    build_cmd: List[str] = [sys.executable, str(src_dir / "build_joint_dataset.py")]
     if extraction_limit and extraction_limit > 0:
         build_cmd += ["--limit", str(extraction_limit)]
     print(json.dumps({"step": "build_joint_dataset", "cmd": build_cmd}, ensure_ascii=False))
     _run(build_cmd)
 
-    eval_cmd: List[str] = [sys.executable, str(Path(__file__).resolve().parent / "evaluate_extraction.py")]
+    eval_cmd: List[str] = [sys.executable, str(src_dir / "evaluate_extraction.py")]
     if extraction_limit and extraction_limit > 0:
         eval_cmd += ["--limit", str(extraction_limit)]
     print(json.dumps({"step": "evaluate_extraction", "cmd": eval_cmd}, ensure_ascii=False))
     _run(eval_cmd)
 
-    disc_cmd: List[str] = [sys.executable, str(Path(__file__).resolve().parent / "analyze_discrepancies.py")]
+    disc_cmd: List[str] = [sys.executable, str(src_dir / "analyze_discrepancies.py")]
     print(json.dumps({"step": "analyze_discrepancies", "cmd": disc_cmd}, ensure_ascii=False))
     _run(disc_cmd)
 

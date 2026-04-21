@@ -32,7 +32,7 @@ If a household exists in `GROUNDED_PROFILES_JSON`, that grounded profile is used
 A dialog-grounded profile is built from `DIALOG_*_evidence.json` files with:
 
 ```bash
-python export_grounded_profiles.py \
+python src/export_grounded_profiles.py \
   --dialogs-dir <dir-with-evidence-files> \
   --out-json <grounded_financial_profiles.json>
 ```
@@ -224,7 +224,7 @@ OOS holdout delta from the same Docker pipeline with OOS environment variables:
 
 ## 3. Error Counting
 
-Evaluation is performed by `evaluate_extraction.py`; detailed discrepancy analysis is performed by `analyze_discrepancies.py`.
+Evaluation is performed by `src/evaluate_extraction.py`; detailed discrepancy analysis is performed by `src/analyze_discrepancies.py`.
 
 ### Normalization Before Comparison
 
@@ -314,7 +314,7 @@ ID fields can be included with `--include-ids`, but that is usually undesirable 
 
 ### Error Types
 
-`analyze_discrepancies.py` breaks errors into:
+`src/analyze_discrepancies.py` breaks errors into:
 
 - `missing_extracted`: GT has an expected value, but extraction did not provide it;
 - `extra_extracted`: GT did not expect the field, but extraction filled it;
@@ -344,7 +344,7 @@ These plots check the composition of the evaluation set: whether it is skewed by
 
 ### Extraction Accuracy
 
-`evaluate_extraction.py` writes:
+`src/evaluate_extraction.py` writes:
 
 - `merged/merged_ground_truth_extracted.jsonl`;
 - `merged/accuracy_report.json`;
@@ -362,7 +362,7 @@ The histogram shows the household-level accuracy distribution. It helps distingu
 
 ### Discrepancy Analysis
 
-`analyze_discrepancies.py` writes:
+`src/analyze_discrepancies.py` writes:
 
 - `discrepancy_summary.json`;
 - `report/discrepancy_report.md`;
@@ -389,7 +389,7 @@ How to use these artifacts:
 
 ### Final Metrics Table
 
-`compute_metrics.py` writes:
+`src/compute_metrics.py` writes:
 
 ```text
 metrics_table.txt

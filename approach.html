@@ -452,7 +452,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-label">Holdout test mean accuracy</div>
-        <div class="stat-value">98.81%</div>
+        <div class="stat-value">98.8102%</div>
         <div class="stat-note">Mean scored field fraction</div>
       </div>
     </div>
@@ -1094,9 +1094,9 @@
         <div class="card">
           <h3>2. Dialog generation quality</h3>
           <p>
-            Dialogs are generated in pieces rather than as a single monolithic response: persona, outline,
-            phase-by-phase transcript, state updates, and optional final polishing. This reduces drift and makes the
-            conversation easier to validate incrementally.
+            Dialogs are generated in pieces rather than as a single monolithic response: persona, field-level chunks
+            with inline evidence, validation, and optional final polishing. This reduces drift and makes the conversation
+            easier to validate incrementally.
           </p>
           <p>
             Evidence artifacts map profile facts to transcript excerpts. The generation pipeline also writes metrics
@@ -1331,7 +1331,7 @@
         <div class="card">
           <h3>Developed implementation</h3>
           <p>
-            The pipeline now scores the original extraction as a baseline, applies `apply_asset_rescue_overwrite.py`, then
+            The pipeline now scores the original extraction as a baseline, applies `src/apply_asset_rescue_overwrite.py`, then
             scores the improved extraction. To avoid correcting the wrong account, the rescue pass updates an asset only
             when its monetary value exactly matches the value of an asset from the original extraction.
           </p>
@@ -1403,8 +1403,8 @@
           `improvement_delta.json` during `docker compose up --build`.
         </p>
         <div class="links">
-          <a class="button" href="03_data_extraction/apply_asset_rescue_overwrite.py">Improvement code</a>
-          <a class="button" href="03_data_extraction/compare_improvement_metrics.py">Delta script</a>
+          <a class="button" href="03_data_extraction/src/apply_asset_rescue_overwrite.py">Improvement code</a>
+          <a class="button" href="03_data_extraction/src/compare_improvement_metrics.py">Delta script</a>
           <a class="button" href="03_data_extraction/artifacts/improvement_delta.md">Train delta report</a>
           <a class="button" href="03_data_extraction/artifacts/OOS/improvement_delta.md">Holdout delta report</a>
         </div>

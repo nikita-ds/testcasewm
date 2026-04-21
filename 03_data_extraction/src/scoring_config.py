@@ -8,7 +8,7 @@ from schema_spec import EntitySpec
 
 
 def default_exclusions_path() -> Path:
-    return Path(__file__).resolve().parent / "config" / "scoring_exclusions.json"
+    return Path(__file__).resolve().parents[1] / "config" / "scoring_exclusions.json"
 
 
 def load_exclusions(path: Path) -> Set[str]:

@@ -8,17 +8,17 @@ from schema_spec import DataSchema
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]
 
 
 def _load_dialogs_normalization_module():
-    """Load 02_dialogs_generation/normalization.py by file path.
+    """Load 02_dialogs_generation/src/normalization.py by file path.
 
     The folder name starts with a digit, so it can't be imported as a normal
     Python package.
     """
 
-    mod_path = _repo_root() / "02_dialogs_generation" / "normalization.py"
+    mod_path = _repo_root() / "02_dialogs_generation" / "src" / "normalization.py"
     if not mod_path.exists():
         raise RuntimeError(f"Missing normalization module at {mod_path}")
 

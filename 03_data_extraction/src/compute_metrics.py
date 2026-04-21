@@ -27,7 +27,7 @@ except Exception:  # pragma: no cover - fallback for local envs
         return "\n".join(lines)
 
 # Input artifact paths
-ARTIFACTS = Path(os.environ.get("OUTPUT_DIR", Path(__file__).parent / "artifacts")).resolve()
+ARTIFACTS = Path(os.environ.get("OUTPUT_DIR", Path(__file__).resolve().parents[1] / "artifacts")).resolve()
 MERGED = ARTIFACTS / "merged"
 ACCURACY_REPORT = MERGED / "accuracy_report.json"
 DISCREPANCY = ARTIFACTS / "discrepancy_summary.json"

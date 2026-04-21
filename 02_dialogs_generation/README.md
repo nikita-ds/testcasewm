@@ -4,12 +4,9 @@ This folder contains a production-oriented pipeline that generates long, realist
 
 Key properties:
 - Uses `generator_params.scenarios` + `generator_params.scenario_weights` from priors (with fallback to `scenario_catalog`) to sample scenarios with the same distribution as the upstream generator.
-- Multi-stage generation (no single-pass full transcript):
-  1) persona generation
-  2) conversation outline
-  3) phase-by-phase dialogue generation
-  4) state update after each phase
-- Optional: evidence extraction that maps each input field/value to a short advisor-question + client-answer excerpt for downstream verification.
+- Current benchmark configuration uses `field_chunks` mode: the generator groups profile fields into batches, writes transcript segments around those batches, and returns inline evidence for the generated facts.
+- The older `phases` mode is still supported by the codebase, but it is not the mode used for the reported Train/OOS benchmark.
+- Optional: evidence artifacts map each input field/value to a short advisor-question + client-answer excerpt for downstream verification. In `field_chunks` mode this evidence is produced inline with generation rather than through a separate post-hoc LLM pass.
 - Prompts are stored as separate `.md` files under `prompts/` and loaded dynamically.
 - Uses the OpenAI Python SDK (Responses API). Set `OPENAI_API_KEY`.
 - The current project configuration uses OpenAI `gpt-5.2` for dialog generation (`MODEL` in `.env`).
@@ -65,9 +62,12 @@ cd 02_dialogs_generation
 # Put your OpenAI key into 02_dialogs_generation/.env
 # OPENAI_API_KEY=...
 # MODEL=gpt-5.2
+# DIALOG_MODE=field_chunks
+# EVIDENCE_POSTHOC=0
 
 # End-to-end run (builds financial_profiles.json from 01_data_generation tables,
-# then generates dialogs). Defaults to 1 dialog.
+# then generates dialogs). Without .env overrides, the code default is 1 dialog;
+# the repository .env used for the benchmark sets DIALOG_N explicitly.
 docker compose up --build
 
 # To generate more dialogs, set DIALOG_N in 02_dialogs_generation/.env, e.g.
@@ -83,7 +83,7 @@ docker compose up --build
 # DIALOG_REGISTRY_SKIP_STATUSES=success,validation_failed  # default
 # (Set to "success" if you want to re-try previously validation-failed households.)
 
-# If phases get truncated (invalid JSON), increase output budget, e.g.
+# If a generation response gets truncated (invalid JSON), increase output budget, e.g.
 # MAX_OUTPUT_TOKENS=8000
 
 # Evidence / verification artifacts (recommended while debugging grounding)
@@ -94,7 +94,7 @@ docker compose up --build
 # REQUIRE_VALIDATION_PASS=1
 # VALIDATION_STRICT=0
 
-# Alternative mode to avoid a second LLM pass for evidence:
+# Current benchmark mode:
 # - field_chunks generates the transcript in batches of input fields and returns inline evidence for each batch.
 # DIALOG_MODE=field_chunks
 # EVIDENCE_POSTHOC=0
@@ -117,17 +117,13 @@ docker compose up --build
 # DEEPSEEK_PASS_SUBDIR=realism_passed
 ```
 
-### Example transcript guidance in prompts
+### Example transcript style guidance
 
-The phase-generation prompt injects two style exemplars from `00_initial_task/`:
+The two source transcripts in `00_initial_task/` were used to distill style guidance for realistic advisor-client calls:
 - `synthetic_transcript1.txt`
 - `synthetic_transcript2.txt`
 
-Because those files are very large, the default mode injects **excerpts** only.
-You can control this via `EXAMPLE_TRANSCRIPTS_MODE` in `.env`:
-- `excerpt` (default, recommended)
-- `full` (very large; may exceed context limits)
-- `none`
+For the reported Train/OOS dialogs, the source transcripts themselves were not copied into generation prompts. The intent was to capture conversational style without leaking or reproducing example transcript content.
 
 ## Generate dialogues
 
@@ -140,6 +136,7 @@ python 02_dialogs_generation/generate_dialogs.py \
   --min-turns 1000 \
   --max-turns 1700 \
   --model gpt-5.2 \
+  --mode field_chunks \
   --max-output-tokens 8000
 ```
 
@@ -161,12 +158,12 @@ If you generated evidence artifacts (`*_evidence.json`), you can aggregate them 
 and summaries:
 
 ```bash
-python 02_dialogs_generation/aggregate_validation.py \
+python 02_dialogs_generation/src/aggregate_validation.py \
   --dialogs-dir 02_dialogs_generation/artifacts/dialogs \
   --out-dir 02_dialogs_generation/artifacts/validation
 
 # Strict mode: mark a field as error if its source_value (or simple variants) is not found in evidence_text
-python 02_dialogs_generation/aggregate_validation.py \
+python 02_dialogs_generation/src/aggregate_validation.py \
   --dialogs-dir 02_dialogs_generation/artifacts/dialogs \
   --out-dir 02_dialogs_generation/artifacts/validation_strict \
   --strict
@@ -182,12 +179,12 @@ Outputs:
 If you have `*_evidence.json` artifacts, you can export a **sparse** (dialog-grounded) version of the financial profiles that keeps only fields with evidence (by default `status="present"`). This is useful as a “fair” ground-truth for extraction evaluation.
 
 ```bash
-python 03_data_extraction/export_grounded_profiles.py \
+python 03_data_extraction/src/export_grounded_profiles.py \
   --dialogs-dir 02_dialogs_generation/artifacts/dialogs \
   --out-json 02_dialogs_generation/artifacts/grounded_financial_profiles.json
 
 # Optional: also include fields with status="approximate"
-python 03_data_extraction/export_grounded_profiles.py --include-approximate
+python 03_data_extraction/src/export_grounded_profiles.py --include-approximate
 ```
 
 ## Output format
@@ -200,9 +197,9 @@ Each transcript JSON:
   "financial_profile": { ... },
   "personas": [ {"id": "client_1", "profile": {...}}, ... ],
   "transcript": "Advisor: ...\nClient: ...\n...",
-  "phases": [ ... ],
+  "phases": [],
   "evidence": {
-    "meta": {"num_targets": 123, "batch_size": 25, "mode": "phases_posthoc"},
+    "meta": {"num_targets": 123, "batch_size": 25, "mode": "field_chunks"},
     "targets": [ ... ],
     "items": [ ... ]
   },
@@ -216,13 +213,13 @@ Each transcript JSON:
 
 ## Architecture
 - `generate_dialogs.py`: CLI entrypoint
-- `pipeline.py`: orchestration (persona → outline → phases → state updates)
-- `openai_client.py`: OpenAI Responses API wrapper + JSON extraction
-- `scenario.py`: scenario sampling logic (matches upstream)
-- `financial_dataset.py`: build profile JSON from CSV tables
-- `schemas.py`: pydantic models for LLM outputs
-- `state.py`: structured state object
-- `prompt_loader.py`: loads `.md` prompts and performs placeholder substitution
+- `src/pipeline.py`: orchestration (persona → field chunks with inline evidence → validation → optional finalization and realism judging)
+- `src/openai_client.py`: OpenAI Responses API wrapper + JSON extraction
+- `src/scenario.py`: scenario sampling logic (matches upstream)
+- `src/financial_dataset.py`: build profile JSON from CSV tables
+- `src/schemas.py`: pydantic models for LLM outputs
+- `src/state.py`: structured state object
+- `src/prompt_loader.py`: loads `.md` prompts and performs placeholder substitution
 - `prompts/`: prompt templates (no inline prompts in Python)
 
 ## Design decisions

@@ -18,7 +18,7 @@ from scoring_config import default_exclusions_path, load_exclusions, should_scor
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]
 
 
 def _iter_jsonl(path: Path) -> Iterable[Dict[str, Any]]:
@@ -300,12 +300,12 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Analyze field-level extraction discrepancies from merged JSONL")
     ap.add_argument(
         "--merged-jsonl",
-        default=str(Path(__file__).resolve().parent / "artifacts" / "merged" / "merged_ground_truth_extracted.jsonl"),
+        default=str(Path(__file__).resolve().parents[1] / "artifacts" / "merged" / "merged_ground_truth_extracted.jsonl"),
         help="Path to merged_ground_truth_extracted.jsonl",
     )
     ap.add_argument(
         "--out-dir",
-        default=str(Path(__file__).resolve().parent / "artifacts"),
+        default=str(Path(__file__).resolve().parents[1] / "artifacts"),
         help="Base artifacts dir (default: 03_data_extraction/artifacts)",
     )
     ap.add_argument("--include-ids", action="store_true", help="Include ID fields in scoring/analysis")

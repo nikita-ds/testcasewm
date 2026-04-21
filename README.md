@@ -45,7 +45,7 @@ Each stage has its own `README.md` with deeper operational details:
   └── artifacts/dialogs/DIALOG_*.json|txt|evidence.json|metrics.json
   └── artifacts/dialogs/realism_passed/
         ↓
-03_data_extraction/export_grounded_profiles.py
+03_data_extraction/src/export_grounded_profiles.py
   └── grounded_financial_profiles.json
         ↓
 03_data_extraction
@@ -166,7 +166,9 @@ OPENAI_API_KEY=...
 DIALOG_N=25
 DIALOG_WORKERS=5
 MODEL=gpt-5.2
+DIALOG_MODE=field_chunks
 SAVE_EVIDENCE_JSON=1
+EVIDENCE_POSTHOC=0
 SAVE_METRICS_JSON=1
 REQUIRE_VALIDATION_PASS=1
 FINALIZE_TRANSCRIPT=1
@@ -195,6 +197,7 @@ python generate_dialogs.py \
   --min-turns 1000 \
   --max-turns 1700 \
   --model gpt-5.2 \
+  --mode field_chunks \
   --max-output-tokens 8000
 ```
 
@@ -208,7 +211,7 @@ python generate_dialogs.py \
 - `artifacts/dialogs/realism_passed/`
 - `artifacts/dialogs/dialog_registry.csv`
 
-Dialog quality controls include chunked generation, evidence mapping, validation metrics, regex/normalization-based grounding checks, and optional DeepSeek realism scoring.
+Dialog quality controls include field-chunk generation with inline evidence, validation metrics, regex/normalization-based grounding checks, and optional DeepSeek realism scoring.
 
 ## Stage 03: Extract Data and Evaluate
 
@@ -264,20 +267,20 @@ python3 extract_from_dialogs.py \
 ### Recompute Evaluation from Existing Extracted JSON
 
 ```bash
-python3 evaluate_extraction.py \
+python3 src/evaluate_extraction.py \
   --extracted-dir artifacts/extracted \
   --out-jsonl artifacts/baseline/merged/merged_ground_truth_extracted.jsonl \
   --hist-path artifacts/baseline/figures/extraction_accuracy_hist.png
-python3 apply_asset_rescue_overwrite.py
-python3 build_joint_dataset.py --extracted-dir artifacts/extracted_improved
-python3 evaluate_extraction.py --extracted-dir artifacts/extracted_improved
-python3 compare_improvement_metrics.py \
+python3 src/apply_asset_rescue_overwrite.py
+python3 src/build_joint_dataset.py --extracted-dir artifacts/extracted_improved
+python3 src/evaluate_extraction.py --extracted-dir artifacts/extracted_improved
+python3 src/compare_improvement_metrics.py \
   --baseline-merged artifacts/baseline/merged/merged_ground_truth_extracted.jsonl \
   --improved-merged artifacts/merged/merged_ground_truth_extracted.jsonl \
   --out-json artifacts/improvement_delta.json \
   --out-md artifacts/improvement_delta.md
-python3 analyze_discrepancies.py
-python3 compute_metrics.py
+python3 src/analyze_discrepancies.py
+python3 src/compute_metrics.py
 ```
 
 ### Main Outputs
@@ -344,8 +347,8 @@ Current local artifacts include:
 
 - Train/development set: 316 dialogs.
 - Holdout test set: 99 dialogs.
-- Train mean household field accuracy after the measured improvement: 98.81%.
-- Holdout test mean household field accuracy after the measured improvement: 98.81%.
+- Train mean household field accuracy after the measured improvement: 98.811%.
+- Holdout test mean household field accuracy after the measured improvement: 98.8102%.
 - Holdout test dialogs with at least 95% correct fields: 96/99.
 - Holdout test dialogs with at least 90% correct fields: 99/99.
 
