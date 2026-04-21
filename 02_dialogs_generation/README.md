@@ -12,6 +12,7 @@ Key properties:
 - Optional: evidence extraction that maps each input field/value to a short advisor-question + client-answer excerpt for downstream verification.
 - Prompts are stored as separate `.md` files under `prompts/` and loaded dynamically.
 - Uses the OpenAI Python SDK (Responses API). Set `OPENAI_API_KEY`.
+- The current project configuration uses OpenAI `gpt-5.2` for dialog generation (`MODEL` in `.env`).
 
 ## Repository constraints
 - This module does **not** modify upstream data generation.
@@ -63,6 +64,7 @@ cd 02_dialogs_generation
 
 # Put your OpenAI key into 02_dialogs_generation/.env
 # OPENAI_API_KEY=...
+# MODEL=gpt-5.2
 
 # End-to-end run (builds financial_profiles.json from 01_data_generation tables,
 # then generates dialogs). Defaults to 1 dialog.
@@ -108,6 +110,7 @@ docker compose up --build
 # DEEPSEEK_KEY=...
 # DEEPSEEK_REALISM_CHECK=1
 # DEEPSEEK_MODEL=deepseek-chat
+# In the DeepSeek API, deepseek-chat currently maps to DeepSeek-V3.2 non-thinking mode.
 # DeepSeek returns a single realism score 1..5.
 # The transcript is copied into artifacts/dialogs/realism_passed/ when realism_score >= threshold.
 # DEEPSEEK_REALISM_THRESHOLD=4
@@ -136,7 +139,7 @@ python 02_dialogs_generation/generate_dialogs.py \
   --n 25 \
   --min-turns 1000 \
   --max-turns 1700 \
-  --model gpt-4.1 \
+  --model gpt-5.2 \
   --max-output-tokens 8000
 ```
 

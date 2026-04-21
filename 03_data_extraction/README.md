@@ -1,6 +1,6 @@
 # 03_data_extraction
 
-The `03` pipeline builds ground-truth pairs for realism-passed dialogs, runs LLM extraction, compares extraction output against ground truth, and writes metrics, plots, error tables, and a markdown discrepancy report.
+The `03` pipeline builds ground-truth pairs for realism-passed dialogs, runs LLM extraction, evaluates the original baseline, applies the measured asset rescue overwrite improvement, evaluates the improved output, and writes metrics, plots, error tables, delta reports, and a markdown discrepancy report.
 
 Methodological details are documented in [`approach.md`](approach.md).
 
@@ -51,8 +51,18 @@ python3 extract_from_dialogs.py \
 To recompute evaluation from already existing extracted JSON files:
 
 ```bash
-python3 build_joint_dataset.py
-python3 evaluate_extraction.py
+python3 evaluate_extraction.py \
+  --extracted-dir artifacts/extracted \
+  --out-jsonl artifacts/baseline/merged/merged_ground_truth_extracted.jsonl \
+  --hist-path artifacts/baseline/figures/extraction_accuracy_hist.png
+python3 apply_asset_rescue_overwrite.py
+python3 build_joint_dataset.py --extracted-dir artifacts/extracted_improved
+python3 evaluate_extraction.py --extracted-dir artifacts/extracted_improved
+python3 compare_improvement_metrics.py \
+  --baseline-merged artifacts/baseline/merged/merged_ground_truth_extracted.jsonl \
+  --improved-merged artifacts/merged/merged_ground_truth_extracted.jsonl \
+  --out-json artifacts/improvement_delta.json \
+  --out-md artifacts/improvement_delta.md
 python3 analyze_discrepancies.py
 python3 compute_metrics.py
 ```
@@ -145,9 +155,9 @@ Main files:
 - `ground_truth_pairs.jsonl` - dialog + GT profile pairs;
 - `summary.json` - pairing/build summary;
 - `grounded_financial_profiles.json` - dialog-grounded GT when generated in this output directory;
-- `extracted/DIALOG_*.extracted.json` - final extraction outputs;
+- `extracted/DIALOG_*.extracted.json` - baseline extraction outputs before the improvement pass;
 - `baseline/merged/merged_ground_truth_extracted.jsonl` - baseline scoring before the improvement pass;
-- `extracted_improved/DIALOG_*.extracted.json` - extraction outputs after the asset rescue overwrite improvement;
+- `extracted_improved/DIALOG_*.extracted.json` - final extraction outputs after the asset rescue overwrite improvement;
 - `extracted/DIALOG_*.raw.json` - raw model outputs;
 - `extracted/extracted_index.jsonl` - extraction status by dialog;
 - `extracted/coerce_issues.json` - coercion issues;

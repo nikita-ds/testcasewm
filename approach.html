@@ -690,10 +690,19 @@
         <div class="card">
           <h3>Grounded transcript construction</h3>
           <p>The dialog generator consumes the household financial profile and scenario context. It writes a transcript, JSON metadata, evidence items, validation metrics, and plain-text transcript files.</p>
+          <p>
+            The dialog generation model is GPT via the OpenAI API, configured as `gpt-5.2` in the dialog-generation `.env`.
+            GPT is used to create personas, outlines, phase-level turns, state updates, and final transcript polishing.
+          </p>
           <p>Evidence artifacts map profile fields to advisor/client excerpts. These evidence files later become dialog-grounded GT for extraction scoring.</p>
         </div>
         <div class="card">
           <h3>DeepSeek realism gate</h3>
+          <p>
+            Dialog realism is checked with an LLM-as-a-Judge approach. The judge is DeepSeek, configured through the
+            DeepSeek API model id `deepseek-chat`; according to the current DeepSeek API changelog, this maps to
+            DeepSeek-V3.2 non-thinking mode.
+          </p>
           <p>A DeepSeek judge scores finalized transcripts on a 1 to 5 realism scale. The standard gate copies transcripts into a `realism_passed` subset when the realism score meets the configured threshold.</p>
           <p>In the Train set, 316 dialogs are from the realism-passed subset. For the holdout test, the requested evaluation used 99 valid generated dialogs with judge artifacts retained.</p>
         </div>

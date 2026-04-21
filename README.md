@@ -51,7 +51,10 @@ Each stage has its own `README.md` with deeper operational details:
 03_data_extraction
   └── ground_truth_pairs.jsonl
   └── extracted/DIALOG_*.extracted.json
+  └── baseline/merged/merged_ground_truth_extracted.jsonl
+  └── extracted_improved/DIALOG_*.extracted.json
   └── merged/merged_ground_truth_extracted.jsonl
+  └── improvement_delta.md|json
   └── metrics_table.txt
   └── report/ and tables/ discrepancy artifacts
 ```
@@ -142,7 +145,7 @@ Folder:
 cd 02_dialogs_generation
 ```
 
-This stage consumes synthetic financial profiles and generates advisor-client dialogs. It can also write evidence files and run a DeepSeek realism judge.
+This stage consumes synthetic financial profiles and generates advisor-client dialogs. The current configuration uses OpenAI `gpt-5.2` for dialog generation, can write field-level evidence files, and can run an LLM-as-a-Judge realism gate via DeepSeek `deepseek-chat` (DeepSeek-V3.2 non-thinking mode in the current DeepSeek API).
 
 ### Build Financial Profiles JSON
 
@@ -162,12 +165,14 @@ Create or update `02_dialogs_generation/.env`:
 OPENAI_API_KEY=...
 DIALOG_N=25
 DIALOG_WORKERS=5
+MODEL=gpt-5.2
 SAVE_EVIDENCE_JSON=1
 SAVE_METRICS_JSON=1
 REQUIRE_VALIDATION_PASS=1
 FINALIZE_TRANSCRIPT=1
 DEEPSEEK_REALISM_CHECK=1
 DEEPSEEK_KEY=...
+DEEPSEEK_MODEL=deepseek-chat
 DEEPSEEK_REALISM_THRESHOLD=4
 ```
 
@@ -189,7 +194,7 @@ python generate_dialogs.py \
   --n 25 \
   --min-turns 1000 \
   --max-turns 1700 \
-  --model gpt-4.1 \
+  --model gpt-5.2 \
   --max-output-tokens 8000
 ```
 
@@ -259,8 +264,18 @@ python3 extract_from_dialogs.py \
 ### Recompute Evaluation from Existing Extracted JSON
 
 ```bash
-python3 build_joint_dataset.py
-python3 evaluate_extraction.py
+python3 evaluate_extraction.py \
+  --extracted-dir artifacts/extracted \
+  --out-jsonl artifacts/baseline/merged/merged_ground_truth_extracted.jsonl \
+  --hist-path artifacts/baseline/figures/extraction_accuracy_hist.png
+python3 apply_asset_rescue_overwrite.py
+python3 build_joint_dataset.py --extracted-dir artifacts/extracted_improved
+python3 evaluate_extraction.py --extracted-dir artifacts/extracted_improved
+python3 compare_improvement_metrics.py \
+  --baseline-merged artifacts/baseline/merged/merged_ground_truth_extracted.jsonl \
+  --improved-merged artifacts/merged/merged_ground_truth_extracted.jsonl \
+  --out-json artifacts/improvement_delta.json \
+  --out-md artifacts/improvement_delta.md
 python3 analyze_discrepancies.py
 python3 compute_metrics.py
 ```
@@ -269,9 +284,9 @@ python3 compute_metrics.py
 
 - `artifacts/ground_truth_pairs.jsonl`
 - `artifacts/grounded_financial_profiles.json` when exported into this stage
-- `artifacts/extracted/DIALOG_*.extracted.json`
+- `artifacts/extracted/DIALOG_*.extracted.json` baseline extraction outputs
 - `artifacts/baseline/merged/merged_ground_truth_extracted.jsonl`
-- `artifacts/extracted_improved/DIALOG_*.extracted.json`
+- `artifacts/extracted_improved/DIALOG_*.extracted.json` improved extraction outputs after the asset rescue overwrite pass
 - `artifacts/joint_dataset.jsonl`
 - `artifacts/merged/merged_ground_truth_extracted.jsonl`
 - `artifacts/merged/accuracy_report.json`
